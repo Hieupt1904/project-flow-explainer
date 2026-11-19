@@ -14,6 +14,8 @@ Môi trường: Ubuntu 24.04 · Python 3.12.3 · Node v24.22.3 · DSH 0.2.2-rc.2
 | `node --test dsh-plugin/tests/lifecycle.test.mjs` | **7 pass** | `*-node-lifecycle.log` |
 | `node --test dsh-plugin/tests/client.test.mjs` | **10 pass** | `*-node-client.log` |
 | `node --test dsh-plugin/tests/pack.test.mjs` | **2 pass** | `*-node-pack.log` |
+| `node --test dsh-plugin/tests/settings.test.mjs` | **5 pass** | `*-node-settings.log` |
+| `node --test dsh-plugin/tests/arguments.test.mjs` | **9 pass** | `*-node-arguments.log` |
 | `python3 -m compileall -q scripts tests pfe tools` | OK | `*-compileall.log` |
 | `python3 scripts/check_repo_policy.py` | OK | `*-policy.log` |
 | UI (trình duyệt thật) | 12 tổ hợp × 2 chế độ, 0 lỗi | [20261119-ui.json](artifacts/review/20261119-ui.json) |
@@ -24,10 +26,10 @@ Tarball phát hành:
 
 | Mục | Giá trị |
 |---|---|
-| Tên | `dsh-project-flow-explainer-0.5.5.tgz` |
-| Byte | 98901 |
+| Tên | `dsh-project-flow-explainer-0.5.6.tgz` |
+| Byte | 101633 |
 | Entry | 26 (gồm `client.js` và `vendor/core/{scripts,assets,tools,pfe}`) |
-| SHA-256 | `52c73c7f31601c6d3702a76b93c0de447f71d97c3eb7560731aaac5cf0688a79` |
+| SHA-256 | `3e2ce8ce098112a07d8a91157bb2fe52ab6d283e6cf8ee73cc1b8ba7825ec44a` |
 
 ## 2. Lỗi tái hiện được và đã sửa trong 0.4.x
 
@@ -237,7 +239,7 @@ sha256 `19e3feac…f6cc2` (manifest: `ui.settings_page_screenshot`).
 Lý do phải mở từ dòng: trang bundle gọi `formFor(pkg.name)`, còn namespace settings dùng **row id**
 (`project-flow-explainer`), nên form chỉ có ở trang cấu hình của row.
 
-## 4g. Session model thật (0.5.5)
+## 4g. Session model thật (ghi dưới 0.5.5)
 
 Chạy trên profile `pfe-webcheck` (bản sao của `web`, cổng 3099), model `deepseek-flash`,
 reasoning high. Prompt không nêu tên tool nào ngoài yêu cầu nghiệp vụ.

@@ -7,10 +7,10 @@ Mọi con số đều có log/artifact tương ứng, sinh từ cùng một comm
 |---|---|
 | Repo | `https://github.com/Hieupt1904/project-flow-explainer` |
 | Commit nguồn | `bd02147` (code 0.3.0); commit kế tiếp chỉ chứa bằng chứng |
-| Package version | `0.5.5` (`engines.dsh: 0.2.2-rc.2`) |
-| Tarball | `dsh-project-flow-explainer-0.5.5.tgz` · 98 901 byte · sha256 `52c73c7f…688a79` |
+| Package version | `0.5.6` (`engines.dsh: 0.2.2-rc.2`) |
+| Tarball | `dsh-project-flow-explainer-0.5.6.tgz` · 101 633 byte · sha256 `3e2ce8ce…5ec44a` |
 | Tarball trước | `dsh-project-flow-explainer-0.3.0.tgz` (lịch sử) |
-| Test | 143 Python · 16 adapter · 9 knowledge · 7 lifecycle · 2 pack — 0 fail |
+| Test | 143 Python · 16 adapter · 9 knowledge · 7 lifecycle · 10 client · 5 settings · 9 arguments · 2 pack — 0 fail |
 | Policy | `check_repo_policy.py` OK: không absolute path, nested artifact, secret-shape |
 | UI | 12 tổ hợp (3 sample × 4 viewport) sạch; tương tác search/click/zoom/fit chạy |
 | Trạng thái tổng | **PARTIAL**: code pass; registry-runtime 0.3.0 và model-driven **CHƯA CHẠY** |

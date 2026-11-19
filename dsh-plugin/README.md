@@ -110,7 +110,65 @@ Profile `web` không bị chạm trong mọi bước.
 ## Kiểm thử
 
 ```bash
-node --test dsh-plugin/tests/plugin.test.mjs      # 16 test: policy, artifact, abort, config
-node --test dsh-plugin/tests/knowledge.test.mjs   # 9 test: 6 tool tri thức + validation
-node --test dsh-plugin/tests/pack.test.mjs        # 2 test: pack + cài độc lập
+node --test dsh-plugin/tests/plugin.test.mjs      # policy, artifact, abort, config
+node --test dsh-plugin/tests/knowledge.test.mjs   # 6 tool tri thức + validation
+node --test dsh-plugin/tests/lifecycle.test.mjs   # mount/dispose/remount, huỷ khi đang chạy
+node --test dsh-plugin/tests/settings.test.mjs    # binding settings theo entry id và package name
+node --test dsh-plugin/tests/arguments.test.mjs   # từ chối tham số không khai báo, cả 7 tool
+node --test dsh-plugin/tests/pack.test.mjs        # pack + cài độc lập
 ```
+
+## Đối chiếu với chuẩn plugin DSH
+
+Rà theo gói tài liệu `dsh-plugin-dev` (bản dịch của docs.deepseekdocs.com) và đối chiếu
+với chính bản cài đang chạy.
+
+| Chuẩn | Trạng thái trong plugin này |
+|---|---|
+| `export const name` + `export function apply(ctx, config)` | **ĐẠT** (`index.js`) |
+| `inject` khai báo trước khi dùng `ctx.<service>` | **ĐẠT**: `inject = ['tools']`; `settings` lấy qua `ctx.inject` tùy chọn |
+| Tool có `output { schema, render }`, `timeoutMs`, `isConcurrencySafe` | **ĐẠT**: 7/7 tool có đủ ba trường |
+| Tên tool không đụng `run_code` | **ĐẠT** |
+| Config schema + người dùng chỉnh trong Settings | **ĐẠT**, nhưng nạp `@deepseek-ai/schemastery` qua resolver neo vào bản cài (xem dưới) |
+| Bundle layer qua `dsh.bundle.patch` | **ĐẠT**: `cordis.patch.yml`, dòng `insert` id `project-flow-explainer` |
+| Nửa client (nếu có UI) | **ĐẠT**: `dsh.client` + `client.js` đăng ký slot `plugins.bundle.config` / `plugins.row.config` |
+| Hủy và dọn tài nguyên | **ĐẠT**: `exec.signal` → `AbortError`; `ctx.effect` dọn run đang bay |
+| Env của người dùng đọc qua snapshot khởi chạy | **ĐẠT** (working tree, chưa phát hành): `PFE_CORE_ROOT` đọc qua `ctx.get('launchEnvironment')`, lùi về `process.env` khi host không có |
+| Tham số được kiểm trước khi chạy | **ĐẠT** bằng `lib/validate.js` + `rejectUnknownKeys()` (tương đương phần mà `defineTool` lo) |
+| `defineTool` từ `@deepseek-ai/dsh-tools` | **KHÔNG dùng, có chủ ý** — xem dưới |
+| `ctx.invariants`, Typert, `deferLoading`, `presentationMeta` | **KHÔNG dùng**: không cần cho một plugin 7 tool cục bộ |
+
+### Vì sao không dùng `defineTool`
+
+`defineTool` là API chuẩn: nó chuyển `parameters` sang JSON Schema và **tự kiểm tham số trước
+khi gọi `execute`**, ném `ToolArgsError`. Plugin này dựng thẳng object rồi `ctx.tools.register()`
+vì `@deepseek-ai/dsh-tools` không resolve được từ thư mục plugin trong profile (kiểm bằng
+`createRequire` từ `~/.dsh/profiles/web/node_modules/dsh-project-flow-explainer/`), và plugin
+giữ cam kết "không import `@deepseek-ai/*`" để bản `link:`/tgz cài được ở mọi profile.
+
+Cái mất khi bỏ `defineTool`: runtime **không** kiểm tham số theo schema, và lỗi sai tham số ra
+dạng `InputError` của plugin thay vì `ToolArgsError`. Plugin tự bù đúng phần thiếu đó:
+
+| `defineTool` cho gì | Plugin làm gì thay thế |
+|---|---|
+| chuyển `parameters` sang JSON Schema | khai báo thẳng JSON Schema trong định nghĩa tool |
+| kiểm kiểu/giá trị theo schema trước `execute` | `lib/validate.js` kiểm từng trường với mã lỗi riêng (`repository_path_missing`, `top_k_out_of_range`, …) |
+| `additionalProperties: false` được thực thi | `rejectUnknownKeys()` — từ chối khóa lạ bằng mã `unknown_arguments` (`tests/arguments.test.mjs`) |
+| lỗi là `ToolArgsError` | lỗi là `InputError` với `code` ổn định, cộng `hint` |
+
+Nếu muốn đúng chuẩn tuyệt đối, thêm `@deepseek-ai/dsh-tools` vào `peerDependencies` rồi bọc
+`defineTool`, và chấp nhận rằng profile phải resolve được gói đó.
+
+### Chi phí prompt của 7 tool
+
+Mô tả tool được tính vào system prompt **mỗi bước** của model. Sau khi rút gọn còn 4 dòng/tool,
+tổng `description` giảm từ 3 492 xuống 2 586 ký tự (−26%); cả `description` + `parameters` là
+5 219 ký tự (khoảng 1 500 token). Thêm tool mới thì phải trả chi phí này mỗi bước — ưu tiên gộp
+tool hơn là thêm tool.
+
+### Hợp đồng id của settings
+
+`ctx.settings.describe()` trả row theo **id của dòng trong profile**, không phải tên package.
+Plugin nhận cả hai: `project-flow-explainer` (id trong `cordis.patch.yml`) và
+`dsh-project-flow-explainer` (tên package, dùng khi mount tay). Không so khớp theo chuỗi con.
+Nếu dòng settings chưa xuất hiện lúc mount, lần `settings/document-updated` kế tiếp sẽ đọc lại.

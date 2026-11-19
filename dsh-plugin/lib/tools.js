@@ -14,7 +14,7 @@ import { runCli } from './core-runner.js'
 import { InputError, resolveRepository } from './paths.js'
 import {
   assertObject, booleanFlag, enumValue, filtersObject, integerInRange,
-  optionalString, requiredString, stringArray,
+  optionalString, rejectUnknownKeys, requiredString, stringArray,
 } from './validate.js'
 
 const TEXT = (value) => [{ type: 'text', text: value }]
@@ -23,14 +23,14 @@ const TEXT = (value) => [{ type: 'text', text: value }]
  * One description shape for every tool, so the model can choose without
  * reading the source. Keep each line short: the model pays for every token.
  */
-function describe({ what, use, notUse, prereq, output, next, limits }) {
+function describe({ what, use, notUse, output, limits }) {
+  // Four lines, not seven. Every tool description is paid on every model step:
+  // the label lines were ~40% of this plugin's prompt footprint. `prereq` and
+  // `next` moved into `limits` and into README, which costs nothing per step.
   return [
     what,
-    `DÙNG KHI: ${use}`,
-    `KHÔNG DÙNG KHI: ${notUse}`,
-    `ĐIỀU KIỆN: ${prereq}`,
+    `DÙNG KHI: ${use} · KHÔNG DÙNG KHI: ${notUse}`,
     `KẾT QUẢ: ${output}`,
-    `TIẾP THEO: ${next}`,
     `GIỚI HẠN: ${limits}`,
   ].join('\n')
 }
@@ -135,13 +135,11 @@ export function knowledgeTools({ settings, core, inFlight }) {
     {
       name: 'project_code_index',
       description: describe({
-    what: 'Xây/cập nhật index tri thức cục bộ tại <repo>/.pfe/index/.',
+    what: 'Xây/cập nhật index cục bộ tại <repo>/.pfe/index/.',
     use: 'lần đầu vào repo, hoặc sau khi pull/đổi nhiều file.',
-    notUse: 'khi chỉ cần đọc một file đã biết đường dẫn.',
-    prereq: 'repository_path tuyệt đối trong allowedRoots.',
-    output: 'files/symbols/routes/tests đã index, thời gian, cảnh báo; không trả source.',
-    next: 'project_code_search hoặc project_context_pack.',
-    limits: 'phân tích tĩnh; không chạy code; vector mặc định tắt.',
+    notUse: 'chỉ cần đọc một file đã biết đường dẫn.',
+    output: 'số file/symbol/route/test đã index; không trả source.',
+    limits: 'phân tích tĩnh, không chạy code; vector mặc định tắt; cần trước khi search/context-pack/impact.',
   }),
       parameters: {
         type: 'object',
@@ -218,6 +216,7 @@ export function knowledgeTools({ settings, core, inFlight }) {
       isConcurrencySafe: () => false,
       async execute(args, exec) {
         assertObject(args, 'project_code_index')
+        rejectUnknownKeys(args, ['repository_path', 'mode', 'include_vectors'], 'project_code_index')
         const { root } = repository(args, 'project_code_index')
         const mode = enumValue(args, 'mode', 'project_code_index',
           ['full', 'incremental'], 'incremental')
@@ -258,13 +257,11 @@ export function knowledgeTools({ settings, core, inFlight }) {
     {
       name: 'project_code_search',
       description: describe({
-    what: 'Tìm context bằng exact (FTS5) + graph + vector tùy chọn, xếp hạng lại.',
-    use: 'khi biết tên hàm/lớp/route/từ khoá ngắn.',
-    notUse: 'câu mô tả nghiệp vụ dài — dùng project_flow_explain hoặc project_context_pack.',
-    prereq: 'đã chạy project_code_index (nếu chưa: mã index_missing).',
-    output: 'path, symbol, line range, relation, confidence, lý do khớp, source commit.',
-    next: 'mở đúng path:line; hoặc project_context_pack để gom theo task.',
-    limits: 'exact search cộng dồn theo từ khoá; vector chỉ là candidate lexical.',
+    what: 'Tìm context: exact (FTS5) + graph + vector tùy chọn, xếp hạng lại.',
+    use: 'biết tên hàm/lớp/route/từ khoá ngắn.',
+    notUse: 'câu mô tả nghiệp vụ dài (dùng project_flow_explain hoặc project_context_pack).',
+    output: 'path, symbol, line range, relation, confidence, lý do khớp; không trả source.',
+    limits: 'cần project_code_index trước (nếu chưa: index_missing); khớp theo từ khoá.',
   }),
       parameters: {
         type: 'object',
@@ -339,6 +336,7 @@ export function knowledgeTools({ settings, core, inFlight }) {
       isConcurrencySafe: () => true,
       async execute(args, exec) {
         assertObject(args, 'project_code_search')
+        rejectUnknownKeys(args, ['repository_path', 'query', 'top_k', 'filters'], 'project_code_search')
         const { root } = repository(args, 'project_code_search')
         const query = requiredString(args, 'query', 'project_code_search')
         const topK = integerInRange(args, 'top_k', 'project_code_search',
@@ -382,13 +380,11 @@ export function knowledgeTools({ settings, core, inFlight }) {
       name: 'project_context_pack',
       description: describe({
         what: 'Gom context trước khi sửa: entry point, file nên đọc, dependency, test.',
-        use: 'MẶC ĐỊNH trước khi sửa code — đây là tool đầu tiên nên gọi.',
-        notUse: 'khi chỉ cần kiểm tra artifact/flow đã sinh (dùng project_verify_flow).',
-        prereq: 'đã chạy project_code_index.',
-        output: 'entry_points có loại (http_route/cli_command/gui_event/...), likely_files, '
-          + 'dependencies có path+line, related_tests, limitations.',
-        next: 'sửa code, rồi gọi project_impact_analysis với changed_files.',
-        limits: 'entry point chỉ từ dòng đăng ký thật; không trả source; chưa chạy test.',
+        use: 'MẶC ĐỊNH trước khi sửa code — tool đầu tiên nên gọi.',
+        notUse: 'chỉ cần kiểm artifact đã sinh (dùng project_verify_flow).',
+        output: 'entry_points theo loại (http_route/cli_command/gui_event/...), likely_files, '
+          + 'dependencies path+line, related_tests.',
+        limits: 'cần project_code_index trước; entry point chỉ từ dòng đăng ký thật; chưa chạy test.',
       }),
       parameters: {
         type: 'object',
@@ -596,6 +592,7 @@ export function knowledgeTools({ settings, core, inFlight }) {
       isConcurrencySafe: () => true,
       async execute(args, exec) {
         assertObject(args, 'project_context_pack')
+        rejectUnknownKeys(args, ['repository_path', 'task', 'max_files', 'include_snippets'], 'project_context_pack')
         const { root } = repository(args, 'project_context_pack')
         const task = requiredString(args, 'task', 'project_context_pack')
         const maxFiles = integerInRange(args, 'max_files', 'project_context_pack',
@@ -649,10 +646,8 @@ export function knowledgeTools({ settings, core, inFlight }) {
     what: 'Phân tích tác động của các file vừa sửa.',
     use: 'SAU KHI sửa, trước khi commit.',
     notUse: 'trước khi sửa (dùng project_context_pack).',
-    prereq: 'đã chạy project_code_index; truyền changed_files hoặc diff.',
     output: 'flow/route/symbol bị ảnh hưởng, test liên quan, module phụ thuộc, risk.',
-    next: 'chạy test trong related_tests, rồi project_verify_flow.',
-    limits: 'chỉ thấy quan hệ có trong index; file mới chưa index sẽ báo unknown_files.',
+    limits: 'cần index + changed_files hoặc diff; file mới chưa index báo unknown_files.',
   }),
       parameters: {
         type: 'object',
@@ -773,6 +768,7 @@ export function knowledgeTools({ settings, core, inFlight }) {
       isConcurrencySafe: () => true,
       async execute(args, exec) {
         assertObject(args, 'project_impact_analysis')
+        rejectUnknownKeys(args, ['repository_path', 'changed_files', 'diff'], 'project_impact_analysis')
         const { root } = repository(args, 'project_impact_analysis')
         const changed = stringArray(args, 'changed_files', 'project_impact_analysis')
         const diff = optionalString(args, 'diff', 'project_impact_analysis')
@@ -809,13 +805,11 @@ export function knowledgeTools({ settings, core, inFlight }) {
     {
       name: 'project_verify_flow',
       description: describe({
-    what: 'Kiểm tra artifact/flow: schema, bằng chứng, HTML tĩnh, privacy, test mapping.',
+    what: 'Kiểm artifact/flow: schema, bằng chứng, HTML tĩnh, privacy, test mapping.',
     use: 'bước cuối, sau khi sửa và render lại flow.',
-    notUse: 'để thay cho việc chạy test hoặc mở trình duyệt.',
-    prereq: 'đã có artifact trong <repo>/artifacts/flows/.',
-    output: 'static_verdict, overall_verdict, gates (static/ui/runtime), checks, next_action.',
-    next: 'nếu overall_verdict=partial: mở flow.html và chạy test liên quan.',
-    limits: 'không mở trình duyệt, không chạy code; ui/runtime luôn blocked trừ khi có bằng chứng ngoài.',
+    notUse: 'thay cho việc chạy test hoặc mở trình duyệt.',
+    output: 'static_verdict, overall_verdict, gates, checks, next_action.',
+    limits: 'cần artifact trong <repo>/artifacts/flows/; ui/runtime blocked nếu thiếu bằng chứng ngoài.',
   }),
       parameters: {
         type: 'object',
@@ -887,6 +881,7 @@ export function knowledgeTools({ settings, core, inFlight }) {
       isConcurrencySafe: () => true,
       async execute(args, exec) {
         assertObject(args, 'project_verify_flow')
+        rejectUnknownKeys(args, ['repository_path'], 'project_verify_flow')
         const { root } = repository(args, 'project_verify_flow')
         const payload = await invoke({
           settings, core, argv: ['verify', '--repo', root], exec,
@@ -915,10 +910,8 @@ export function knowledgeTools({ settings, core, inFlight }) {
     what: 'Refresh index tăng dần sau khi sửa code.',
     use: 'sau khi sửa file, trước khi search/impact lần nữa.',
     notUse: 'khi index chưa tồn tại (dùng project_code_index mode=full).',
-    prereq: 'index đã tồn tại.',
-    output: 'số file parse lại/dùng lại, changed/added/deleted/renamed, stale.',
-    next: 'project_code_search hoặc project_impact_analysis.',
-    limits: 'rename nhận qua content hash; không rebuild toàn bộ nếu không cần.',
+    output: 'file parse lại/dùng lại, changed/added/deleted/renamed, stale.',
+    limits: 'cần index sẵn có; rename nhận qua content hash.',
   }),
       parameters: {
         type: 'object',
@@ -970,6 +963,7 @@ export function knowledgeTools({ settings, core, inFlight }) {
       isConcurrencySafe: () => false,
       async execute(args, exec) {
         assertObject(args, 'project_knowledge_refresh')
+        rejectUnknownKeys(args, ['repository_path', 'mode', 'include_vectors'], 'project_knowledge_refresh')
         const { root } = repository(args, 'project_knowledge_refresh')
         const mode = enumValue(args, 'mode', 'project_knowledge_refresh',
           ['full', 'incremental'], 'incremental')

@@ -28,7 +28,7 @@ import {
 } from './lib/paths.js'
 import { knowledgeTools } from './lib/tools.js'
 import {
-  assertObject, optionalString, requiredString,
+  assertObject, optionalString, rejectUnknownKeys, requiredString,
 } from './lib/validate.js'
 
 export const name = 'project-flow-explainer'
@@ -98,6 +98,9 @@ if (schemaModule !== undefined) {
 export const Config = ConfigSchema
 
 export const TOOL_NAME = 'project_flow_explain'
+const PACKAGE_NAME = 'dsh-project-flow-explainer'
+/** Settings rows are keyed by profile entry id; both conventions are in use. */
+const SETTINGS_IDS = new Set([name, PACKAGE_NAME])
 const PACKAGE_ROOT = path.dirname(fileURLToPath(import.meta.url))
 
 const DEFAULTS = {
@@ -149,6 +152,40 @@ function normalizeConfig(config) {
   return settings
 }
 
+/**
+ * Environment for user-facing lookups, read through the launcher snapshot when
+ * the host provided one.
+ *
+ * `launchEnvironmentOf(ctx)` (dsh-launch-environment) returns a snapshot layered
+ * over process env, the project `.env` and `$DSH_HOME/.env`, and remembers which
+ * layer a value came from. This package imports nothing from @deepseek-ai/*, so
+ * it reads the same service through `ctx.get('launchEnvironment')` and degrades
+ * to `process.env` when the host has none (headless mount, unit test).
+ * @param {object} ctx - plugin context.
+ * @returns {{PFE_CORE_ROOT?: string}} plain env view for the keys read below.
+ */
+function launchEnv(ctx) {
+  const env = { PFE_CORE_ROOT: process.env.PFE_CORE_ROOT }
+  let snapshot
+  try {
+    snapshot = ctx.get?.('launchEnvironment')
+  } catch {
+    snapshot = undefined
+  }
+  if (snapshot === undefined || typeof snapshot.get !== 'function') return env
+  for (const key of Object.keys(env)) {
+    try {
+      const entry = snapshot.get(key)
+      if (entry !== undefined && typeof entry.value === 'string' && entry.value !== '') {
+        env[key] = entry.value
+      }
+    } catch {
+      // one broken lookup must not break mounting
+    }
+  }
+  return env
+}
+
 /** A cancellation that the runtime recognises as a cancellation, not a failure. */
 function abortError(reason) {
   const error = new Error(reason instanceof Error ? reason.message : 'tool call aborted')
@@ -186,14 +223,20 @@ const TEXT = (value) => [{ type: 'text', text: value }]
  * @param {object} target - normalized settings object updated in place.
  */
 function attachLiveSettings(ctx, target) {
+  let bound = false
   const read = () => {
     try {
       const rows = ctx.settings?.describe?.({ redactSecrets: true }) ?? []
-      const mine = rows.find((row) => String(row.ns) === name)
+      // `ns` is the profile entry id, not the package name: a bundle row is
+      // `project-flow-explainer` while a hand-mounted row may use the package
+      // name instead. Accept either, and never match by substring (a prefix
+      // match would adopt another plugin's values).
+      const mine = rows.find((row) => SETTINGS_IDS.has(String(row.ns)))
       // `value` is the resolved form: profile patch + user layer + defaults.
       // `user` alone is just the profile's own patch layer, so using it would
       // ignore the bundle's configured roots.
       if (mine === undefined || mine.value === undefined) return
+      bound = true
       const layer = {}
       for (const [key, value] of Object.entries(mine.value)) {
         if (value !== undefined && value !== null) layer[key] = value
@@ -206,7 +249,9 @@ function attachLiveSettings(ctx, target) {
   read()
   try {
     ctx.on('settings/document-updated', (ns) => {
-      if (String(ns).includes(name)) read()
+      // Re-read on a matching namespace, and also while still unbound: the first
+      // read can run before the loader has published this entry's row.
+      if (!bound || SETTINGS_IDS.has(String(ns))) read()
     })
   } catch {
     // no event service in this composition
@@ -222,9 +267,13 @@ export function apply(ctx, config = {}) {
   } catch {
     attachLiveSettings(ctx, settings)
   }
+  // PFE_CORE_ROOT may come from the project `.env` or `$DSH_HOME/.env`, not only
+  // from the raw process environment.
+  const env = launchEnv(ctx)
   const core = resolveCoreRoot({
     coreRoot: settings.coreRoot,
     packageRoot: PACKAGE_ROOT,
+    env,
   })
   const inFlight = new Set()
 
@@ -242,13 +291,12 @@ export function apply(ctx, config = {}) {
   ctx.tools.register({
     name: TOOL_NAME,
       description: [
-        'Dựng sơ đồ quy trình từ một repository và một yêu cầu bằng tiếng Việt.',
-        'DÙNG KHI: cần hiểu một luồng nghiệp vụ trước khi sửa, hoặc giải thích cho người không đọc code.',
-        'KHÔNG DÙNG KHI: chỉ cần tra một hàm/route (dùng project_code_search).',
-        'ĐIỀU KIỆN: repository_path tuyệt đối trong allowedRoots; flow_request mô tả luồng cụ thể.',
-        'KẾT QUẢ: flow.html (mở offline, có chế độ Đơn giản), flow.json, overview.md, run.json nội bộ.',
-        'TIẾP THEO: project_context_pack để biết file nào cần đọc trước khi sửa.',
-        'GIỚI HẠN: phân tích tĩnh, không chạy code; verified = vị trí + quan hệ, không phải runtime.',
+        'Dựng sơ đồ quy trình từ một repository và một câu mô tả luồng bằng tiếng Việt.',
+        'DÙNG KHI: cần hiểu một luồng trước khi sửa, hoặc giải thích cho người không đọc code. '
+          + 'KHÔNG DÙNG KHI: chỉ tra một hàm/route (dùng project_code_search).',
+        'KẾT QUẢ: flow.html (offline, có chế độ Đơn giản), flow.json, overview.md, run.json nội bộ.',
+        'GIỚI HẠN: phân tích tĩnh, không chạy code; verified = vị trí + quan hệ, không phải runtime; '
+          + 'repository_path tuyệt đối trong allowedRoots.',
       ].join('\n'),
     parameters: {
       type: 'object',
@@ -370,6 +418,7 @@ export function apply(ctx, config = {}) {
       // Defence in depth: the runtime validates the JSON schema first, but a
       // direct execute() call must not be able to raise a raw TypeError.
       assertObject(args, TOOL_NAME)
+      rejectUnknownKeys(args, ['repository_path', 'flow_request', 'output_directory', 'slug'], TOOL_NAME)
       const repositoryPath = requiredString(args, 'repository_path', TOOL_NAME)
       const request = requiredString(args, 'flow_request', TOOL_NAME)
       const requestedOutput = optionalString(args, 'output_directory', TOOL_NAME)

@@ -22,6 +22,30 @@ export function assertObject(args, toolName) {
   return args
 }
 
+/**
+ * Reject keys the tool does not declare.
+ *
+ * `ToolsService.register()` does not validate arguments, so the declared
+ * `additionalProperties: false` is not enforced by the runtime — only a caller
+ * built on `defineTool` gets that for free. This plugin builds its definitions
+ * by hand, so it enforces the same rule here. Unknown keys are a silent
+ * misconfiguration (a typo like `repositry_path` otherwise looks like a missing
+ * argument), so fail loudly with a stable code.
+ * @param {object} args - already asserted object.
+ * @param {string[]} allowed - declared parameter names.
+ * @param {string} toolName - tool name for the message.
+ * @returns {object} the same object.
+ */
+export function rejectUnknownKeys(args, allowed, toolName) {
+  const unknown = Object.keys(args).filter((key) => !allowed.includes(key))
+  if (unknown.length > 0) {
+    throw new InputError('unknown_arguments',
+      `${toolName}: tham số không được khai báo: ${unknown.join(', ')}.`,
+      `Tham số hợp lệ: ${allowed.join(', ')}.`)
+  }
+  return args
+}
+
 export function requiredString(args, key, toolName, { allowEmpty = false } = {}) {
   const value = args[key]
   if (value === undefined || value === null) {
