@@ -8,7 +8,7 @@ Môi trường: Ubuntu 24.04 · Python 3.12.3 · Node v24.22.3 · DSH 0.2.2-rc.2
 
 | Lệnh | Kết quả | Log |
 |---|---|---|
-| `python3 -m unittest discover -s tests` | **142 test OK** | `artifacts/review/*-python-tests.log` |
+| `python3 -m unittest discover -s tests` | **143 test OK** | `artifacts/review/*-python-tests.log` |
 | `node --test dsh-plugin/tests/plugin.test.mjs` | **16 pass** | `*-node-adapter.log` |
 | `node --test dsh-plugin/tests/knowledge.test.mjs` | **9 pass** | `*-node-knowledge.log` |
 | `node --test dsh-plugin/tests/lifecycle.test.mjs` | **7 pass** | `*-node-lifecycle.log` |
@@ -23,12 +23,12 @@ Tarball phát hành:
 
 | Mục | Giá trị |
 |---|---|
-| Tên | `dsh-project-flow-explainer-0.4.0.tgz` |
-| Byte | 93 626 |
+| Tên | `dsh-project-flow-explainer-0.4.1.tgz` |
+| Byte | 93 745 |
 | Entry | 25 (gồm `vendor/core/{scripts,assets,tools,pfe}`) |
-| SHA-256 | `c5dd93fdef48efaa6c411827ebbdf5757c2f61535b4abfe8fd8ac52bbec41463` |
+| SHA-256 | `3c840af5ad5ffabbfeb09f5927309e0c88ba0bc9d6b0a9bf7b4d9476bb6b8e73` |
 
-## 2. Lỗi tái hiện được và đã sửa trong 0.4.0
+## 2. Lỗi tái hiện được và đã sửa trong 0.4.x
 
 | ID | Tái hiện | Nguyên nhân | Sửa | Test |
 |---|---|---|---|---|
@@ -112,6 +112,31 @@ Tarball phát hành:
 Simple view và Technical view: tràn ngang 0, card chồng 0, nhãn đè card 0, header bị cắt 0,
 console error 0, request ngoài 0. Simple view có 3–7 stage tuỳ flow.
 Chi tiết: [UI_VERIFICATION_REPORT.md](UI_VERIFICATION_REPORT.md).
+
+
+## 4b. Chạy thật trên hai dự án (0.4.1)
+
+Bản ghi đã scrub path và tên repo; chi tiết trong `evidence-manifest.json` mục `real_projects`.
+
+| Chỉ số | Web project (Flask + UI) | Desktop project (tkinter) |
+|---|---|---|
+| File quét (flow) | 246 | 17 |
+| File index | 224 | 26 |
+| Symbol | 1 833 | 207 |
+| Route khai báo | **47** | 0 (đúng: không có HTTP) |
+| Test trong index | 0 | 10 |
+| Entry point theo loại | http_route 47 · gui_event 52 · callback 26 · main 104 · public_api 12 | gui_event 6 · callback 2 · main 28 |
+| File có entry point | 89 | 15 |
+| Context pack route | `/data/publish-schedule` đầu tiên (khớp task) | `routes = []` + limitation giải thích |
+| Dependency có path+line | 24, tất cả có `why_included` | 24 |
+| verify | static pass · overall partial | static pass · overall partial |
+| Index incremental | parse lại 0 file | parse lại 0 file |
+
+Hai điểm đáng chú ý:
+
+1. Lần chạy đầu, script đếm entry point bị `LIMIT 200` cắt nên báo thiếu `main`/`public_api`.
+   Đã sửa sang `GROUP BY` — lỗi của script bằng chứng, không phải của index.
+2. Repo web có 2 file > 256 KB bị bỏ qua và ghi trong `warnings`, đúng ngân sách công bố.
 
 ## 5. Chưa kiểm chứng
 

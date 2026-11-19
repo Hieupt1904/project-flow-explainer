@@ -7,10 +7,10 @@ Mọi con số đều có log/artifact tương ứng, sinh từ cùng một comm
 |---|---|
 | Repo | `https://github.com/Hieupt1904/project-flow-explainer` |
 | Commit nguồn | `bd02147` (code 0.3.0); commit kế tiếp chỉ chứa bằng chứng |
-| Package version | `0.4.0` (`engines.dsh: 0.2.2-rc.2`) |
-| Tarball | `dsh-project-flow-explainer-0.4.0.tgz` · 93 626 byte · sha256 `c5dd93fd…bec41463` |
-| Tarball | `dsh-project-flow-explainer-0.3.0.tgz` · 84 670 byte · 25 entry · sha256 `b3647435…20bf581c` |
-| Test | 142 Python · 16 adapter · 9 knowledge · 7 lifecycle · 2 pack — 0 fail |
+| Package version | `0.4.1` (`engines.dsh: 0.2.2-rc.2`) |
+| Tarball | `dsh-project-flow-explainer-0.4.1.tgz` · 93 745 byte · sha256 `3c840af5…6bb8e73` |
+| Tarball trước | `dsh-project-flow-explainer-0.3.0.tgz` (lịch sử) |
+| Test | 143 Python · 16 adapter · 9 knowledge · 7 lifecycle · 2 pack — 0 fail |
 | Policy | `check_repo_policy.py` OK: không absolute path, nested artifact, secret-shape |
 | UI | 12 tổ hợp (3 sample × 4 viewport) sạch; tương tác search/click/zoom/fit chạy |
 | Trạng thái tổng | **PARTIAL**: code pass; registry-runtime 0.3.0 và model-driven **CHƯA CHẠY** |
@@ -25,7 +25,7 @@ core (Python, stdlib)  : pfe.{policy,facts,flow,ontology,knowledge,index,vectors
 flow CLI               : scripts/build_flow.py -> flow.json/html/overview.md (public) + run.json (internal)
 knowledge CLI          : tools/pfe_cli.py -> index | search | context-pack | impact | verify | refresh | status
 adapter (Node ESM, 0 dep): dsh-plugin/ đăng ký 7 tool, gọi core qua subprocess argv
-boundary               : core không import DSH; xoá dsh-plugin thì CLI + 142 test vẫn chạy
+boundary               : core không import DSH; xoá dsh-plugin thì CLI + 143 test vẫn chạy
 policy                 : allowedRoots deny-by-default; artifact chỉ <repo>/artifacts/flows/<slug>/; index chỉ <repo>/.pfe/index/
 ```
 
@@ -34,7 +34,7 @@ Chi tiết quyết định: [ARCHITECTURE_DECISION.md](ARCHITECTURE_DECISION.md)
 ## 2. Chạy lại toàn bộ
 
 ```bash
-python3 -m unittest discover -s tests -v                 # 142 test
+python3 -m unittest discover -s tests -v                 # 143 test
 python3 -m compileall -q scripts tests pfe tools
 node --test dsh-plugin/tests/plugin.test.mjs             # 16 test
 node --test dsh-plugin/tests/knowledge.test.mjs          # 9 test
@@ -74,7 +74,7 @@ dsh --profile pfe-test --dump-config | grep -A8 project-flow-explainer
 | Loop | Kết quả | Bằng chứng |
 |---|---|---|
 | Static | compileall OK, `node --check` 6 file OK, schema JSON hợp lệ | `*-compileall.log`, manifest `static` |
-| Unit | 142 / 16 / 9 / 7 / 2 pass | `*-python-tests.log`, `*-node-*.log` |
+| Unit | 143 / 16 / 9 / 7 / 2 pass | `*-python-tests.log`, `*-node-*.log` |
 | Security | allowedRoots thiếu/rỗng/ngoài; symlink escape; symlink `.env`; symlink artifact; output sai; slug sai; args sai; secret-shape; private path | test Python + Node, policy log |
 | Graph | không call giả; không bypass; chỉ route được chọn; related không thành node; verified có ref | `tests/test_flow_evidence.py` |
 | Determinism | 2 lần chạy cùng commit khớp node/edge/counts; index tái dùng cache | `test_two_runs_agree…`, `test_full_then_incremental…` |
@@ -146,7 +146,7 @@ dsh-plugin/lib/validate.js    validate tham số, mã lỗi ổn định
 dsh-plugin/scripts/pack.mjs   stage + vendor core (scripts/assets/tools/pfe)
 assets/workflow_template.html UI offline
 references/code-knowledge-schema.json  schema entity/relation/confidence/chunk
-tests/                        142 unittest + fixture shop-app, two-routes-app, scope-app, desktop-app
+tests/                        143 unittest + fixture shop-app, two-routes-app, scope-app, desktop-app
 dsh-plugin/tests/             16 adapter + 9 knowledge + 2 pack
 .github/workflows/ci.yml      py3.12 + node 20/24 + manifest + policy
 ```

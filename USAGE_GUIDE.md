@@ -39,15 +39,19 @@ python3 tools/pfe_cli.py search --repo $R --query "write_xls"
 python3 tools/pfe_cli.py verify --repo $R
 ```
 
-Kết quả thật trên dự án desktop 27 file:
+Kết quả thật trên hai dự án (0.4.1, path và tên repo đã scrub):
 
-| Bước | Số đo |
-|---|---|
-| flow | 12 node: 10 `verified`, 1 `partial`, 1 `inferred`; 17 file quét; 149 ms |
-| index full | 26 file · 207 symbol · 10 test · 568 entity · 575 fact; 157 ms |
-| index incremental | parse lại 0 file, dùng lại 26; 32 ms |
-| search `write_xls` | top-1 đúng hàm, `observed`, score 1.3 |
-| verify | `pass` (7/7 check) |
+| Bước | Desktop (tkinter) | Web (Flask + UI) |
+|---|---|---|
+| flow | 12 node: 10 verified / 1 partial / 1 inferred; 17 file | 20 node: 10 verified / 9 partial / 1 inferred; 246 file |
+| index full | 26 file · 207 symbol · 10 test | 224 file · 1 833 symbol · 47 route |
+| index incremental | parse lại 0 file | parse lại 0 file |
+| entry point | gui_event 6 · callback 2 · main 28 | http_route 47 · gui_event 52 · main 104 |
+| context pack | 4 entry point, `routes = []` (đúng) | route đầu: `/data/publish-schedule` |
+| verify | static pass · overall partial | static pass · overall partial |
+
+Desktop không có HTTP route nên `routes = []` là kết quả đúng, không phải lỗi.
+Web có 47 route vì pattern nhận cả decorator blueprint (`@bp.route`), không chỉ `@app.route`.
 
 ## 3. Vòng lặp hằng ngày khi sửa code
 
@@ -208,7 +212,9 @@ không phải lỗi.
 
 | Bằng chứng | File |
 |---|---|
-| Chạy thật trên dự án desktop (số liệu đã scrub path/tên) | [20261119-2307-real-project.json](artifacts/review/20261119-2307-real-project.json) |
+| Chạy thật trên dự án desktop | `artifacts/review/*-real-project-desktop-project.json` |
+| Chạy thật trên dự án web (47 route) | `artifacts/review/*-real-project-web-project.json` |
+| Tổng hợp hai lần chạy | `evidence-manifest.json` mục `real_projects` |
 | Test khoá hành vi query ngắn/dài | `tests/test_knowledge.py` — `test_long_natural_query_is_flagged`, `test_short_query_has_no_long_query_warning` |
 | Test khoá thứ hạng exact > vector | `test_exact_match_outranks_vector_candidate` |
 | UI và tương tác | [20261119-ui.json](artifacts/review/20261119-ui.json) |

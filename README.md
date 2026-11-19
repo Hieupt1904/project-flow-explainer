@@ -1,9 +1,9 @@
 # Project Flow Explainer
 
 Bộ công cụ đọc repository và giải thích quy trình hoạt động bằng sơ đồ HTML mở offline.
-Bản 0.4.0 thêm **lớp tri thức code** (index, tìm kiếm exact, vector tùy chọn, truy hồi hybrid,
+Bản 0.4.1 thêm **lớp tri thức code** (index, tìm kiếm exact, vector tùy chọn, truy hồi hybrid,
 phân tích tác động, kiểm tra sau khi sửa) và **Simple view** cho người không chuyên.
-Bản 0.4.0 cũng sửa 4 lỗi thật: CLI `flow` không import được core, incremental index làm mất file,
+Bản 0.4.1 cũng sửa 4 lỗi thật: CLI `flow` không import được core, incremental index làm mất file,
 `context_pack` trả route giả, và `dispose` không huỷ run của tool tri thức.
 
 Hai lớp, một core:
@@ -12,7 +12,7 @@ Hai lớp, một core:
 |---|---|---|
 | Giải thích flow | **ĐÃ TRIỂN KHAI** | `scripts/build_flow.py`, `pfe/flow.py`, `scripts/render_flow.py`, `assets/workflow_template.html` |
 | Tri thức code | **ĐÃ TRIỂN KHAI** (vector là tùy chọn) | `pfe/facts.py`, `pfe/ontology.py`, `pfe/knowledge.py`, `pfe/index.py`, `pfe/retrieval.py`, `pfe/impact.py`, `pfe/verify.py` |
-| DSH adapter | **ĐÃ TRIỂN KHAI**, smoke registry 0.3.0 **CHƯA XÁC MINH** | `dsh-plugin/` |
+| DSH adapter | **ĐÃ TRIỂN KHAI**, smoke registry 0.4.1 **CHƯA XÁC MINH** | `dsh-plugin/` |
 | Panel UI trong Harness | **BLOCKED_UI_API_UNVERIFIED** | chưa có code UI (không nằm trong scope) |
 | DSH native Config schema | **BLOCKED_DSH_CONFIG_NATIVE** | profile không resolve `@deepseek-ai/schemastery` |
 | Tool visibility cho 4 workflow chính | **BLOCKED_TOOL_VISIBILITY** | chưa có cơ chế visibility đã xác minh |
@@ -82,7 +82,7 @@ Cài vào profile riêng (không dùng profile `web`):
 
 ```bash
 node dsh-plugin/scripts/pack.mjs
-dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.3.0.tgz"
+dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.4.1.tgz"
 ```
 
 Bundle đã tự insert row `project-flow-explainer`. Cấu hình bằng **override row**
@@ -136,7 +136,7 @@ Ba luật không thương lượng:
 ## Kiểm thử
 
 ```bash
-python3 -m unittest discover -s tests -v                # core + knowledge + regression (142 test)
+python3 -m unittest discover -s tests -v                # core + knowledge + regression (143 test)
 node --test dsh-plugin/tests/plugin.test.mjs            # adapter (16 test)
 node --test dsh-plugin/tests/knowledge.test.mjs         # tool tri thức (9 test)
 node --test dsh-plugin/tests/lifecycle.test.mjs         # mount/dispose/remount (7 test)
@@ -157,7 +157,7 @@ tools/pfe_cli.py         CLI máy đọc cho 6 tool tri thức
 dsh-plugin/              adapter DSH (zero dependency)
 assets/                  template HTML offline
 references/              schema + prompt module + code-knowledge-schema.json
-tests/                   142 unittest + fixture web/desktop
+tests/                   143 unittest + fixture web/desktop
 artifacts/               bằng chứng: samples, review, ui-verification
 ```
 
@@ -166,9 +166,9 @@ artifacts/               bằng chứng: samples, review, ui-verification
 | Giới hạn | Trạng thái |
 |---|---|
 | Call graph đầy đủ (type-aware) | **CHƯA CÓ**; `calls` trong index chỉ là call site đọc theo lexical |
-| Vector ngữ nghĩa thật | **CHƯA CÓ**; backend mặc định là hashing bag-of-words, chỉ tạo candidate |
+| Vector ngữ nghĩa thật | **CHƯA CÓ**; backend mặc định là hashing lexical, chỉ tạo candidate |
 | Panel UI trong Harness | BLOCKED_UI_API_UNVERIFIED |
-| Smoke registry 0.3.0 trong `pfe-test` | **CHƯA CHẠY**: cài bundle cần npm/pnpm trong profile, phải xin phép trước |
+| Smoke registry 0.4.1 trong `pfe-test` | **CHƯA CHẠY**: cài bundle cần npm/pnpm trong profile, phải xin phép trước |
 | Model tự chọn tool | **CHƯA CHẠY**: profile không có API key |
 | Ngôn ngữ ngoài danh sách pattern | Go, Rust, C#, Kotlin chỉ có symbol/route cơ bản |
 

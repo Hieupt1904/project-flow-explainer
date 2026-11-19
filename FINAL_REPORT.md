@@ -1,15 +1,15 @@
-# FINAL_REPORT — 0.4.0
+# FINAL_REPORT — 0.4.1
 
 Trạng thái: **PARTIAL** — code, test, CLI, UI đã pass; smoke registry DSH cho 0.4.0,
 model-driven, native Config và tool visibility **chưa chạy được** (ghi BLOCKED_*).
 
 | Mục | Giá trị |
 |---|---|
-| Package version | `0.4.0` |
+| Package version | `0.4.1` |
 | `engines.dsh` | `0.2.2-rc.2` (khớp DSH đang cài) |
-| Test | 142 Python · 16 adapter · 9 knowledge · 7 lifecycle · 2 pack — 0 fail |
+| Test | 143 Python · 16 adapter · 9 knowledge · 7 lifecycle · 2 pack — 0 fail |
 | Bằng chứng | [evidence-manifest.json](artifacts/review/evidence-manifest.json) |
-| Tarball | `dsh-project-flow-explainer-0.4.0.tgz` · 93 626 byte · sha256 `c5dd93fd…bec41463` |
+| Tarball | `dsh-project-flow-explainer-0.4.1.tgz` · 93 745 byte · sha256 `3c840af5…6bb8e73` |
 
 ## 1. Bảng task T0–T9
 
@@ -42,7 +42,7 @@ Tên 7 tool không đổi.
 
 | Mức | Nội dung |
 |---|---|
-| Code đã pass | 142 + 16 + 9 + 7 + 2 test, compileall, node --check, policy |
+| Code đã pass | 143 + 16 + 9 + 7 + 2 test, compileall, node --check, policy |
 | Runtime đã pass (local) | CLI thật, index/context/impact/verify trên fixture web + desktop + dự án thật |
 | UI đã pass (trình duyệt) | 12 tổ hợp × 2 chế độ, không overflow/overlap/console error/request ngoài |
 | Model-driven | **chưa chạy** — BLOCKED_DSH_SMOKE |
