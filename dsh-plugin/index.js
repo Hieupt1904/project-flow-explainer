@@ -120,12 +120,15 @@ function normalizeConfig(config) {
   // schema rejects it before apply().
   const raw = config ?? {}
   const settings = { ...DEFAULTS }
+  // Volatile fields can arrive as {} (no value yet) or as a loader expression
+  // object; both mean "unset". A plainly wrong SCALAR must still fail loudly.
+  const opaque = (value) => typeof value === 'object' && value !== null && !Array.isArray(value)
   for (const [key, value] of Object.entries(raw)) {
-    // Volatile fields arrive as {} before the settings layer has a value.
-    // That placeholder means "unset"; any other wrong shape must still fail.
-    const placeholder = typeof value === 'object' && value !== null
-      && !Array.isArray(value) && Object.keys(value).length === 0
-    if (value === undefined || value === null || placeholder) continue
+    if (value === undefined || value === null) continue
+    if (opaque(value)) {
+      if (key === 'allowedRoots' || key === 'pythonPath' || key === 'coreRoot'
+          || key === 'timeoutMs' || key === 'maxOutputBytes') continue
+    }
     settings[key] = value
   }
   if (typeof settings.pythonPath !== 'string' || settings.pythonPath.trim() === '') {

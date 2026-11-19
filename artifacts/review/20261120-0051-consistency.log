@@ -1,6 +1,6 @@
 $ /usr/bin/python3 -m unittest discover -s tests -v
 exit_code: 0
-duration_ms: 3534.4
+duration_ms: 3278.3
 
 --- stdout ---
 
@@ -152,6 +152,6 @@ test_static_failure_is_overall_failure (test_v04_regressions.VerifyVerdictTests.
 test_static_pass_ui_runtime_blocked_is_partial (test_v04_regressions.VerifyVerdictTests.test_static_pass_ui_runtime_blocked_is_partial) ... ok
 
 ----------------------------------------------------------------------
-Ran 143 tests in 3.447s
+Ran 143 tests in 3.193s
 
 OK

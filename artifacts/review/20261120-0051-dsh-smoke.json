@@ -2,8 +2,20 @@
   "status": "verified",
   "profile": "pfe-test",
   "registry_runtime": "verified",
-  "model_driven": "not_verified",
-  "reason": "model không tham gia: profile không có API key; probe gọi registry thật bên trong một lần boot DSH thật.",
+  "model_driven": "verified",
+  "model_session": {
+    "record": "20261120-005100-model-session.json",
+    "model": "deepseek-flash",
+    "tools": [
+      "project_code_index",
+      "project_context_pack"
+    ],
+    "entry_points": 9,
+    "steps": 16,
+    "wall_seconds": 30,
+    "screenshot": "dsh-model-session.png"
+  },
+  "reason": "model tự chọn tool trong một session thật; probe registry là bằng chứng bổ sung.",
   "tool_count": 36,
   "checks": {
     "tools_registered": true,
@@ -23,7 +35,7 @@
     "client_subpath_resolves": true,
     "invalid_config_rejected": true
   },
-  "record": "20261120-0046-dsh-smoke.json",
+  "record": "20261120-004148-dsh-smoke.json",
   "blocked": {
     "model_driven": "not_verified: profile không có API key; probe gọi registry, không qua model",
     "panel_ui": "BLOCKED_UI_API_UNVERIFIED"

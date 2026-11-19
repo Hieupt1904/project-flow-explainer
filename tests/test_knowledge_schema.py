@@ -89,8 +89,13 @@ class EvidenceConsistencyTests(unittest.TestCase):
     def test_smoke_claims_match_recorded_evidence(self):
         manifest = self.manifest()
         smoke = manifest["smoke"]
-        # Model-driven selection is never claimed without an API key.
-        self.assertEqual(smoke["model_driven"], "not_verified")
+        # Model-driven selection is claimed only with a recorded session.
+        self.assertIn(smoke["model_driven"], {"verified", "not_verified"})
+        if smoke["model_driven"] == "verified":
+            session = smoke.get("model_session") or {}
+            self.assertTrue(session.get("record"), "verified without a session record")
+            self.assertTrue(session.get("tools"), "verified without a tool sequence")
+            self.assertGreaterEqual(session.get("entry_points") or 0, 1)
         self.assertIn(smoke["registry_runtime"], {"verified", "not_verified"})
         if smoke["registry_runtime"] == "verified":
             self.assertTrue(smoke.get("record"), "verified without a smoke record")

@@ -1,0 +1,37 @@
+{
+  "generated_at": "2026-11-19T17:50:27.207Z",
+  "kind": "model-driven",
+  "profile": "pfe-webcheck (bản sao của web)",
+  "model": "deepseek-flash",
+  "reasoning_effort": "high",
+  "session_id": "session-01fd6e12-dfd4-48fa-817f-83cf05922d19",
+  "prompt": "Dùng tool project_context_pack cho repository_path <repo> với task 'sửa context pack'. Trả lời ngắn: có bao nhiêu entry point, gồm những loại nào, và 2 file nên đọc trước.",
+  "tool_sequence": [
+    "project_code_index",
+    "project_context_pack"
+  ],
+  "model_reasoning": "Need to run project_code_index first.",
+  "answer_summary": {
+    "entry_points": 9,
+    "entry_kinds": {
+      "main": 8,
+      "callback": 1
+    },
+    "likely_files": [
+      "dsh-plugin/scripts/pack.mjs",
+      "dsh-plugin/index.js"
+    ],
+    "next_action_suggested": "project_impact_analysis",
+    "caveat_stated_by_model": "phân tích tĩnh, chưa chạy test"
+  },
+  "steps": 16,
+  "turns": 1,
+  "wall_seconds": 30,
+  "tokens": 815000,
+  "screenshot": "dsh-model-session.png",
+  "notes": [
+    "Model tự chọn đúng 2 tool, không cần chỉ tên tool nào ngoài câu hỏi.",
+    "Model đọc kết quả tool rồi trả lời bằng số liệu thật (9 entry point, 2 loại, 2 file).",
+    "Model tự nêu giới hạn tĩnh và đề xuất bước tiếp theo — khớp hợp đồng của plugin."
+  ]
+}

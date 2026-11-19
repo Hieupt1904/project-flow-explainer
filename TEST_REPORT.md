@@ -24,10 +24,10 @@ Tarball phát hành:
 
 | Mục | Giá trị |
 |---|---|
-| Tên | `dsh-project-flow-explainer-0.5.4.tgz` |
-| Byte | 98843 |
+| Tên | `dsh-project-flow-explainer-0.5.5.tgz` |
+| Byte | 98901 |
 | Entry | 26 (gồm `client.js` và `vendor/core/{scripts,assets,tools,pfe}`) |
-| SHA-256 | `a49a0102eae322937746344c6ad363dca193b21c6f305e09eec01c146eb4d743` |
+| SHA-256 | `52c73c7f31601c6d3702a76b93c0de447f71d97c3eb7560731aaac5cf0688a79` |
 
 ## 2. Lỗi tái hiện được và đã sửa trong 0.4.x
 
@@ -237,12 +237,32 @@ sha256 `19e3feac…f6cc2` (manifest: `ui.settings_page_screenshot`).
 Lý do phải mở từ dòng: trang bundle gọi `formFor(pkg.name)`, còn namespace settings dùng **row id**
 (`project-flow-explainer`), nên form chỉ có ở trang cấu hình của row.
 
+## 4g. Session model thật (0.5.5)
+
+Chạy trên profile `pfe-webcheck` (bản sao của `web`, cổng 3099), model `deepseek-flash`,
+reasoning high. Prompt không nêu tên tool nào ngoài yêu cầu nghiệp vụ.
+
+| Bước | Bằng chứng |
+|---|---|
+| Model tự suy luận | "Need to run project_code_index first." |
+| Tool 1 | `project_code_index` · `<repo>` |
+| Tool 2 | `project_context_pack` · `<repo>` |
+| Trả lời | 9 entry point, 2 loại: `main` 8, `callback` 1 |
+| File nên đọc | `dsh-plugin/scripts/pack.mjs`, `dsh-plugin/index.js` |
+| Model tự nêu giới hạn | "phân tích tĩnh, chưa chạy test" |
+| Bước tiếp theo model đề xuất | `project_impact_analysis` |
+| Số bước / thời gian | 16 bước · 30 s · 1 turn |
+
+Bản ghi: [20261120-005100-model-session.json](artifacts/review/20261120-005100-model-session.json) ·
+ảnh: [dsh-model-session.png](artifacts/ui-verification/dsh-model-session.png).
+Manifest: `smoke.model_driven = verified`.
+
 ## 5. Chưa kiểm chứng
 
 | Hạng mục | Trạng thái | Lý do |
 |---|---|---|
 | Smoke registry 0.5.4 trong `pfe-test` | **ĐÃ CHẠY** — `artifacts/review/*-dsh-smoke.json` | 6 lần boot thật, 36 tool, 16/16 check pass |
-| Model tự chọn tool | **CHƯA CHẠY** | profile không có API key; probe gọi registry thật, không qua model |
+| Model tự chọn tool | **ĐÃ CHẠY** — mục 4g | model gọi đúng 2 tool, trả lời bằng số liệu thật |
 | Native `Config` | **ĐÃ XÁC MINH** | boot thật trả `ValidationError: $.allowedRoots expected array but got oops` |
 | Tool visibility | **BLOCKED_TOOL_VISIBILITY** | chưa xác minh cơ chế presentation/visibility |
 | Panel UI Harness | `BLOCKED_UI_API_UNVERIFIED` | panel riêng ngoài scope; settings card dùng slot `plugins.bundle.config` (đã có) |

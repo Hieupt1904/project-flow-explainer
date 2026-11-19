@@ -247,14 +247,25 @@ def main(argv=None):
     smoke_record = (json.loads(smoke_candidates[-1].read_text(encoding="utf-8"))
                     if smoke_candidates else {})
     smoke_path = REVIEW / (stamp + "-dsh-smoke.json")
+    model_records = sorted(REVIEW.glob("*-model-session.json"))
+    model_session = (json.loads(model_records[-1].read_text(encoding="utf-8"))
+                     if model_records else {})
     verified = smoke_record.get("status") == "verified"
     smoke = {
         "status": "verified" if verified else "blocked",
         "profile": "pfe-test",
         "registry_runtime": "verified" if verified else "not_verified",
-        "model_driven": "not_verified",
-        "reason": ("model không tham gia: profile không có API key; probe gọi registry thật "
-                   "bên trong một lần boot DSH thật."),
+        "model_driven": ("verified" if model_session else "not_verified"),
+        "model_session": {
+            "record": model_records[-1].name if model_records else "",
+            "model": model_session.get("model", ""),
+            "tools": model_session.get("tool_sequence", []),
+            "entry_points": (model_session.get("answer_summary") or {}).get("entry_points"),
+            "steps": model_session.get("steps"),
+            "wall_seconds": model_session.get("wall_seconds"),
+            "screenshot": model_session.get("screenshot", ""),
+        },
+        "reason": ("model tự chọn tool trong một session thật; probe registry là bằng chứng bổ sung."),
         "tool_count": smoke_record.get("tool_count", 0),
         "checks": smoke_record.get("checks", {}),
         "record": smoke_candidates[-1].name if smoke_candidates else "",

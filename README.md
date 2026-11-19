@@ -13,7 +13,7 @@ Hai lớp, một core:
 | Giải thích flow | **ĐÃ TRIỂN KHAI** | `scripts/build_flow.py`, `pfe/flow.py`, `scripts/render_flow.py`, `assets/workflow_template.html` |
 | Tri thức code | **ĐÃ TRIỂN KHAI** (vector là tùy chọn) | `pfe/facts.py`, `pfe/ontology.py`, `pfe/knowledge.py`, `pfe/index.py`, `pfe/retrieval.py`, `pfe/impact.py`, `pfe/verify.py` |
 | DSH adapter | **ĐÃ TRIỂN KHAI**; registry-runtime **ĐÃ XÁC MINH** trong profile `pfe-test` (36 tool, 14 check) | `dsh-plugin/` |
-| Model tự chọn tool trong DSH | **CHƯA CHẠY** (không có API key) | — |
+| Model tự chọn tool trong DSH | **ĐÃ XÁC MINH**: model gọi `project_code_index` rồi `project_context_pack` trong session thật | — |
 | Panel UI trong Harness | **BLOCKED_UI_API_UNVERIFIED** | chưa có code UI (không nằm trong scope) |
 | DSH native Config schema | **BLOCKED_DSH_CONFIG_NATIVE** | profile không resolve `@deepseek-ai/schemastery` |
 | Tool visibility cho 4 workflow chính | **BLOCKED_TOOL_VISIBILITY** | chưa có cơ chế visibility đã xác minh |
