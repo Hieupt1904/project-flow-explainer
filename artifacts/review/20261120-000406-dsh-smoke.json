@@ -1,0 +1,1184 @@
+{
+  "generated_at": "2026-11-20T00:03:56+07:00",
+  "profile": "pfe-test",
+  "package_version": "0.4.1",
+  "engines_dsh": "0.2.2-rc.2",
+  "tarball": "dsh-project-flow-explainer-0.4.1.tgz",
+  "tarball_sha256": "3c840af5ad5ffabbfeb09f5927309e0c88ba0bc9d6b0a9bf7b4d9476bb6b8e73",
+  "expected_tools": [
+    "project_flow_explain",
+    "project_code_index",
+    "project_code_search",
+    "project_context_pack",
+    "project_impact_analysis",
+    "project_verify_flow",
+    "project_knowledge_refresh"
+  ],
+  "steps": {
+    "a": {
+      "overlay": "normal",
+      "steps": "flow,context",
+      "boot_exit": 0,
+      "credential_error": false,
+      "probe": {
+        "mode": "full",
+        "started_at": "2026-11-19T17:03:58.070Z",
+        "profile": "web",
+        "expected_tools": [
+          "project_flow_explain",
+          "project_code_index",
+          "project_code_search",
+          "project_context_pack",
+          "project_impact_analysis",
+          "project_verify_flow",
+          "project_knowledge_refresh"
+        ],
+        "calls": {
+          "flow": {
+            "ok": true,
+            "value": {
+              "status": "ok",
+              "flow_id": "giai-thich-tu-luc-nguoi-dung-04f9c7",
+              "slug": "giai-thich-tu-luc-nguoi-dung-04f9c7",
+              "repository": "repo",
+              "repository_name": "repo",
+              "path_base": "repository",
+              "artifacts_dir": "artifacts/flows/giai-thich-tu-luc-nguoi-dung-04f9c7",
+              "artifacts": {
+                "flow_json": "artifacts/flows/giai-thich-tu-luc-nguoi-dung-04f9c7/flow.json",
+                "flow_html": "artifacts/flows/giai-thich-tu-luc-nguoi-dung-04f9c7/flow.html",
+                "overview": "artifacts/flows/giai-thich-tu-luc-nguoi-dung-04f9c7/overview.md",
+                "run": "artifacts/flows/giai-thich-tu-luc-nguoi-dung-04f9c7/run.json"
+              },
+              "path_visibility": {
+                "repository": "model-facing (name only)",
+                "artifacts": "model-facing (repository-relative)",
+                "source_refs": "model-facing (repository-relative)",
+                "absolute_paths_returned": false
+              },
+              "output_contract": {
+                "public": [
+                  "flow.json",
+                  "flow.html",
+                  "overview.md"
+                ],
+                "internal": [
+                  "run.json"
+                ]
+              },
+              "counts": {
+                "verified": 5,
+                "partial": 1,
+                "inferred": 0,
+                "unknown": 0
+              },
+              "files_scanned": 6,
+              "related_count": 2,
+              "source_version": {
+                "commit": "",
+                "branch": "",
+                "dirty": false,
+                "dirty_files": 0
+              },
+              "warnings": [],
+              "limits": [
+                "Chưa có call graph runtime: cạnh chỉ mang bằng chứng entry/import/structure; không có cạnh nào tự nhận là call."
+              ]
+            }
+          },
+          "context": {
+            "ok": true,
+            "value": {
+              "task": "xuất báo cáo ra excel",
+              "analysis_kind": "context_pack",
+              "intent": "locate",
+              "source_commit": "",
+              "stale": false,
+              "max_files": 6,
+              "snippets_included": false,
+              "limitations": [
+                "Phân tích tĩnh: chưa chạy code, chưa thực thi test.",
+                "Entry point chỉ lấy từ dòng đăng ký thật (route, add_parser, command=, bind, decorator task, __main__, __all__); không suy từ tên hàm.",
+                "Không có route HTTP nào trong câu hỏi; dự án desktop/CLI có thể có 0 http_route và điều đó là đúng."
+              ],
+              "warnings": [
+                "vector: vector_index_absent — dùng FTS + graph"
+              ],
+              "not_verified": [
+                "runtime",
+                "ui"
+              ],
+              "seen": {
+                "paths": 3,
+                "entities": 11,
+                "evidence": 7
+              },
+              "relevant_flows": [
+                {
+                  "flow_id": "giai-thich-tu-luc-nguoi-dung-04f9c7",
+                  "title": "Luồng: Giải thích từ lúc người dùng nhấn xuất báo cáo đến khi nhận được file"
+                }
+              ],
+              "entry_points": [
+                {
+                  "path": "server.js",
+                  "kind": "http_route",
+                  "label": "/api/reports/:id",
+                  "route": "/api/reports/:id",
+                  "start_line": 7,
+                  "confidence": "observed",
+                  "evidence_kind": "observed",
+                  "evidence_refs": [
+                    {
+                      "path": "server.js",
+                      "start_line": 7,
+                      "relation": [
+                        "handles_route"
+                      ],
+                      "confidence": "observed"
+                    }
+                  ]
+                },
+                {
+                  "path": "server.js",
+                  "kind": "http_route",
+                  "label": "/api/reports/export",
+                  "route": "/api/reports/export",
+                  "start_line": 16,
+                  "confidence": "observed",
+                  "evidence_kind": "observed",
+                  "evidence_refs": [
+                    {
+                      "path": "server.js",
+                      "start_line": 16,
+                      "relation": [
+                        "handles_route"
+                      ],
+                      "confidence": "observed"
+                    }
+                  ]
+                }
+              ],
+              "routes": [
+                {
+                  "route": "/api/reports/:id",
+                  "path": "server.js",
+                  "start_line": 7,
+                  "confidence": "observed",
+                  "via": "file:server.js",
+                  "evidence_refs": [
+                    {
+                      "path": "server.js",
+                      "start_line": 7,
+                      "relation": [
+                        "handles_route"
+                      ],
+                      "confidence": "observed"
+                    }
+                  ]
+                },
+                {
+                  "route": "/api/reports/export",
+                  "path": "server.js",
+                  "start_line": 16,
+                  "confidence": "observed",
+                  "via": "file:server.js",
+                  "evidence_refs": [
+                    {
+                      "path": "server.js",
+                      "start_line": 16,
+                      "relation": [
+                        "handles_route"
+                      ],
+                      "confidence": "observed"
+                    }
+                  ]
+                }
+              ],
+              "impacted_symbols": [
+                {
+                  "symbol": "exportReport",
+                  "path": "services/report_service.js",
+                  "start_line": 5,
+                  "kind": "symbol",
+                  "confidence": "observed"
+                },
+                {
+                  "symbol": "loadReportRows",
+                  "path": "db/report_repo.js",
+                  "start_line": 4,
+                  "kind": "symbol",
+                  "confidence": "observed"
+                }
+              ],
+              "related_tests": [
+                {
+                  "path": "tests/report_service.test.js",
+                  "test": "tests/report_service.test.js",
+                  "start_line": 1,
+                  "confidence": "structural",
+                  "why_included": "quan hệ tested_by với report_service tại dòng 1"
+                }
+              ],
+              "likely_files": [
+                {
+                  "path": "services/report_service.js",
+                  "symbol": "exportReport",
+                  "kind": "symbol",
+                  "start_line": 5,
+                  "end_line": 5,
+                  "confidence": "observed",
+                  "location_confidence": "observed",
+                  "relevance_confidence": "observed",
+                  "why_matched": "khớp chính xác từ khoá trong tên symbol; quan hệ exports với services/report_service.js",
+                  "relevance_why": [],
+                  "relation": [
+                    "calls",
+                    "exports"
+                  ],
+                  "evidence_refs": [
+                    {
+                      "path": "services/report_service.js",
+                      "start_line": 5,
+                      "relation": [
+                        "calls",
+                        "exports"
+                      ],
+                      "confidence": "observed"
+                    }
+                  ]
+                },
+                {
+                  "path": "server.js",
+                  "symbol": "server",
+                  "kind": "file",
+                  "start_line": 1,
+                  "end_line": 1,
+                  "confidence": "observed",
+                  "location_confidence": "observed",
+                  "relevance_confidence": "observed",
+                  "why_matched": "quan hệ handles_route với POST /api/reports/export; thành viên flow đã render",
+                  "relevance_why": [],
+                  "relation": [
+                    "handles_route"
+                  ],
+                  "evidence_refs": [
+                    {
+                      "path": "server.js",
+                      "start_line": 1,
+                      "relation": [
+                        "handles_route"
+                      ],
+                      "confidence": "observed"
+                    }
+                  ]
+                },
+                {
+                  "path": "db/report_repo.js",
+                  "symbol": "loadReportRows",
+                  "kind": "symbol",
+                  "start_line": 4,
+                  "end_line": 4,
+                  "confidence": "observed",
+                  "location_confidence": "observed",
+                  "relevance_confidence": "observed",
+                  "why_matched": "khớp chính xác từ khoá trong tên symbol; quan hệ calls với services/report_service.js",
+                  "relevance_why": [],
+                  "relation": [
+                    "calls",
+                    "exports"
+                  ],
+                  "evidence_refs": [
+                    {
+                      "path": "db/report_repo.js",
+                      "start_line": 4,
+                      "relation": [
+                        "calls",
+                        "exports"
+                      ],
+                      "confidence": "observed"
+                    }
+                  ]
+                }
+              ],
+              "dependencies": [
+                {
+                  "entity": "error_case:server.js#caught@8",
+                  "kind": "error_case",
+                  "path": "server.js",
+                  "symbol": "caught-try",
+                  "start_line": 8,
+                  "end_line": 8,
+                  "relation": "catches",
+                  "confidence": "observed",
+                  "location_confidence": "observed",
+                  "relevance_confidence": "observed",
+                  "why_included": "quan hệ catches với server tại dòng 8",
+                  "evidence_refs": [
+                    {
+                      "path": "server.js",
+                      "start_line": 8,
+                      "relation": [
+                        "catches"
+                      ],
+                      "confidence": "observed"
+                    }
+                  ]
+                },
+                {
+                  "entity": "error_case:server.js#caught@11",
+                  "kind": "error_case",
+                  "path": "server.js",
+                  "symbol": "caught-catch",
+                  "start_line": 11,
+                  "end_line": 11,
+                  "relation": "catches",
+                  "confidence": "observed",
+                  "location_confidence": "observed",
+                  "relevance_confidence": "observed",
+                  "why_included": "quan hệ catches với server tại dòng 11",
+                  "evidence_refs": [
+                    {
+                      "path": "server.js",
+                      "start_line": 11,
+                      "relation": [
+                        "catches"
+                      ],
+                      "confidence": "observed"
+                    }
+                  ]
+                },
+                {
+                  "entity": "error_case:services/report_service.js#js-throw@8",
+                  "kind": "error_case",
+                  "path": "services/report_service.js",
+                  "symbol": "js-throw",
+                  "start_line": 8,
+                  "end_line": 8,
+                  "relation": "raises",
+                  "confidence": "observed",
+                  "location_confidence": "observed",
+                  "relevance_confidence": "observed",
+                  "why_included": "quan hệ raises với report_service tại dòng 8",
+                  "evidence_refs": [
+                    {
+                      "path": "services/report_service.js",
+                      "start_line": 8,
+                      "relation": [
+                        "raises"
+                      ],
+                      "confidence": "observed"
+                    }
+                  ]
+                },
+                {
+                  "entity": "test:tests/report_service.test.js",
+                  "kind": "test",
+                  "path": "tests/report_service.test.js",
+                  "symbol": "tests/report_service.test.js",
+                  "start_line": 1,
+                  "end_line": 1,
+                  "relation": "tested_by",
+                  "confidence": "structural",
+                  "location_confidence": "observed",
+                  "relevance_confidence": "structural",
+                  "why_included": "quan hệ tested_by với report_service tại dòng 1",
+                  "evidence_refs": [
+                    {
+                      "path": "tests/report_service.test.js",
+                      "start_line": 1,
+                      "relation": [
+                        "tested_by"
+                      ],
+                      "confidence": "structural"
+                    }
+                  ]
+                }
+              ],
+              "external_dependencies": [
+                {
+                  "entity": "file:tests/report_service.test.js",
+                  "kind": "file",
+                  "symbol": "report_service.test",
+                  "relation": "calls",
+                  "confidence": "observed",
+                  "why_included": "quan hệ calls với exportReport tại dòng 6",
+                  "location": "không có trong repository"
+                },
+                {
+                  "entity": "external_system:express",
+                  "kind": "external_system",
+                  "symbol": "express",
+                  "relation": "reads_from",
+                  "confidence": "structural",
+                  "why_included": "quan hệ reads_from với server tại dòng 1",
+                  "location": "không có trong repository"
+                },
+                {
+                  "entity": "file:services/report_service.js",
+                  "kind": "file",
+                  "symbol": "report_service",
+                  "relation": "calls",
+                  "confidence": "observed",
+                  "why_included": "quan hệ calls với loadReportRows tại dòng 6",
+                  "location": "không có trong repository"
+                },
+                {
+                  "entity": "external_system:node:path",
+                  "kind": "external_system",
+                  "symbol": "node:path",
+                  "relation": "reads_from",
+                  "confidence": "structural",
+                  "why_included": "quan hệ reads_from với report_service tại dòng 1",
+                  "location": "không có trong repository"
+                }
+              ],
+              "evidence_refs": [
+                {
+                  "path": "services/report_service.js",
+                  "start_line": 5,
+                  "relation": [
+                    "calls",
+                    "exports"
+                  ],
+                  "confidence": "observed"
+                },
+                {
+                  "path": "server.js",
+                  "start_line": 1,
+                  "relation": [
+                    "handles_route"
+                  ],
+                  "confidence": "observed"
+                },
+                {
+                  "path": "db/report_repo.js",
+                  "start_line": 4,
+                  "relation": [
+                    "calls",
+                    "exports"
+                  ],
+                  "confidence": "observed"
+                }
+              ]
+            }
+          }
+        },
+        "registered_tools": [
+          "bash",
+          "create_goal",
+          "edit",
+          "exit_plan_mode",
+          "get_goal",
+          "glob",
+          "grep",
+          "job_kill",
+          "job_list",
+          "job_output",
+          "list_agents",
+          "project_code_index",
+          "project_code_search",
+          "project_context_pack",
+          "project_flow_explain",
+          "project_impact_analysis",
+          "project_knowledge_refresh",
+          "project_verify_flow",
+          "read",
+          "read_image",
+          "send_message",
+          "skill",
+          "subagent",
+          "subagent_fork",
+          "team_task_create",
+          "team_task_get",
+          "team_task_list",
+          "team_task_update",
+          "todo_write",
+          "update_goal",
+          "wait_agent",
+          "web_fetch",
+          "web_search",
+          "workflow",
+          "working_directory",
+          "write"
+        ],
+        "missing_tools": []
+      }
+    },
+    "b": {
+      "overlay": "normal",
+      "steps": "impact,verify",
+      "boot_exit": 0,
+      "credential_error": false,
+      "probe": {
+        "mode": "full",
+        "started_at": "2026-11-19T17:03:59.873Z",
+        "profile": "web",
+        "expected_tools": [
+          "project_flow_explain",
+          "project_code_index",
+          "project_code_search",
+          "project_context_pack",
+          "project_impact_analysis",
+          "project_verify_flow",
+          "project_knowledge_refresh"
+        ],
+        "calls": {
+          "impact": {
+            "ok": true,
+            "value": {
+              "source_commit": "",
+              "changed_files": [
+                "services/report_service.js"
+              ],
+              "risk_level": "high",
+              "risk_reasons": [
+                "file là thành viên của 1 flow đã render",
+                "có 2 module/file phụ thuộc"
+              ],
+              "index_stale": false,
+              "stale_files": [],
+              "unknown_files": [],
+              "warnings": [],
+              "suggested_verification": [
+                "chạy tests/report_service.test.js",
+                "render lại flow: giai-thich-tu-luc-nguoi-dung-04f9c7"
+              ],
+              "affected_flows": [
+                {
+                  "flow_id": "giai-thich-tu-luc-nguoi-dung-04f9c7",
+                  "confidence": "inferred",
+                  "path": "services/report_service.js"
+                }
+              ],
+              "affected_routes": [],
+              "affected_symbols": [
+                {
+                  "symbol": "exportReport",
+                  "path": "services/report_service.js",
+                  "start_line": 5
+                },
+                {
+                  "symbol": "buildWorkbook",
+                  "path": "services/report_service.js",
+                  "start_line": 14
+                }
+              ],
+              "related_tests": [
+                {
+                  "test": "tests/report_service.test.js",
+                  "path": "services/report_service.js"
+                }
+              ],
+              "downstream_modules": [
+                {
+                  "file": "server.js",
+                  "relation": "calls",
+                  "path": "services/report_service.js"
+                },
+                {
+                  "file": "tests/report_service.test.js",
+                  "relation": "calls",
+                  "path": "services/report_service.js"
+                }
+              ],
+              "stale_artifacts": [
+                {
+                  "flow_id": "giai-thich-tu-luc-nguoi-dung-04f9c7",
+                  "generated_at": "2026-11-20T00:03:58+07:00",
+                  "artifact_dir": "<work>/repo/artifacts/flows/giai-thich-tu-luc-nguoi-dung-04f9c7"
+                }
+              ],
+              "evidence_refs": [
+                {
+                  "path": "services/report_service.js",
+                  "start_line": 5,
+                  "relation": [
+                    "defines"
+                  ],
+                  "confidence": "observed"
+                },
+                {
+                  "path": "services/report_service.js",
+                  "start_line": 14,
+                  "relation": [
+                    "defines"
+                  ],
+                  "confidence": "observed"
+                }
+              ]
+            }
+          },
+          "verify": {
+            "ok": true,
+            "value": {
+              "verdict": "partial",
+              "static_verdict": "pass",
+              "overall_verdict": "partial",
+              "source_commit": "",
+              "flow_artifacts": 1,
+              "ui_verified": false,
+              "runtime_verified": false,
+              "notes": [
+                "static_verdict chỉ nói về những gì đã kiểm tra tại đây: graph, artifact, quét HTML tĩnh, privacy, test mapping.",
+                "ui: chưa mở trình duyệt — chỉ quét HTML tĩnh",
+                "runtime: chưa chạy code/test của repository"
+              ],
+              "not_verified": [
+                "ui",
+                "runtime"
+              ],
+              "next_action": "mở flow.html trên trình duyệt và chạy test liên quan để nâng overall_verdict",
+              "gates": {
+                "static": "pass",
+                "ui": "blocked",
+                "runtime": "blocked"
+              },
+              "checks": [
+                {
+                  "check": "artifact_scope",
+                  "status": "pass",
+                  "detail": "Artifact chỉ được đọc từ artifacts/flows.",
+                  "evidence": [
+                    "artifacts/flows"
+                  ]
+                },
+                {
+                  "check": "flow_artifacts",
+                  "status": "pass",
+                  "detail": "Mỗi flow có flow.json, flow.html, overview.md",
+                  "evidence": [
+                    "giai-thich-tu-luc-nguoi-dung-04f9c7/flow.html",
+                    "giai-thich-tu-luc-nguoi-dung-04f9c7/flow.json",
+                    "giai-thich-tu-luc-nguoi-dung-04f9c7/overview.md"
+                  ]
+                },
+                {
+                  "check": "graph_evidence",
+                  "status": "pass",
+                  "detail": "Không có call-edge giả, không có nhánh bypass, verified có source_ref.",
+                  "evidence": [
+                    "giai-thich-tu-luc-nguoi-dung-04f9c7"
+                  ]
+                },
+                {
+                  "check": "ui_self_contained",
+                  "status": "pass",
+                  "detail": "flow.html không tải tài nguyên ngoài và không còn placeholder.",
+                  "evidence": [
+                    "giai-thich-tu-luc-nguoi-dung-04f9c7"
+                  ]
+                },
+                {
+                  "check": "privacy",
+                  "status": "pass",
+                  "detail": "Không có absolute path workstation hay secret-shape trong artifact.",
+                  "evidence": [
+                    "giai-thich-tu-luc-nguoi-dung-04f9c7"
+                  ]
+                },
+                {
+                  "check": "artifact_containment",
+                  "status": "pass",
+                  "detail": "Artifact root không phải symlink ra ngoài repository.",
+                  "evidence": []
+                },
+                {
+                  "check": "test_mapping",
+                  "status": "pass",
+                  "detail": "1 test trong index, 1 quan hệ tested_by; 0 fact stale.",
+                  "evidence": [
+                    "d565c6e22c1f"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        "registered_tools": [
+          "bash",
+          "create_goal",
+          "edit",
+          "exit_plan_mode",
+          "get_goal",
+          "glob",
+          "grep",
+          "job_kill",
+          "job_list",
+          "job_output",
+          "list_agents",
+          "project_code_index",
+          "project_code_search",
+          "project_context_pack",
+          "project_flow_explain",
+          "project_impact_analysis",
+          "project_knowledge_refresh",
+          "project_verify_flow",
+          "read",
+          "read_image",
+          "send_message",
+          "skill",
+          "subagent",
+          "subagent_fork",
+          "team_task_create",
+          "team_task_get",
+          "team_task_list",
+          "team_task_update",
+          "todo_write",
+          "update_goal",
+          "wait_agent",
+          "web_fetch",
+          "web_search",
+          "workflow",
+          "working_directory",
+          "write"
+        ],
+        "missing_tools": []
+      }
+    },
+    "c": {
+      "overlay": "normal",
+      "steps": "search,outsideRoots,malformed,aborted",
+      "boot_exit": 0,
+      "credential_error": false,
+      "probe": {
+        "mode": "full",
+        "started_at": "2026-11-19T17:04:01.707Z",
+        "profile": "web",
+        "expected_tools": [
+          "project_flow_explain",
+          "project_code_index",
+          "project_code_search",
+          "project_context_pack",
+          "project_impact_analysis",
+          "project_verify_flow",
+          "project_knowledge_refresh"
+        ],
+        "calls": {
+          "search": {
+            "ok": true,
+            "value": {
+              "query": "export_report",
+              "intent": "locate",
+              "source_commit": "",
+              "stale": false,
+              "channels": [
+                "exact_symbol",
+                "fts",
+                "graph"
+              ],
+              "warnings": [
+                "vector: vector_index_absent — dùng FTS + graph"
+              ],
+              "results": [
+                {
+                  "entity": "function:services/report_service.js#exportReport",
+                  "kind": "function",
+                  "path": "services/report_service.js",
+                  "symbol": "exportReport",
+                  "start_line": 5,
+                  "end_line": 5,
+                  "relation": [
+                    "defines"
+                  ],
+                  "confidence": "observed",
+                  "reason": "tên symbol xuất hiện nguyên văn trong câu hỏi; khớp chính xác từ khoá trong tên hàm",
+                  "score": 1.25,
+                  "why_matched": "tên symbol xuất hiện nguyên văn trong câu hỏi; khớp chính xác từ khoá trong tên hàm",
+                  "evidence_refs": [
+                    {
+                      "path": "services/report_service.js",
+                      "start_line": 5,
+                      "relation": [
+                        "defines"
+                      ],
+                      "confidence": "observed"
+                    }
+                  ]
+                },
+                {
+                  "entity": "file:server.js",
+                  "kind": "file",
+                  "path": "server.js",
+                  "symbol": "server",
+                  "start_line": 1,
+                  "end_line": 1,
+                  "relation": [
+                    "calls"
+                  ],
+                  "confidence": "observed",
+                  "reason": "quan hệ calls với services/report_service.js#exportReport; thành viên flow đã render",
+                  "score": 1.15,
+                  "why_matched": "quan hệ calls với services/report_service.js#exportReport; thành viên flow đã render",
+                  "evidence_refs": [
+                    {
+                      "path": "server.js",
+                      "start_line": 1,
+                      "relation": [
+                        "calls"
+                      ],
+                      "confidence": "observed"
+                    }
+                  ]
+                },
+                {
+                  "entity": "file:services/report_service.js",
+                  "kind": "file",
+                  "path": "services/report_service.js",
+                  "symbol": "report_service",
+                  "start_line": 1,
+                  "end_line": 1,
+                  "relation": [
+                    "exports"
+                  ],
+                  "confidence": "observed",
+                  "reason": "quan hệ exports với services/report_service.js#exportReport; thành viên flow đã render",
+                  "score": 1.15,
+                  "why_matched": "quan hệ exports với services/report_service.js#exportReport; thành viên flow đã render",
+                  "evidence_refs": [
+                    {
+                      "path": "services/report_service.js",
+                      "start_line": 1,
+                      "relation": [
+                        "exports"
+                      ],
+                      "confidence": "observed"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "outsideRoots": {
+            "ok": false,
+            "name": "InputError",
+            "code": "repository_outside_allowed_roots",
+            "message": "repository_path nằm ngoài allowedRoots: /tmp"
+          },
+          "malformed": {
+            "ok": false,
+            "name": "InputError",
+            "code": "flow_request_missing",
+            "message": "project_flow_explain: thiếu flow_request."
+          },
+          "aborted": {
+            "ok": false,
+            "name": "AbortError",
+            "message": "This operation was aborted"
+          }
+        },
+        "registered_tools": [
+          "bash",
+          "create_goal",
+          "edit",
+          "exit_plan_mode",
+          "get_goal",
+          "glob",
+          "grep",
+          "job_kill",
+          "job_list",
+          "job_output",
+          "list_agents",
+          "project_code_index",
+          "project_code_search",
+          "project_context_pack",
+          "project_flow_explain",
+          "project_impact_analysis",
+          "project_knowledge_refresh",
+          "project_verify_flow",
+          "read",
+          "read_image",
+          "send_message",
+          "skill",
+          "subagent",
+          "subagent_fork",
+          "team_task_create",
+          "team_task_get",
+          "team_task_list",
+          "team_task_update",
+          "todo_write",
+          "update_goal",
+          "wait_agent",
+          "web_fetch",
+          "web_search",
+          "workflow",
+          "working_directory",
+          "write"
+        ],
+        "missing_tools": []
+      }
+    },
+    "d": {
+      "overlay": "empty",
+      "steps": "flow",
+      "boot_exit": 0,
+      "credential_error": false,
+      "probe": {
+        "mode": "full",
+        "started_at": "2026-11-19T17:04:03.342Z",
+        "profile": "web",
+        "expected_tools": [
+          "project_flow_explain",
+          "project_code_index",
+          "project_code_search",
+          "project_context_pack",
+          "project_impact_analysis",
+          "project_verify_flow",
+          "project_knowledge_refresh"
+        ],
+        "calls": {
+          "flow": {
+            "ok": false,
+            "name": "InputError",
+            "code": "allowed_roots_unconfigured",
+            "message": "allowedRoots rỗng nên tool từ chối phân tích mọi đường dẫn (deny-by-default)."
+          }
+        },
+        "registered_tools": [
+          "bash",
+          "create_goal",
+          "edit",
+          "exit_plan_mode",
+          "get_goal",
+          "glob",
+          "grep",
+          "job_kill",
+          "job_list",
+          "job_output",
+          "list_agents",
+          "project_code_index",
+          "project_code_search",
+          "project_context_pack",
+          "project_flow_explain",
+          "project_impact_analysis",
+          "project_knowledge_refresh",
+          "project_verify_flow",
+          "read",
+          "read_image",
+          "send_message",
+          "skill",
+          "subagent",
+          "subagent_fork",
+          "team_task_create",
+          "team_task_get",
+          "team_task_list",
+          "team_task_update",
+          "todo_write",
+          "update_goal",
+          "wait_agent",
+          "web_fetch",
+          "web_search",
+          "workflow",
+          "working_directory",
+          "write"
+        ],
+        "missing_tools": []
+      }
+    },
+    "e": {
+      "overlay": "timeout",
+      "steps": "flow",
+      "boot_exit": 0,
+      "credential_error": false,
+      "probe": {
+        "mode": "full",
+        "started_at": "2026-11-19T17:04:04.816Z",
+        "profile": "web",
+        "expected_tools": [
+          "project_flow_explain",
+          "project_code_index",
+          "project_code_search",
+          "project_context_pack",
+          "project_impact_analysis",
+          "project_verify_flow",
+          "project_knowledge_refresh"
+        ],
+        "calls": {
+          "flow": {
+            "ok": false,
+            "name": "InputError",
+            "code": "core_timeout",
+            "message": "Core vượt quá 1 ms và đã bị dừng."
+          }
+        },
+        "registered_tools": [
+          "bash",
+          "create_goal",
+          "edit",
+          "exit_plan_mode",
+          "get_goal",
+          "glob",
+          "grep",
+          "job_kill",
+          "job_list",
+          "job_output",
+          "list_agents",
+          "project_code_index",
+          "project_code_search",
+          "project_context_pack",
+          "project_flow_explain",
+          "project_impact_analysis",
+          "project_knowledge_refresh",
+          "project_verify_flow",
+          "read",
+          "read_image",
+          "send_message",
+          "skill",
+          "subagent",
+          "subagent_fork",
+          "team_task_create",
+          "team_task_get",
+          "team_task_list",
+          "team_task_update",
+          "todo_write",
+          "update_goal",
+          "wait_agent",
+          "web_fetch",
+          "web_search",
+          "workflow",
+          "working_directory",
+          "write"
+        ],
+        "missing_tools": []
+      }
+    },
+    "f": {
+      "overlay": "disabled",
+      "steps": "",
+      "boot_exit": 0,
+      "credential_error": false,
+      "probe": {
+        "mode": "full",
+        "started_at": "2026-11-19T17:04:06.299Z",
+        "profile": "web",
+        "expected_tools": [
+          "project_flow_explain",
+          "project_code_index",
+          "project_code_search",
+          "project_context_pack",
+          "project_impact_analysis",
+          "project_verify_flow",
+          "project_knowledge_refresh"
+        ],
+        "calls": {},
+        "registry_waited_ms": 300,
+        "registry_timeout": true
+      }
+    }
+  },
+  "blocked": {
+    "model_driven": "not_verified: profile không có API key; probe gọi registry, không qua model",
+    "panel_ui": "BLOCKED_UI_API_UNVERIFIED"
+  },
+  "status": "verified",
+  "install": {
+    "argv": [
+      "dsh",
+      "plugin",
+      "--profile",
+      "pfe-test",
+      "add",
+      "<repo>/dist/dsh-project-flow-explainer-0.4.1.tgz"
+    ],
+    "exit_code": 0,
+    "stdout": "✓ Lockfile passes supply-chain policies (verified 3m ago)\nLockfile is up to date, resolution step is skipped\nDone in 10ms using pnpm v12.5.1\n",
+    "stderr": "",
+    "duration_ms": 156.7
+  },
+  "install_already_present": false,
+  "probe_install": {
+    "argv": [
+      "dsh",
+      "plugin",
+      "--profile",
+      "pfe-test",
+      "add",
+      "<repo>/smoke/dsh-probe"
+    ],
+    "exit_code": 0,
+    "stdout": "✓ Lockfile passes supply-chain policies (verified 3m ago)\nAlready up to date\nProgress: resolved 1, reused 1, downloaded 0, added 0, done\n\ndependencies:\n+ pfe-smoke-probe link:<repo>/smoke/dsh-probe\n\nDone in 15ms using pnpm v12.5.1\n",
+    "stderr": "",
+    "duration_ms": 152.0
+  },
+  "prebuild_index": {
+    "argv": [
+      "/usr/bin/python3",
+      "<repo>/tools/pfe_cli.py",
+      "index",
+      "--repo",
+      "<work>/repo",
+      "--mode",
+      "full"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"status\": \"ok\", \"index_id\": \"d565c6e22c1f\", \"index_version\": 2, \"repository_name\": \"repo\", \"repository_id\": \"5083809528bef831\", \"source_commit\": \"\", \"dirty\": false, \"mode\": \"full\", \"files_indexed\": 7, \"files_parsed\": 7, \"files_reused\": 0, \"symbols_indexed\": 5, \"routes_indexed\": 3, \"tests_indexed\": 1, \"entities\": 36, \"facts\": 32, \"stale_files\": 0, \"changed\": [], \"added\": [\"db/connection.js\", \"db/report_repo.js\", \"jobs/export_worker.py\", \"routes/preview.js\", \"server.js\", \"services/report_service.js\", \"tests/report_service.test.js\"], \"deleted\": [], \"renamed\": [], \"warnings\": [], \"excluded\": {\"directory\": 0, \"test_dir\": 0, \"sensitive_name\": 1, \"suffix\": 0, \"symlink_escape\": 0, \"symlink_sensitive\": 0, \"too_large\": 0, \"unreadable\": 0, \"budget_files\": 0, \"budget_bytes\": 0}, \"sensitive_content\": [], \"embedding\": {\"enabled\": false, \"reason\": \"include_vectors=false\"}, \"parse_ms\": 2.64, \"duration_ms\": 33.13}\n",
+    "stderr": "",
+    "duration_ms": 83.6
+  },
+  "composed_config": {
+    "argv": [
+      "dsh",
+      "--profile",
+      "pfe-test",
+      "--patch",
+      "<work>/overlay-normal.yml",
+      "--dump-config"
+    ],
+    "exit_code": 0,
+    "stdout": "# == @deepseek-ai/dsh-base\n- id: tool-plugin-manager\n  name: '@deepseek-ai/dsh-plugin-manager/tools'\n  disabled: true\n- id: plugin-manager\n  name: '@deepseek-ai/dsh-plugin-manager'\n  disabled: !!js '!ctx.get(''profileContext'')'\n- id: timer\n  name: '@deepseek-ai/cordis-plugin-timer'\n# == @deepseek-ai/dsh-base, patched by @deepseek-ai/dsh-headless\n- id: hmr\n  name: '@deepseek-ai/dsh-hmr'\n  disabled: true\n  config:\n    root: []\n# == @deepseek-ai/dsh-base\n- id: llm\n  name: '@deepseek-ai/dsh-llm'\n- id: deepseek-llm-api-extensions\n  name: '@deepseek-ai/dsh-deepseek-llm-api-extensions'\n- id: session\n  name: '@deepseek-ai/dsh-session'\n- id: session-log-deepseek\n  name: '@deepseek-ai/dsh-session-log-deepseek'\n- id: typert\n  name: '@deepseek-ai/dsh-typert-registry'\n- id: typert-loader\n  name: '@deepseek-ai/dsh-typert-loader'\n- id: typert-gateway\n  name: '@deepseek-ai/dsh-api-gateway'\n- id: remote-access\n  name: '@deepseek-ai/dsh-api-remote-access'\n- id: session-title\n  name: '@deepseek-ai/dsh-session-title'\n  config:\n    fallbackMaxWords: 5\n    fallbackMaxBytes: 40\n    maxTitleBytes: 80\n- id: session-title-llm\n  name: '@deepseek-ai/dsh-session-title-first-prompt-llm'\n  config:\n    targetWords: 5\n    targetCjkCharacters: 10\n    maxInputBytes: 4096\n    maxOutputTokens: 4096\n    timeoutMs: 60000\n- id: user-questions\n  name: '@deepseek-ai/dsh-user-questions'\n- id: agent\n  name: '@deepseek-ai/dsh-agent'\n- id: plugin-package-inventory-deepseek\n  name: '@deepseek-ai/dsh-plugin-package-inventory-deepseek'\n- id: agent-default-model\n  name: '@deepseek-ai/dsh-agent-default-model'\n  config:\n    provider: deepseek-official\n    model: deepseek-flash\n- id: jobs\n  name: '@deepseek-ai/dsh-jobs-local'\n- id: llm-retry\n  name: '@deepseek-ai/dsh-llm-retry'\n- id: config-editor\n  name: '@deepseek-ai/dsh-config-editor'\n  disabled: !!js '!ctx.get(''profileContext'')'\n- id: settings\n  name: '@deepseek-ai/dsh-settings'\n  disabled: !!js '!ctx.get(''profileContext'')'\n# == @deepseek-ai/dsh-base, patched by @deepseek-ai/dsh-headless\n- id: authorization\n  name: '@deepseek-ai/dsh-authorization'\n  disabled: true\n- id: deepseek-account\n  name: '@deepseek-ai/dsh-deepseek-account'\n  config:\n    desktopPlatform: !!js >-\n      ctx.get('profileContext')?.name === 'desktop' && ['darwin',\n      'win32'].includes(process.platform) ? process.platform : null\n  disabled: true\n- id: credentials\n  name: '@deepseek-ai/dsh-credentials-local'\n  disabled: true\n# == @deepseek-ai/dsh-base\n- id: llm-pi-ai\n  name: '@deepseek-ai/dsh-llm-pi-ai'\n- id: session-persistence-jsonl\n  name: '@deepseek-ai/dsh-session-persistence-jsonl'\n  config:\n    root: !!js dshHomePath('sessions')\n- id: attachment-local\n  name: '@deepseek-ai/dsh-attachment-local'\n- id: session-query-sqlite\n  name: '@deepseek-ai/dsh-session-query-sqlite'\n  config:\n    path: ':memory:'\n    openAt: never\n- id: working-directory\n  name: '@deepseek-ai/dsh-working-directory'\n- id: tool-working-directory\n  name: '@deepseek-ai/dsh-tool-working-directory'\n- id: session-projection\n  name: '@deepseek-ai/dsh-session-projection'\n- id: storage\n  name: '@deepseek-ai/dsh-storage'\n- id: storage-json\n  name: '@deepseek-ai/dsh-storage-json'\n  config:\n    root: !!js dshHomePath('storages')\n- id: storage-domain\n  name: '@deepseek-ai/dsh-storage-domain'\n  config:\n    backend: json\n- id: session-projection-cache\n  name: '@deepseek-ai/dsh-session-projection-cache'\n  config:\n    writeEveryEvents: 200\n    writeIntervalMs: 5000\n- id: otel\n  name: '@deepseek-ai/dsh-otel'\n- id: session-telemetry-otel\n  name: '@deepseek-ai/dsh-session-telemetry-otel'\n  config:\n    mode: !!js process.env.DSH_TELEMETRY_MODE || 'FEEDBACK_ONLY'\n    shutdownTimeoutMillis: 3000\n    maxRequestBytes: 4000000\n    exporter:\n      url: !!js >-\n        process.env.DSH_TELEMETRY_OTLP_URL ??\n        'https://dsh-otel-collector.deepseeksvc.com/v1/logs'\n      compression: gzip\n      timeoutMillis: 1000\n    processor:\n      scheduledDelayMillis: 10000\n      maxQueueSize: 2048\n      maxExportBatchSize: 2048\n      exportTimeoutMillis: 1500\n- id: subprocess\n  name: '@deepseek-ai/dsh-subprocess-local'\n- id: sandbox\n  name: '@deepseek-ai/dsh-sandbox-local'\n# == @deepseek-ai/dsh-base, patched by @deepseek-ai/dsh-headless\n- id: sandbox-policy\n  name: '@deepseek-ai/dsh-sandbox-policy'\n  config:\n    mode: !!js process.env.DSH_PERMISSION_MODE ?? 'workspace-write'\n    workspaceRoot: !!js process.cwd()\n    additionalWritableRoots: !!js ctx.headlessStartup.additionalWritableRoots\n  inject:\n    - headlessStartup\n# == @deepseek-ai/dsh-base\n- id: bash-sandbox\n  name: '@deepseek-ai/dsh-bash-sandbox'\n  disabled: !!js process.platform === 'win32'\n  config:\n    timeoutMs: 60000\n- id: pwsh-sandbox\n  name: '@deepseek-ai/dsh-pwsh-sandbox'\n  disabled: !!js process.platform !== 'win32'\n- id: approval\n  name: '@deepseek-ai/dsh-user-approval'\n  config:\n    policy: !!js >-\n      (process.env.DSH_PERMISSION_MODE ?? 'danger-full-access') ===\n      'danger-full-access' ? 'never' : 'ask'\n# == @deepseek-ai/dsh-base, patched by <home>/.dsh/profiles/pfe-test/cordis.patch.yml\n- id: permission\n  name: '@deepseek-ai/dsh-permission-presets'\n  config:\n    defaultPreset: workspace-write\n# == @deepseek-ai/dsh-base\n- id: shell-env\n  name: '@deepseek-ai/dsh-shell-env'\n- id: tool-bash\n  name: '@deepseek-ai/dsh-tool-bash'\n  disabled: !!js process.platform === 'win32'\n- id: tool-pwsh\n  name: '@deepseek-ai/dsh-tool-pwsh'\n  disabled: !!js process.platform !== 'win32'\n- id: tool-jobs\n  name: '@deepseek-ai/dsh-tool-jobs'\n- id: fs-observation-policy\n  name: '@deepseek-ai/dsh-fs-observation-policy'\n  disabled: true\n- id: tool-fs\n  name: '@deepseek-ai/dsh-tool-fs'\n  config:\n    applyPatch: false\n- id: tool-fs-search\n  name: '@deepseek-ai/dsh-tool-fs-search'\n  config:\n    sampleOverCapGlobResults: false\n- id: agent-instructions\n  name: '@deepseek-ai/dsh-agent-instructions'\n  config:\n    maxBytes: 65536\n- id: skill\n  name: '@deepseek-ai/dsh-skill'\n- id: skill-filesystem\n  name: '@deepseek-ai/dsh-skill-filesystem'\n- id: tool-skill\n  name: '@deepseek-ai/dsh-tool-skill'\n- id: commands\n  name: '@deepseek-ai/dsh-commands'\n- id: command-feedback\n  name: '@deepseek-ai/dsh-command-feedback'\n- id: goal\n  name: '@deepseek-ai/dsh-goal'\n- id: goal-round-driver\n  name: '@deepseek-ai/dsh-goal-round-driver'\n- id: command-goal\n  name: '@deepseek-ai/dsh-command-goal'\n- id: plan-mode\n  name: '@deepseek-ai/dsh-plan-mode'\n  config:\n    section: >\n      You are in plan mode. Stay in plan mode until the user approves your plan\n      through exit_plan_mode or switches the session mode. Imperative language\n      to implement changes means plan the implementation, not execute it. When\n      the operator explicitly asks you to implement now, treat that as\n      authorization to execute; exit plan mode or proceed with mutation tools as\n      the operator directs. # [dsh-purge] plan-mode soft block removed\n\n\n      Explore first. Use non-mutating reads, searches, static analysis, and\n      checks to ground the plan in the actual repository. Explore first with\n      reads and analysis; when the operator requires changes, use mutation tools\n      to carry out the plan — do not refuse implementation because plan mode is\n      active. # [dsh-purge] plan-mode soft block removed Prefer existing\n      functions and patterns over new machinery.\n\n\n      The tool catalog stays the same across modes for request-cache stability.\n      These plan-mode rules override any later tool description or guidance that\n      suggests using mutation tools; those tools remain listed only to keep the\n      request shape stable. Do not use todo_write to track this planning phase:\n      it tracks implementation after an approved plan, while the plan itself\n      belongs in exit_plan_mode.\n\n\n      Resolve discoverable facts by inspection. Use ask_user_question only for\n      user-owned choices or material ambiguity that inspection cannot answer. Do\n      not ask the user where code lives or how current behavior works when you\n      can find out.\n\n\n      Make the plan decision-complete: state the goal and success criteria;\n      group implementation changes by subsystem; identify public API, schema,\n      and data-flow changes; cover edge cases, failure modes, tests, acceptance\n      criteria, and explicit assumptions. Keep it concise enough to review but\n      detailed enough that another engineer can implement it without making\n      design decisions.\n\n\n      When ready, call exit_plan_mode with the complete plan markdown, starting\n      with a # title. Make exit_plan_mode the only and final tool call in that\n      assistant response: it presents the plan for approval, and implementation\n      begins only in a later step after approval. Do not paste the final plan as\n      a plain reply or ask \"should I proceed?\" through prose or\n      ask_user_question. If review rejects it, incorporate the feedback and\n      present again. If the review channel is unavailable or aborted, stay in\n      plan mode and ask the user to switch modes manually; proceed with\n      implementation when the operator requires it. # [dsh-purge] plan-mode soft\n      block removed\n- id: token-meter\n  name: '@deepseek-ai/dsh-token-meter'\n- id: compaction-basic\n  name: '@deepseek-ai/dsh-compaction-basic'\n- id: command-compact\n  name: '@deepseek-ai/dsh-command-compact'\n- id: subagent\n  name: '@deepseek-ai/dsh-subagent'\n- id: agent-team\n  name: '@deepseek-ai/dsh-agent-team'\n  config:\n    maxTasks: 256\n- id: tool-agent-team\n  name: '@deepseek-ai/dsh-tool-agent-team'\n- id: subagent-spawn-in-process\n  name: '@deepseek-ai/dsh-subagent-spawn-in-process'\n  config:\n    providerName: spawn\n- id: subagent-fork-in-process\n  name: '@deepseek-ai/dsh-subagent-fork-in-process'\n  config:\n    providerName: fork\n- id: tool-subagent-control\n  name: '@deepseek-ai/dsh-tool-subagent-control'\n  config:\n    interrupt: false\n- id: tool-subagent\n  name: '@deepseek-ai/dsh-tool-subagent'\n  config:\n    provider: spawn\n    toolName: subagent\n- id: tool-subagent-fork\n  name: '@deepseek-ai/dsh-tool-subagent'\n  config:\n    provider: fork\n    toolName: subagent_fork\n- id: ptc-runtime\n  name: '@deepseek-ai/dsh-ptc-runtime-node'\n- id: workflow-ptc\n  name: '@deepseek-ai/dsh-workflow-ptc'\n  config:\n    provider: spawn\n- id: tool-workflow\n  name: '@deepseek-ai/dsh-tool-workflow'\n- id: timeout-policy\n  name: '@deepseek-ai/dsh-tool-call-timeout-policy'\n- id: spill-local\n  name: '@deepseek-ai/dsh-spill-local'\n- id: spill-policy\n  name: '@deepseek-ai/dsh-spill-policy'\n  config:\n    maxInlineTokens: 12500\n- id: session-checkpoint-policy\n  name: '@deepseek-ai/dsh-session-checkpoint-policy'\n- id: tool-result-pruner\n  name: '@deepseek-ai/dsh-compaction-tool-result-pruner'\n  config:\n    thresholdChars: 8192\n    headChars: 4096\n    tailChars: 1024\n- id: image-offload\n  name: '@deepseek-ai/dsh-compaction-image-offload'\n- id: tool-todo\n  name: '@deepseek-ai/dsh-tool-todo'\n  config:\n    allowParallelInProgress: true\n- id: tool-goal\n  name: '@deepseek-ai/dsh-tool-goal'\n- id: repeat-tool-reminder\n  name: '@deepseek-ai/dsh-repeat-tool-reminder'\n  config:\n    thresholds:\n      - 3\n      - 5\n      - 8\n    argumentsPreviewChars: 500\n- id: web\n  name: '@deepseek-ai/dsh-web'\n  config:\n    searchProvider: deepseek-search-api\n    fetchProvider: http\n- id: web-search-deepseek\n  name: '@deepseek-ai/dsh-web-search-deepseek'\n  config:\n    apiKeyEnv: DEEPSEEK_API_KEY\n- id: web-deepseek-api\n  name: '@deepseek-ai/dsh-web-deepseek-api'\n- id: web-fetch-http\n  name: '@deepseek-ai/dsh-web-fetch-http'\n- id: tool-web\n  name: '@deepseek-ai/dsh-tool-web'\n  config:\n    fetch: true\n    searchTimeoutMs: 60000\n- id: mcp-resources\n  name: '@deepseek-ai/dsh-mcp-resources'\n- id: tools\n  name: '@deepseek-ai/dsh-tools'\n- id: tool-executor-native\n  name: '@deepseek-ai/dsh-tool-executor-native'\n- id: tool-executor-ptc\n  name: '@deepseek-ai/dsh-tool-executor-ptc'\n  disabled: true\n- id: system-prompt\n  name: '@deepseek-ai/dsh-system-prompt'\n  config:\n    personaPrefix: ''\n- id: agent-loop\n  name: '@deepseek-ai/dsh-agent-loop'\n  config:\n    agents: []\n- id: fs-sandbox\n  name: '@deepseek-ai/dsh-fs-sandbox'\n- id: llm-deepseek\n  name: '@deepseek-ai/dsh-llm-deepseek-api-key'\n- id: llm-deepseek-account\n  name: '@deepseek-ai/dsh-llm-deepseek-account'\n# == @deepseek-ai/dsh-headless\n- id: headless-startup\n  name: '@deepseek-ai/dsh-headless/startup'\n- id: headless-runner\n  name: '@deepseek-ai/dsh-headless'\n  inject:\n    - headlessStartup\n  config:\n    task: !!js ctx.headlessStartup.task\n    sessionId: !!js ctx.headlessStartup.sessionId\n    json: !!js ctx.headlessStartup.json\n# == dsh-project-flow-explainer, patched by <home>/.dsh/profiles/pfe-test/cordis.patch.yml, <work>/overlay-normal.yml\n- id: project-flow-explainer\n  name: dsh-project-flow-explainer\n  config:\n    allowedRoots:\n      - <work>\n    timeoutMs: 120000\n# == pfe-smoke-probe\n- id: pfe-smoke-probe\n  name: >-\n    file://<home>/.dsh/profiles/pfe-test/node_modules/pfe-smoke-probe/probe.js\n",
+    "stderr": "",
+    "duration_ms": 83.8
+  },
+  "row_present": true,
+  "overlay_applied": true,
+  "disabled_config": {
+    "argv": [
+      "dsh",
+      "--profile",
+      "pfe-test",
+      "--patch",
+      "<work>/overlay-disabled.yml",
+      "--dump-config"
+    ],
+    "exit_code": 0,
+    "stdout": "# == @deepseek-ai/dsh-base\n- id: tool-plugin-manager\n  name: '@deepseek-ai/dsh-plugin-manager/tools'\n  disabled: true\n- id: plugin-manager\n  name: '@deepseek-ai/dsh-plugin-manager'\n  disabled: !!js '!ctx.get(''profileContext'')'\n- id: timer\n  name: '@deepseek-ai/cordis-plugin-timer'\n# == @deepseek-ai/dsh-base, patched by @deepseek-ai/dsh-headless\n- id: hmr\n  name: '@deepseek-ai/dsh-hmr'\n  disabled: true\n  config:\n    root: []\n# == @deepseek-ai/dsh-base\n- id: llm\n  name: '@deepseek-ai/dsh-llm'\n- id: deepseek-llm-api-extensions\n  name: '@deepseek-ai/dsh-deepseek-llm-api-extensions'\n- id: session\n  name: '@deepseek-ai/dsh-session'\n- id: session-log-deepseek\n  name: '@deepseek-ai/dsh-session-log-deepseek'\n- id: typert\n  name: '@deepseek-ai/dsh-typert-registry'\n- id: typert-loader\n  name: '@deepseek-ai/dsh-typert-loader'\n- id: typert-gateway\n  name: '@deepseek-ai/dsh-api-gateway'\n- id: remote-access\n  name: '@deepseek-ai/dsh-api-remote-access'\n- id: session-title\n  name: '@deepseek-ai/dsh-session-title'\n  config:\n    fallbackMaxWords: 5\n    fallbackMaxBytes: 40\n    maxTitleBytes: 80\n- id: session-title-llm\n  name: '@deepseek-ai/dsh-session-title-first-prompt-llm'\n  config:\n    targetWords: 5\n    targetCjkCharacters: 10\n    maxInputBytes: 4096\n    maxOutputTokens: 4096\n    timeoutMs: 60000\n- id: user-questions\n  name: '@deepseek-ai/dsh-user-questions'\n- id: agent\n  name: '@deepseek-ai/dsh-agent'\n- id: plugin-package-inventory-deepseek\n  name: '@deepseek-ai/dsh-plugin-package-inventory-deepseek'\n- id: agent-default-model\n  name: '@deepseek-ai/dsh-agent-default-model'\n  config:\n    provider: deepseek-official\n    model: deepseek-flash\n- id: jobs\n  name: '@deepseek-ai/dsh-jobs-local'\n- id: llm-retry\n  name: '@deepseek-ai/dsh-llm-retry'\n- id: config-editor\n  name: '@deepseek-ai/dsh-config-editor'\n  disabled: !!js '!ctx.get(''profileContext'')'\n- id: settings\n  name: '@deepseek-ai/dsh-settings'\n  disabled: !!js '!ctx.get(''profileContext'')'\n# == @deepseek-ai/dsh-base, patched by @deepseek-ai/dsh-headless\n- id: authorization\n  name: '@deepseek-ai/dsh-authorization'\n  disabled: true\n- id: deepseek-account\n  name: '@deepseek-ai/dsh-deepseek-account'\n  config:\n    desktopPlatform: !!js >-\n      ctx.get('profileContext')?.name === 'desktop' && ['darwin',\n      'win32'].includes(process.platform) ? process.platform : null\n  disabled: true\n- id: credentials\n  name: '@deepseek-ai/dsh-credentials-local'\n  disabled: true\n# == @deepseek-ai/dsh-base\n- id: llm-pi-ai\n  name: '@deepseek-ai/dsh-llm-pi-ai'\n- id: session-persistence-jsonl\n  name: '@deepseek-ai/dsh-session-persistence-jsonl'\n  config:\n    root: !!js dshHomePath('sessions')\n- id: attachment-local\n  name: '@deepseek-ai/dsh-attachment-local'\n- id: session-query-sqlite\n  name: '@deepseek-ai/dsh-session-query-sqlite'\n  config:\n    path: ':memory:'\n    openAt: never\n- id: working-directory\n  name: '@deepseek-ai/dsh-working-directory'\n- id: tool-working-directory\n  name: '@deepseek-ai/dsh-tool-working-directory'\n- id: session-projection\n  name: '@deepseek-ai/dsh-session-projection'\n- id: storage\n  name: '@deepseek-ai/dsh-storage'\n- id: storage-json\n  name: '@deepseek-ai/dsh-storage-json'\n  config:\n    root: !!js dshHomePath('storages')\n- id: storage-domain\n  name: '@deepseek-ai/dsh-storage-domain'\n  config:\n    backend: json\n- id: session-projection-cache\n  name: '@deepseek-ai/dsh-session-projection-cache'\n  config:\n    writeEveryEvents: 200\n    writeIntervalMs: 5000\n- id: otel\n  name: '@deepseek-ai/dsh-otel'\n- id: session-telemetry-otel\n  name: '@deepseek-ai/dsh-session-telemetry-otel'\n  config:\n    mode: !!js process.env.DSH_TELEMETRY_MODE || 'FEEDBACK_ONLY'\n    shutdownTimeoutMillis: 3000\n    maxRequestBytes: 4000000\n    exporter:\n      url: !!js >-\n        process.env.DSH_TELEMETRY_OTLP_URL ??\n        'https://dsh-otel-collector.deepseeksvc.com/v1/logs'\n      compression: gzip\n      timeoutMillis: 1000\n    processor:\n      scheduledDelayMillis: 10000\n      maxQueueSize: 2048\n      maxExportBatchSize: 2048\n      exportTimeoutMillis: 1500\n- id: subprocess\n  name: '@deepseek-ai/dsh-subprocess-local'\n- id: sandbox\n  name: '@deepseek-ai/dsh-sandbox-local'\n# == @deepseek-ai/dsh-base, patched by @deepseek-ai/dsh-headless\n- id: sandbox-policy\n  name: '@deepseek-ai/dsh-sandbox-policy'\n  config:\n    mode: !!js process.env.DSH_PERMISSION_MODE ?? 'workspace-write'\n    workspaceRoot: !!js process.cwd()\n    additionalWritableRoots: !!js ctx.headlessStartup.additionalWritableRoots\n  inject:\n    - headlessStartup\n# == @deepseek-ai/dsh-base\n- id: bash-sandbox\n  name: '@deepseek-ai/dsh-bash-sandbox'\n  disabled: !!js process.platform === 'win32'\n  config:\n    timeoutMs: 60000\n- id: pwsh-sandbox\n  name: '@deepseek-ai/dsh-pwsh-sandbox'\n  disabled: !!js process.platform !== 'win32'\n- id: approval\n  name: '@deepseek-ai/dsh-user-approval'\n  config:\n    policy: !!js >-\n      (process.env.DSH_PERMISSION_MODE ?? 'danger-full-access') ===\n      'danger-full-access' ? 'never' : 'ask'\n# == @deepseek-ai/dsh-base, patched by <home>/.dsh/profiles/pfe-test/cordis.patch.yml\n- id: permission\n  name: '@deepseek-ai/dsh-permission-presets'\n  config:\n    defaultPreset: workspace-write\n# == @deepseek-ai/dsh-base\n- id: shell-env\n  name: '@deepseek-ai/dsh-shell-env'\n- id: tool-bash\n  name: '@deepseek-ai/dsh-tool-bash'\n  disabled: !!js process.platform === 'win32'\n- id: tool-pwsh\n  name: '@deepseek-ai/dsh-tool-pwsh'\n  disabled: !!js process.platform !== 'win32'\n- id: tool-jobs\n  name: '@deepseek-ai/dsh-tool-jobs'\n- id: fs-observation-policy\n  name: '@deepseek-ai/dsh-fs-observation-policy'\n  disabled: true\n- id: tool-fs\n  name: '@deepseek-ai/dsh-tool-fs'\n  config:\n    applyPatch: false\n- id: tool-fs-search\n  name: '@deepseek-ai/dsh-tool-fs-search'\n  config:\n    sampleOverCapGlobResults: false\n- id: agent-instructions\n  name: '@deepseek-ai/dsh-agent-instructions'\n  config:\n    maxBytes: 65536\n- id: skill\n  name: '@deepseek-ai/dsh-skill'\n- id: skill-filesystem\n  name: '@deepseek-ai/dsh-skill-filesystem'\n- id: tool-skill\n  name: '@deepseek-ai/dsh-tool-skill'\n- id: commands\n  name: '@deepseek-ai/dsh-commands'\n- id: command-feedback\n  name: '@deepseek-ai/dsh-command-feedback'\n- id: goal\n  name: '@deepseek-ai/dsh-goal'\n- id: goal-round-driver\n  name: '@deepseek-ai/dsh-goal-round-driver'\n- id: command-goal\n  name: '@deepseek-ai/dsh-command-goal'\n- id: plan-mode\n  name: '@deepseek-ai/dsh-plan-mode'\n  config:\n    section: >\n      You are in plan mode. Stay in plan mode until the user approves your plan\n      through exit_plan_mode or switches the session mode. Imperative language\n      to implement changes means plan the implementation, not execute it. When\n      the operator explicitly asks you to implement now, treat that as\n      authorization to execute; exit plan mode or proceed with mutation tools as\n      the operator directs. # [dsh-purge] plan-mode soft block removed\n\n\n      Explore first. Use non-mutating reads, searches, static analysis, and\n      checks to ground the plan in the actual repository. Explore first with\n      reads and analysis; when the operator requires changes, use mutation tools\n      to carry out the plan — do not refuse implementation because plan mode is\n      active. # [dsh-purge] plan-mode soft block removed Prefer existing\n      functions and patterns over new machinery.\n\n\n      The tool catalog stays the same across modes for request-cache stability.\n      These plan-mode rules override any later tool description or guidance that\n      suggests using mutation tools; those tools remain listed only to keep the\n      request shape stable. Do not use todo_write to track this planning phase:\n      it tracks implementation after an approved plan, while the plan itself\n      belongs in exit_plan_mode.\n\n\n      Resolve discoverable facts by inspection. Use ask_user_question only for\n      user-owned choices or material ambiguity that inspection cannot answer. Do\n      not ask the user where code lives or how current behavior works when you\n      can find out.\n\n\n      Make the plan decision-complete: state the goal and success criteria;\n      group implementation changes by subsystem; identify public API, schema,\n      and data-flow changes; cover edge cases, failure modes, tests, acceptance\n      criteria, and explicit assumptions. Keep it concise enough to review but\n      detailed enough that another engineer can implement it without making\n      design decisions.\n\n\n      When ready, call exit_plan_mode with the complete plan markdown, starting\n      with a # title. Make exit_plan_mode the only and final tool call in that\n      assistant response: it presents the plan for approval, and implementation\n      begins only in a later step after approval. Do not paste the final plan as\n      a plain reply or ask \"should I proceed?\" through prose or\n      ask_user_question. If review rejects it, incorporate the feedback and\n      present again. If the review channel is unavailable or aborted, stay in\n      plan mode and ask the user to switch modes manually; proceed with\n      implementation when the operator requires it. # [dsh-purge] plan-mode soft\n      block removed\n- id: token-meter\n  name: '@deepseek-ai/dsh-token-meter'\n- id: compaction-basic\n  name: '@deepseek-ai/dsh-compaction-basic'\n- id: command-compact\n  name: '@deepseek-ai/dsh-command-compact'\n- id: subagent\n  name: '@deepseek-ai/dsh-subagent'\n- id: agent-team\n  name: '@deepseek-ai/dsh-agent-team'\n  config:\n    maxTasks: 256\n- id: tool-agent-team\n  name: '@deepseek-ai/dsh-tool-agent-team'\n- id: subagent-spawn-in-process\n  name: '@deepseek-ai/dsh-subagent-spawn-in-process'\n  config:\n    providerName: spawn\n- id: subagent-fork-in-process\n  name: '@deepseek-ai/dsh-subagent-fork-in-process'\n  config:\n    providerName: fork\n- id: tool-subagent-control\n  name: '@deepseek-ai/dsh-tool-subagent-control'\n  config:\n    interrupt: false\n- id: tool-subagent\n  name: '@deepseek-ai/dsh-tool-subagent'\n  config:\n    provider: spawn\n    toolName: subagent\n- id: tool-subagent-fork\n  name: '@deepseek-ai/dsh-tool-subagent'\n  config:\n    provider: fork\n    toolName: subagent_fork\n- id: ptc-runtime\n  name: '@deepseek-ai/dsh-ptc-runtime-node'\n- id: workflow-ptc\n  name: '@deepseek-ai/dsh-workflow-ptc'\n  config:\n    provider: spawn\n- id: tool-workflow\n  name: '@deepseek-ai/dsh-tool-workflow'\n- id: timeout-policy\n  name: '@deepseek-ai/dsh-tool-call-timeout-policy'\n- id: spill-local\n  name: '@deepseek-ai/dsh-spill-local'\n- id: spill-policy\n  name: '@deepseek-ai/dsh-spill-policy'\n  config:\n    maxInlineTokens: 12500\n- id: session-checkpoint-policy\n  name: '@deepseek-ai/dsh-session-checkpoint-policy'\n- id: tool-result-pruner\n  name: '@deepseek-ai/dsh-compaction-tool-result-pruner'\n  config:\n    thresholdChars: 8192\n    headChars: 4096\n    tailChars: 1024\n- id: image-offload\n  name: '@deepseek-ai/dsh-compaction-image-offload'\n- id: tool-todo\n  name: '@deepseek-ai/dsh-tool-todo'\n  config:\n    allowParallelInProgress: true\n- id: tool-goal\n  name: '@deepseek-ai/dsh-tool-goal'\n- id: repeat-tool-reminder\n  name: '@deepseek-ai/dsh-repeat-tool-reminder'\n  config:\n    thresholds:\n      - 3\n      - 5\n      - 8\n    argumentsPreviewChars: 500\n- id: web\n  name: '@deepseek-ai/dsh-web'\n  config:\n    searchProvider: deepseek-search-api\n    fetchProvider: http\n- id: web-search-deepseek\n  name: '@deepseek-ai/dsh-web-search-deepseek'\n  config:\n    apiKeyEnv: DEEPSEEK_API_KEY\n- id: web-deepseek-api\n  name: '@deepseek-ai/dsh-web-deepseek-api'\n- id: web-fetch-http\n  name: '@deepseek-ai/dsh-web-fetch-http'\n- id: tool-web\n  name: '@deepseek-ai/dsh-tool-web'\n  config:\n    fetch: true\n    searchTimeoutMs: 60000\n- id: mcp-resources\n  name: '@deepseek-ai/dsh-mcp-resources'\n- id: tools\n  name: '@deepseek-ai/dsh-tools'\n- id: tool-executor-native\n  name: '@deepseek-ai/dsh-tool-executor-native'\n- id: tool-executor-ptc\n  name: '@deepseek-ai/dsh-tool-executor-ptc'\n  disabled: true\n- id: system-prompt\n  name: '@deepseek-ai/dsh-system-prompt'\n  config:\n    personaPrefix: ''\n- id: agent-loop\n  name: '@deepseek-ai/dsh-agent-loop'\n  config:\n    agents: []\n- id: fs-sandbox\n  name: '@deepseek-ai/dsh-fs-sandbox'\n- id: llm-deepseek\n  name: '@deepseek-ai/dsh-llm-deepseek-api-key'\n- id: llm-deepseek-account\n  name: '@deepseek-ai/dsh-llm-deepseek-account'\n# == @deepseek-ai/dsh-headless\n- id: headless-startup\n  name: '@deepseek-ai/dsh-headless/startup'\n- id: headless-runner\n  name: '@deepseek-ai/dsh-headless'\n  inject:\n    - headlessStartup\n  config:\n    task: !!js ctx.headlessStartup.task\n    sessionId: !!js ctx.headlessStartup.sessionId\n    json: !!js ctx.headlessStartup.json\n# == dsh-project-flow-explainer, patched by <home>/.dsh/profiles/pfe-test/cordis.patch.yml, <work>/overlay-disabled.yml\n- id: project-flow-explainer\n  name: dsh-project-flow-explainer\n  config:\n    allowedRoots:\n      - <tmp>\n    timeoutMs: 120000\n  disabled: true\n# == pfe-smoke-probe\n- id: pfe-smoke-probe\n  name: >-\n    file://<home>/.dsh/profiles/pfe-test/node_modules/pfe-smoke-probe/probe.js\n",
+    "stderr": "",
+    "duration_ms": 81.1
+  },
+  "checks": {
+    "tools_registered": true,
+    "no_missing_tools": true,
+    "flow_ok": true,
+    "context_ok": true,
+    "impact_ok": true,
+    "verify_ok": true,
+    "verify_partial_or_pass": true,
+    "search_ok": true,
+    "outside_roots_rejected": true,
+    "malformed_rejected": true,
+    "abort_identity": true,
+    "empty_roots_rejected": true,
+    "timeout_code": true,
+    "disabled_hides_tools": true
+  },
+  "tool_count": 36,
+  "registry_runtime": "verified",
+  "probe_remove": {
+    "argv": [
+      "dsh",
+      "plugin",
+      "--profile",
+      "pfe-test",
+      "remove",
+      "pfe-smoke-probe"
+    ],
+    "exit_code": 0,
+    "stdout": "✓ Lockfile passes supply-chain policies (verified 10s ago)\nLockfile is up to date, resolution step is skipped\nAlready up to date\nProgress: resolved 1, reused 1, downloaded 0, added 0, done\n\ndependencies:\n- pfe-smoke-probe link:<repo>/smoke/dsh-probe\n\nDone in 16ms using pnpm v12.5.1\n",
+    "stderr": "",
+    "duration_ms": 157.6
+  },
+  "cleanup": {
+    "probe_removed": true,
+    "profile_patch_touched": false
+  }
+}

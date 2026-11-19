@@ -1,0 +1,29 @@
+{
+  "status": "verified",
+  "profile": "pfe-test",
+  "registry_runtime": "verified",
+  "model_driven": "not_verified",
+  "reason": "model không tham gia: profile không có API key; probe gọi registry thật bên trong một lần boot DSH thật.",
+  "tool_count": 36,
+  "checks": {
+    "tools_registered": true,
+    "no_missing_tools": true,
+    "flow_ok": true,
+    "context_ok": true,
+    "impact_ok": true,
+    "verify_ok": true,
+    "verify_partial_or_pass": true,
+    "search_ok": true,
+    "outside_roots_rejected": true,
+    "malformed_rejected": true,
+    "abort_identity": true,
+    "empty_roots_rejected": true,
+    "timeout_code": true,
+    "disabled_hides_tools": true
+  },
+  "record": "20261120-000406-dsh-smoke.json",
+  "blocked": {
+    "model_driven": "not_verified: profile không có API key; probe gọi registry, không qua model",
+    "panel_ui": "BLOCKED_UI_API_UNVERIFIED"
+  }
+}

@@ -1,6 +1,6 @@
 $ /usr/bin/python3 -m unittest discover -s tests -v
 exit_code: 0
-duration_ms: 4552.7
+duration_ms: 3290.3
 
 --- stdout ---
 
@@ -116,10 +116,10 @@ test_fresh_artifacts_pass (test_knowledge.VerifyTests.test_fresh_artifacts_pass)
 test_missing_public_file_is_detected (test_knowledge.VerifyTests.test_missing_public_file_is_detected) ... ok
 test_no_artifact_means_blocked_not_pass (test_knowledge.VerifyTests.test_no_artifact_means_blocked_not_pass) ... ok
 test_engines_dsh_matches_manifest (test_knowledge_schema.EvidenceConsistencyTests.test_engines_dsh_matches_manifest) ... ok
-test_no_report_claims_done_for_blocked_items (test_knowledge_schema.EvidenceConsistencyTests.test_no_report_claims_done_for_blocked_items) ... ok
 test_package_version_matches_manifest (test_knowledge_schema.EvidenceConsistencyTests.test_package_version_matches_manifest) ... ok
 test_reports_quote_the_manifest_tarball_hash (test_knowledge_schema.EvidenceConsistencyTests.test_reports_quote_the_manifest_tarball_hash) ... ok
 test_reports_quote_the_manifest_test_counts (test_knowledge_schema.EvidenceConsistencyTests.test_reports_quote_the_manifest_test_counts) ... ok
+test_smoke_claims_match_recorded_evidence (test_knowledge_schema.EvidenceConsistencyTests.test_smoke_claims_match_recorded_evidence) ... ok
 test_confidence_levels_match (test_knowledge_schema.SchemaTests.test_confidence_levels_match) ... ok
 test_declared_only_relations_match (test_knowledge_schema.SchemaTests.test_declared_only_relations_match) ... ok
 test_emitted_relations_are_a_subset_of_vocabulary (test_knowledge_schema.SchemaTests.test_emitted_relations_are_a_subset_of_vocabulary) ... ok
@@ -152,6 +152,6 @@ test_static_failure_is_overall_failure (test_v04_regressions.VerifyVerdictTests.
 test_static_pass_ui_runtime_blocked_is_partial (test_v04_regressions.VerifyVerdictTests.test_static_pass_ui_runtime_blocked_is_partial) ... ok
 
 ----------------------------------------------------------------------
-Ran 143 tests in 4.468s
+Ran 143 tests in 3.202s
 
 OK

@@ -1,0 +1,31 @@
+$ node --test dsh-plugin/tests/plugin.test.mjs
+exit_code: 0
+duration_ms: 454.7
+
+--- stdout ---
+✔ exports a Cordis plugin shape with one tool (2.749196ms)
+✔ end-to-end: builds four artifacts through the core CLI (72.962808ms)
+✔ tool result never carries source secrets (68.550555ms)
+✔ adapter and direct core produce the same graph (145.451922ms)
+✔ missing allowedRoots denies every call (deny-by-default) (3.422001ms)
+✔ empty allowedRoots denies every call (1.808611ms)
+✔ repository outside allowedRoots is rejected (1.354498ms)
+✔ symlink that escapes allowedRoots is rejected (0.542512ms)
+✔ relative and missing repository paths are rejected (0.405602ms)
+✔ output_directory must be exactly artifacts/flows (71.112733ms)
+✔ symlinked artifacts directory is rejected (1.66577ms)
+✔ abort surfaces as AbortError, not a business failure (1.37563ms)
+✔ timeout is reported as core_timeout, distinct from abort (4.254289ms)
+✔ missing flow request is rejected before the core runs (1.279243ms)
+✔ unload removes the tool and reload registers it again (0.368104ms)
+✔ rejects invalid configuration at load time (0.161408ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 428.093624
+
+--- stderr ---
