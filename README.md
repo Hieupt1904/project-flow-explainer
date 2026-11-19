@@ -16,9 +16,18 @@ Nếu chỉ muốn dùng **system prompt**, sao chép nội dung từ `reference
 ### Render thủ công
 
 ```bash
+# Một lệnh: đọc repo → graph có bằng chứng → flow.json + flow.html + overview.md
+python scripts/build_flow.py --repo /duong/dan/repo \
+  --request "Giải thích từ lúc người dùng nhấn xuất báo cáo đến khi nhận được file"
+
+# Render lại từ graph có sẵn
 python scripts/render_flow.py assets/example_workflow.json --out flow.html
 python scripts/render_flow.py own_flow.json --out own_flow.html
 python scripts/render_flow.py own_flow.json --check-only
+
+# Test
+python -m unittest discover -s tests -v
+node --test dsh-plugin/tests/plugin.test.mjs      # nếu dùng adapter DSH
 ```
 
 **Demo**: `assets/example_workflow.json` minh họa sơ đồ chatbot, không được coi là kết quả phân tích project thực.
@@ -30,3 +39,17 @@ python scripts/render_flow.py own_flow.json --check-only
 - `overview.md`: giải thích phạm vi, assumptions, các phần chưa xác minh.
 
 Mọi phần `verified` cần trích file và dòng thực, `partial/inferred/unknown` được hiển thị minh bạch trên panel. Không đọc/đưa secrets vào sơ đồ. Với hệ thống nhiều chức năng, tạo mỗi workflow một HTML thay vì nhồi mọi bước vào một canvas.
+
+## Tích hợp DeepSeek Harness
+
+`dsh-plugin/` đăng ký tool `project_flow_explain` trong DSH và gọi lại core qua subprocess; core
+không phụ thuộc DSH, xoá thư mục plugin thì CLI Python vẫn chạy nguyên vẹn. Bundle dùng format
+`dsh.bundle.patch` (`dsh-plugin/cordis.patch.yml`), cài vào một profile riêng:
+
+```bash
+dsh plugin --profile pfe-test add /duong/dan/toi/project-flow-explainer/dsh-plugin
+```
+
+Trạng thái kiểm chứng, quyết định kiến trúc và giới hạn còn lại: [FINAL_REPORT.md](FINAL_REPORT.md),
+[ARCHITECTURE_DECISION.md](ARCHITECTURE_DECISION.md), [TEST_REPORT.md](TEST_REPORT.md),
+[UI_VERIFICATION_REPORT.md](UI_VERIFICATION_REPORT.md), [IMPROVEMENT_PLAN.md](IMPROVEMENT_PLAN.md).

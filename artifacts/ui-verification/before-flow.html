@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Project Flow — Interactive Diagram</title>
+  <style>
+    :root {
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      color: #233247;
+      background: #f6f8fc;
+      font-synthesis: none;
+      --ink: #233247;
+      --muted: #64748b;
+      --line: #e2e9f2;
+      --accent: #366bd4;
+      --shadow: 0 10px 36px rgba(27, 51, 85, .07);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible, .node-card:focus-visible { outline: 3px solid #7da9ff; outline-offset: 2px; }
+    .app { width: min(1640px, 100%); margin: 0 auto; padding: 26px 28px 28px; }
+    .top { display: flex; align-items: start; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
+    .eyebrow { color: #486dab; font-size: 11px; font-weight: 850; letter-spacing: 2px; margin-bottom: 8px; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(22px, 2.6vw, 35px); line-height: 1.17; letter-spacing: -.9px; font-weight: 780; }
+    .subtitle { color: #64758b; font-size: 14px; line-height: 1.7; max-width: 800px; margin: 10px 0 0; }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 13px; }
+    .chip { display: inline-flex; align-items: center; gap: 7px; border: 1px solid #e2e9f2; background: white; color: #5d6c81; font-size: 11px; font-weight: 700; padding: 7px 10px; border-radius: 999px; }
+    .chip b { color: #293b52; }
+    .top-right { display: flex; flex-direction: column; align-items: end; gap: 8px; padding-top: 5px; }
+    .version { background: #eff5ff; border: 1px solid #dce9fd; border-radius: 9px; color: #3a69b0; padding: 8px 12px; font-size: 11px; font-weight: 800; }
+    .hint { color: #91a0b4; font-size: 11px; }
+    .main { display: grid; grid-template-columns: minmax(0,1fr) minmax(285px,340px); gap: 15px; align-items: stretch; }
+    .workbench, .aside { border-radius: 16px; border: 1px solid #e0e7f0; box-shadow: var(--shadow); background: white; overflow: hidden; }
+    .workbench { position: relative; min-width: 0; }
+    .toolbar { height: 58px; padding: 10px 14px; border-bottom: 1px solid #e6ebf2; display: flex; justify-content: space-between; gap: 12px; align-items: center; background: #fff; }
+    .toolbar-left, .toolbar-right { display: flex; align-items: center; gap: 7px; }
+    .toolbar-title { font-size: 12px; font-weight: 800; margin-right: 6px; white-space: nowrap; }
+    .toolbar-sub { color: #91a0b4; font-size: 10px; white-space: nowrap; }
+    .search { padding: 8px 10px 8px 30px; width: 185px; min-width: 105px; border: 1px solid #e2e8f0; border-radius: 9px; background: white; font-size: 12px; color: #34445a; outline-offset: 1px; }
+    .search-box { position: relative; }
+    .search-box:before { content: '⌕'; position: absolute; color:#93a1b5; font-size:21px; left: 10px; top: 3px; pointer-events: none; }
+    .tool-button { border: 1px solid #e3e9f1; border-radius: 9px; color: #52657f; background: white; padding: 0; min-width: 31px; height: 31px; font-size: 17px; font-weight: 700; }
+    .tool-button:hover, .fit:hover { border-color: #b7ccef; background: #f4f8ff; }
+    .fit { border: 1px solid #e3e9f1; border-radius: 9px; background: white; color: #52657f; padding: 7px 10px; height: 31px; font-size: 11px; font-weight: 760; white-space: nowrap; }
+    #viewport { height: min(690px, calc(100vh - 225px)); min-height: 550px; position: relative; overflow: hidden; cursor: grab; touch-action: none;
+      background-color: #fcfdff;
+      background-image: radial-gradient(#d8e0ea 1px, transparent 1px);
+      background-size: 19px 19px;
+      background-position: 8px 7px; }
+    #viewport.panning { cursor: grabbing; }
+    #world { position:absolute; inset:0 auto auto 0; transform-origin:0 0; }
+    #edge-layer { position: absolute; inset: 0; pointer-events: none; }
+    .edge-path { fill: none; stroke: #8fa4c1; stroke-width: 2; opacity:.9; }
+    .edge-path.condition { stroke: #8299c0; }
+    .edge-path.success { stroke: #3faa77; }
+    .edge-path.error { stroke: #e58a8f; }
+    .edge-path.fallback { stroke: #e6a947; }
+    .edge-path.loop { stroke: #a98dcc; stroke-dasharray: 6 5; }
+    .edge-label-rect { fill: #fff; stroke: #e3e8f2; stroke-width: 1; rx: 7; ry:7; }
+    .edge-label-text { fill: #677b93; font-size: 11px; font-weight:700; }
+    .node-card { position:absolute; width: 295px; min-height: 160px; padding: 0; background:white; border: 1.5px solid #d4dfec; border-radius: 13px; overflow:hidden; text-align:left; box-shadow: 0 6px 20px rgba(28,53,88,.09); transition: box-shadow .16s ease, border-color .16s ease, opacity .18s ease; cursor:pointer; color:var(--ink); }
+    .node-card:hover { border-color: #88afe7; box-shadow: 0 11px 32px rgba(30,67,113,.16); }
+    .node-card.selected { border: 2px solid #447fd9; box-shadow: 0 0 0 4px rgba(69,123,214,.14), 0 11px 28px rgba(30,67,113,.1); }
+    .node-card.dimmed, .edge-set.dimmed { opacity: .19; }
+    .node-card.search-muted { opacity: .25; }
+    .node-head { padding: 10px 13px; display:flex; align-items:center; gap:8px; border-bottom:1px solid rgba(15,35,60,.055); }
+    .node-symbol { display:grid; place-items:center; width:24px; height:24px; border-radius:7px; background:#fff9; flex:none; font-size: 13px; font-weight:850; }
+    .node-head-text { flex:1; min-width:0; }
+    .node-tag { font-size: 9px; text-transform:uppercase; letter-spacing:.6px; font-weight:850; opacity:.7; margin-bottom:3px; }
+    .node-title { font-size:13px; letter-spacing:-.15px; font-weight:800; line-height:1.3; overflow-wrap:anywhere; }
+    .node-content { padding: 12px 14px 11px; font-size: 11.7px; color: #566981; line-height:1.55; }
+    .node-summary { margin: 0; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; min-height:35px; }
+    .node-actions { border-top:1px solid #eef2f8; padding: 8px 13px; display:flex; gap:5px; flex-wrap:wrap; min-height: 28px; }
+    .action-tag { background:#f1f6ff; border:1px solid #e3edfe; border-radius:6px; padding: 4px 6px; color:#4776c6; font-size:9.6px; font-weight:750; max-width:100%; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; }
+    .action-empty { color:#8f9dad; font-size:10px; padding:4px 0; }
+    .node-foot { padding: 7px 13px 9px; border-top: 1px solid #f1f4f9; display:flex; justify-content:space-between; align-items:center; gap:6px; font-size:9.4px; color:#8c9bab; }
+    .status { font-size:9px; font-weight:800; border-radius:6px; padding:4px 6px; background:#edf7f3; color:#388365; }
+    .status.partial, .status.inferred { background:#fff7e5; color:#a67b2b; }
+    .status.unknown { background:#fdeeed; color:#c46567; }
+    .status.illustrative { background:#f0eff9; color:#7768a3; }
+    .node-card[data-type="start"] .node-head { background:#e6f7ec; color:#28744d; }
+    .node-card[data-type="message"] .node-head { background:#f1eafd; color:#7753a7; }
+    .node-card[data-type="action"] .node-head { background:#e7f1ff; color:#3b73bf; }
+    .node-card[data-type="decision"] .node-head { background:#fff3d7; color:#9b7022; }
+    .node-card[data-type="data"] .node-head { background:#e5f7f5; color:#328f91; }
+    .node-card[data-type="end"] .node-head { background:#dff7e9; color:#248055; }
+    .node-card[data-type="error"] .node-head { background:#fde9eb; color:#bd6066; }
+    .node-card[data-type="external"] .node-head { background:#f1f2f7; color:#6f788e; }
+    .canvas-footer { position:absolute; left:14px; bottom:13px; z-index:5; display:flex; align-items:center; gap:8px; flex-wrap:wrap; pointer-events:none; }
+    .floating-hint { background:#fffefaee; box-shadow:0 3px 12px rgba(36,68,97,.08); border:1px solid #e4ebf4; border-radius:9px; padding:8px 10px; font-size:10px; color:#73859a; }
+    .zoom-label { position:absolute; right:15px; bottom:13px; padding:7px 9px; font-size:10px; color:#72849d; z-index:5; border:1px solid #e6ecf3; border-radius:7px; background:#fffefa; font-variant-numeric:tabular-nums; }
+    .aside { display:flex; flex-direction:column; min-height:600px; }
+    .aside-head { padding:18px 20px 16px; border-bottom:1px solid #e8edf5; }
+    .aside-eyebrow { font-size:10px; letter-spacing:1.5px; color:#7990b0; text-transform:uppercase; font-weight:800; }
+    .aside-title { margin: 6px 0 0; font-size:16px; font-weight:800; line-height:1.35; }
+    .aside-subtitle { margin:6px 0 0; color:#718198; font-size:11.5px; line-height:1.6; }
+    #details { padding: 17px 20px 18px; flex:1; overflow-y:auto; font-size:12px; line-height:1.65; }
+    .empty-detail { margin-top:30px; text-align:center; color:#91a0b2; }
+    .empty-detail .illustration { margin:0 auto 12px; background:#eef4ff; color:#7094cc; border-radius:20px; width:58px; height:58px; display:grid; place-items:center; font-size:30px; }
+    .empty-detail h3 { margin:8px 0; color:#506583; font-size:13px; }
+    .empty-detail p { font-size:11.5px; line-height:1.7; margin:0 auto; max-width:240px; }
+    .detail-index { font-size:10px; font-weight:800; color:#5077bb; text-transform:uppercase; letter-spacing:1px; }
+    .detail-title { margin:7px 0 10px; font-size:20px; line-height:1.3; letter-spacing:-.4px; }
+    .detail-lede { font-size:12.8px; color:#536780; line-height:1.7; margin:0 0 14px; }
+    .detail-section { border-top:1px solid #e8edf5; padding:14px 0 0; margin:14px 0 0; }
+    .detail-section h4 { font-size:10.5px; color:#7b8da3; text-transform:uppercase; letter-spacing:.8px; margin:0 0 7px; }
+    .detail-section p { margin:0; color:#4f637c; white-space:pre-wrap; overflow-wrap:anywhere; }
+    .branch { background:#f5f8fc; border:1px solid #e8edf5; padding:9px 10px; margin:7px 0; border-radius:8px; display:flex; flex-direction:column; gap:3px; }
+    .branch-label { font-weight:750; font-size:11px; color:#4c70a5; }
+    .branch-target { color:#617489; font-size:11px; }
+    .ref { padding: 9px 10px; background:#f7f9fc; border:1px solid #e6ebf3; border-radius:8px; margin:7px 0; overflow-wrap:anywhere; }
+    .ref-path { font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color:#345f9c; font-size:10px; font-weight:700; }
+    .ref-symbol { color:#728298; font-size:10px; }
+    .alert { font-size:11px; border-radius:9px; line-height:1.6; padding:10px; margin-top:14px; background:#fff7e9; border:1px solid #f3dfb8; color:#8b702f; }
+    .aside-bottom { margin-top:auto; border-top:1px solid #e8edf5; padding:13px 20px; background:#fbfcff; }
+    .legend-title { font-size:10px; font-weight:800; color:#70839a; margin:0 0 9px; }
+    .legend { display:flex; gap:7px 10px; flex-wrap:wrap; }
+    .legend-item { display:flex; align-items:center; gap:5px; color:#7b8b9d; font-size:10px; white-space:nowrap; }
+    .legend-dot { display:inline-block; width:9px; height:9px; border-radius:3px; }
+    .legend-dot.start { background:#77c49b; }.legend-dot.message {background:#c9a9e7;}.legend-dot.action {background:#8eb6ec;}.legend-dot.decision {background:#eac477;}.legend-dot.data {background:#6cc5bd;}.legend-dot.end {background:#4fac83;}.legend-dot.error {background:#e79ba4;}.legend-dot.external {background:#b6bacb;}
+    .page-note { text-align:center; color:#94a3b6; font-size:11px; padding:16px 10px 0; line-height:1.6; }
+    .page-note strong { color:#6c809b; }
+    .sr-only { position:absolute!important; clip:rect(1px,1px,1px,1px); width:1px;height:1px;overflow:hidden;white-space:nowrap; }
+    @media(max-width:1000px) { .main { grid-template-columns:minmax(0,1fr); } .aside { min-height:0; } #viewport { min-height:550px; height:550px; } .top-right { display:none; } }
+    @media(max-width:560px) { .app { padding:16px 10px; } .top { padding:0 5px; } .toolbar { padding:9px; } .toolbar-title,.toolbar-sub { display:none; } .toolbar-left { flex:1; min-width:0; } .search-box { flex:1; } .search { width:100%; } .toolbar-right { flex:none; } .fit { padding:6px 7px; } .floating-hint { display:none; } #viewport { min-height:470px; height:470px; } }
+    @media(prefers-reduced-motion:reduce) { *, *:before, *:after { transition:none!important; } }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div>
+      <div class="eyebrow">PROJECT FLOW EXPLAINER / <span id="flow-id">WORKFLOW</span></div>
+      <h1 id="flow-title">Sơ đồ quy trình</h1>
+      <p class="subtitle" id="flow-description"></p>
+      <div class="meta" id="meta"></div>
+    </div>
+    <div class="top-right"><div class="version">● INTERACTIVE FLOW</div><div class="hint">Một file HTML · Xem được offline</div></div>
+  </header>
+  <main class="main">
+    <section class="workbench" aria-label="Sơ đồ tương tác">
+      <div class="toolbar">
+        <div class="toolbar-left"><span class="toolbar-title">Sơ đồ xử lý</span><span class="toolbar-sub" id="search-count"></span><div class="search-box"><label class="sr-only" for="search">Tìm bước xử lý</label><input id="search" class="search" type="search" placeholder="Tìm một bước..."></div></div>
+        <div class="toolbar-right"><button id="zoom-out" class="tool-button" aria-label="Thu nhỏ" title="Thu nhỏ">−</button><button id="zoom-in" class="tool-button" aria-label="Phóng to" title="Phóng to">+</button><button id="fit" class="fit" title="Xem toàn bộ luồng">Toàn cảnh</button></div>
+      </div>
+      <div id="viewport" role="region" aria-label="Canvas sơ đồ: có thể kéo và phóng to">
+        <div id="world"><svg id="edge-layer" aria-hidden="true"></svg><div id="nodes-layer"></div></div>
+        <div class="canvas-footer"><span class="floating-hint">✥ Kéo để di chuyển · Cuộn để phóng to · Chọn một ô để xem chi tiết</span></div>
+        <span id="zoom-level" class="zoom-label">100%</span>
+      </div>
+    </section>
+    <aside class="aside" aria-label="Thông tin bước xử lý">
+      <div class="aside-head"><div class="aside-eyebrow">DIỄN GIẢI THEO TỪNG BƯỚC</div><h2 class="aside-title" id="aside-title">Hiểu quy trình trong vài phút</h2><p class="aside-subtitle" id="aside-subtitle">Chọn một node trên sơ đồ để xem bước đó làm gì, đi tiếp khi nào và dựa trên mã nguồn nào.</p></div>
+      <div id="details"><div class="empty-detail"><div class="illustration">↗</div><h3>Bắt đầu từ node xanh lá</h3><p>Các mũi tên thể hiện thứ tự xử lý. Mỗi nút rẽ nhánh có nhãn điều kiện. Nhấn vào một ô để xem chi tiết.</p></div></div>
+      <div class="aside-bottom"><p class="legend-title">CHÚ GIẢI LOẠI BƯỚC</p><div id="legend" class="legend"></div></div>
+    </aside>
+  </main>
+  <p class="page-note" id="page-note">Đồ thị minh họa quy trình · <strong>Kiểm tra mức độ xác minh</strong> ở panel chi tiết từng bước</p>
+</div>
+<script id="workflow-json" type="application/json">{"flow_id":"normal","title":"Luồng: Giải thích từ lúc người dùng nhấn xuất báo cáo đến khi nhận được file","description":"Sơ đồ dựng từ phân tích tĩnh repository shop-app, theo yêu cầu: Giải thích từ lúc người dùng nhấn xuất báo cáo đến khi nhận được file. Mọi bước đều trỏ tới file và dòng thật; phần chưa chứng minh được đánh dấu tin cậy thấp.","audience":"Người không đọc code, BA, kiểm thử","scope":"Đọc source trong /home/hieupt/Documents/Agent-skills-main/project-flow-explainer/tests/fixtures/shop-app · xuất / tải dữ liệu, tải tệp lên","entry_node":"start","nodes":[{"id":"start","title":"Bắt đầu từ yêu cầu","type":"start","summary":"Người dùng yêu cầu phân tích luồng: “Giải thích từ lúc người dùng nhấn xuất báo cáo đến khi nhận được file”. Nhóm chủ đề nhận diện được: xuất / tải dữ liệu, tải tệp lên.","confidence":"partial","source_refs":[],"details":"Điểm vào của sơ đồ do yêu cầu quyết định, không phải một dòng code cụ thể.","technical":"entry=request","x":70,"y":226},{"id":"step-1","title":"Nhận yêu cầu /api/reports/export","type":"action","summary":"Điểm vào HTTP — hàm/khối `/api/reports/export` trong `server.js` (dòng 16).","confidence":"verified","source_refs":[{"path":"server.js","start_line":16,"symbol":"/api/reports/export"}],"details":"Khớp chủ đề: code:export, route.","technical":"server.js","actor":"Hệ thống","x":465,"y":226},{"id":"step-2","title":"Xử lý tại exportReport","type":"action","summary":"Bước xử lý — hàm/khối `exportReport` trong `services/report_service.js` (dòng 5).","confidence":"verified","source_refs":[{"path":"services/report_service.js","start_line":5,"symbol":"exportReport"}],"details":"Khớp chủ đề: code:export, path:export.","technical":"services/report_service.js","actor":"Hệ thống","x":1255,"y":85},{"id":"decision-error","title":"Có lỗi trong bước này?","type":"decision","summary":"Bước xử lý có nhánh bắt lỗi; sơ đồ tách nhánh thành công và thất bại.","confidence":"verified","source_refs":[{"path":"services/report_service.js","start_line":8}],"details":"Nhánh lỗi được suy ra từ việc xuất hiện xử lý ngoại lệ trong file.","x":860,"y":226},{"id":"error-branch","title":"Trả lỗi cho người gọi","type":"error","summary":"Lỗi được bắt và trả về cho lớp gọi thay vì kết thúc im lặng.","confidence":"partial","source_refs":[{"path":"services/report_service.js","start_line":8}],"details":"Chưa xác minh nội dung thông báo lỗi và mã lỗi cụ thể.","x":1255,"y":367},{"id":"step-3","title":"Xử lý tại export_report_job","type":"action","summary":"Bước xử lý — hàm/khối `export_report_job` trong `jobs/export_worker.py` (dòng 6).","confidence":"verified","source_refs":[{"path":"jobs/export_worker.py","start_line":6,"symbol":"export_report_job"}],"details":"Khớp chủ đề: code:export, path:export.","technical":"jobs/export_worker.py","actor":"Hệ thống","x":1650,"y":226},{"id":"step-4","title":"Xử lý tại loadReportRows","type":"action","summary":"Bước xử lý — hàm/khối `loadReportRows` trong `db/report_repo.js` (dòng 4).","confidence":"verified","source_refs":[{"path":"db/report_repo.js","start_line":4,"symbol":"loadReportRows"}],"details":"Khớp chủ đề: path:export.","technical":"db/report_repo.js","actor":"Hệ thống","x":2045,"y":226},{"id":"end","title":"Trả kết quả","type":"end","summary":"Kết quả được trả về từ `server.js`.","confidence":"verified","source_refs":[{"path":"server.js","start_line":18}],"details":"Điểm kết thúc xác định theo lời gọi trả kết quả trong code.","x":2440,"y":226}],"edges":[{"from":"start","to":"step-1","label":"bắt đầu xử lý","kind":"success"},{"from":"step-1","to":"decision-error","label":"vào bước xử lý","kind":"normal"},{"from":"decision-error","to":"error-branch","label":"có lỗi","kind":"error"},{"from":"decision-error","to":"step-2","label":"không lỗi","kind":"success"},{"from":"step-2","to":"step-3","label":"tiếp tục","kind":"normal"},{"from":"step-3","to":"step-4","label":"tiếp tục","kind":"normal"},{"from":"step-4","to":"end","label":"hoàn tất","kind":"success"}],"assumptions":["Phân tích tĩnh trên source; hành vi runtime, dữ liệu thật và cấu hình môi trường chưa được kiểm chứng.","Không chép nội dung source vào kết quả; chỉ ghi tên file, số dòng và tên hàm/khối.","Chỉ đọc file source trong repository; file cấu hình bí mật, dump, log và thư mục phụ thuộc bị loại trừ."],"notes":"Phân tích tĩnh, không chạy code của repository, không dùng network. Bước đánh dấu verified trỏ tới đúng file và dòng khai báo; bước partial/inferred là suy luận từ cấu trúc code.","meta":{"schema_version":1,"generated_at":"2026-11-19T16:40:43+07:00","source":{"commit":"7ab202a86c09","branch":"main","dirty":true,"dirty_files":7},"request":"Giải thích từ lúc người dùng nhấn xuất báo cáo đến khi nhận được file","facets":["export","upload"],"files_scanned":5}}</script>
+<script>
+(()=>{
+'use strict';
+const graph = JSON.parse(document.getElementById('workflow-json').textContent);
+const $ = (id)=>document.getElementById(id);
+const titleMap={start:'Bắt đầu',message:'Thông báo',action:'Hành động',decision:'Điều kiện',data:'Dữ liệu',end:'Kết thúc',error:'Lỗi / từ chối',external:'Hệ thống ngoài'};
+const symbolMap={start:'▷',message:'▣',action:'↳',decision:'◇',data:'▤',end:'✓',error:'!',external:'↗'};
+const confMap={verified:'Đã kiểm chứng',partial:'Một phần',inferred:'Suy luận',unknown:'Chưa xác minh',illustrative:'Ví dụ minh họa'};
+const nodeMap=new Map(graph.nodes.map(n=>[n.id,n]));
+const nodesDOM=new Map();
+const edgeDOM=[];
+const viewport=$('viewport'), world=$('world');
+let scale=1, tx=0, ty=0, selected=null;
+let dragging=null;
+const MIN_SCALE=.25, MAX_SCALE=1.85, NODE_W=295;
+function make(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined && txt!==null)e.textContent=String(txt);return e;}
+function add(parent,tag,cls,txt){const e=make(tag,cls,txt);parent.appendChild(e);return e;}
+function svg(tag,attrs={}){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,String(v));return e;}
+function ellipsis(s,n=34){s=String(s||'');return s.length>n?s.slice(0,n-1)+'…':s;}
+function createChip(label,value){const c=add($('meta'),'span','chip');add(c,'span',null,label);add(c,'b',null,value);}
+function setupHeader(){document.title=graph.title+' | Project Flow';$('flow-title').textContent=graph.title;$('flow-id').textContent=graph.flow_id.toUpperCase();$('flow-description').textContent=graph.description;
+  createChip('Bắt đầu',nodeMap.get(graph.entry_node).title);createChip('Số bước',graph.nodes.length);if(graph.audience)createChip('Độc giả',graph.audience);if(graph.scope)createChip('Phạm vi',ellipsis(graph.scope,55));
+  if(graph.nodes.some(n=>n.confidence==='illustrative')){$('page-note').textContent='BẢN DEMO MINH HỌA · Không phải kết quả đọc mã nguồn thực tế. Với project thật, từng bước sẽ có mức xác minh và file nguồn.';}
+}
+function createNode(n,i){let btn=make('button','node-card');btn.type='button';btn.setAttribute('data-type',n.type);btn.dataset.id=n.id;btn.style.left=n.x+'px';btn.style.top=n.y+'px';btn.title='Xem chi tiết bước: '+n.title;
+  const hd=add(btn,'div','node-head');add(hd,'span','node-symbol',symbolMap[n.type]||'·');const heads=add(hd,'div','node-head-text');add(heads,'div','node-tag','Bước '+String(i+1).padStart(2,'0')+' · '+titleMap[n.type]);add(heads,'div','node-title',n.title);
+  const content=add(btn,'div','node-content');add(content,'p','node-summary',n.summary);
+  const actions=add(btn,'div','node-actions');const outgoing=graph.edges.filter(e=>e.from===n.id);
+  if(outgoing.length){outgoing.slice(0,3).forEach(e=>add(actions,'span','action-tag','↗ '+ellipsis(e.label||nodeMap.get(e.to).title,37)));if(outgoing.length>3)add(actions,'span','action-tag','+'+(outgoing.length-3)+' nhánh');}
+  else add(actions,'span','action-empty','Kết thúc tại đây');
+  const foot=add(btn,'div','node-foot');add(foot,'span',null,n.actor||'Hệ thống');add(foot,'span','status '+n.confidence,confMap[n.confidence]);
+  btn.addEventListener('click',()=>inspect(n.id));btn.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();inspect(n.id);}});
+  $('nodes-layer').appendChild(btn);nodesDOM.set(n.id,btn);
+}
+function setupLegend(){const seen=new Set(graph.nodes.map(n=>n.type));Object.keys(titleMap).filter(t=>seen.has(t)).forEach(t=>{const item=add($('legend'),'span','legend-item');add(item,'span','legend-dot '+t);add(item,'span',null,titleMap[t]);});}
+function calcSize(){let w=0,h=0;for(const n of graph.nodes){const e=nodesDOM.get(n.id);w=Math.max(w,n.x+NODE_W+45);h=Math.max(h,n.y+e.offsetHeight+55);}return {w:Math.max(w,600),h:Math.max(h,500)};}
+let worldWidth=1000,worldHeight=800;
+function setupCanvas(){const size=calcSize();worldWidth=size.w;worldHeight=size.h;world.style.width=worldWidth+'px';world.style.height=worldHeight+'px';$('edge-layer').setAttribute('width',worldWidth);$('edge-layer').setAttribute('height',worldHeight);drawEdges();initialView();}
+function placeLabel(g,x,y,text){const max=31;const display=ellipsis(text,max);const width=Math.max(38,display.length*6.05+16);const b=svg('rect',{x:(x-width/2).toFixed(1),y:(y-11).toFixed(1),width:width.toFixed(1),height:22,rx:7,class:'edge-label-rect'});const t=svg('text',{x:x.toFixed(1),y:(y+3.6).toFixed(1),'text-anchor':'middle',class:'edge-label-text'});t.textContent=display;g.append(b,t);}
+function drawEdges(){const layer=$('edge-layer');layer.replaceChildren();edgeDOM.length=0;
+  const defs=svg('defs');for(const [kind,color] of [['normal','#8fa4c1'],['condition','#8299c0'],['success','#3faa77'],['error','#e58a8f'],['fallback','#e6a947'],['loop','#a98dcc']]){const marker=svg('marker',{id:'arr-'+kind,markerWidth:8,markerHeight:8,refX:6,refY:4,orient:'auto',markerUnits:'userSpaceOnUse'});marker.appendChild(svg('path',{d:'M 0 0 L 7 4 L 0 8 z',fill:color}));defs.appendChild(marker);}layer.appendChild(defs);
+  for(const e of graph.edges){const a=nodeMap.get(e.from),b=nodeMap.get(e.to);const ael=nodesDOM.get(a.id),bel=nodesDOM.get(b.id);const group=svg('g',{class:'edge-set'});
+    let d,labelX,labelY;const rightward=b.x>a.x+NODE_W+30;
+    if(rightward){const sx=a.x+NODE_W+1,sy=a.y+ael.offsetHeight/2,ex=b.x-2,ey=b.y+bel.offsetHeight/2;const gap=Math.max(70,(ex-sx)*.43);
+      d=`M ${sx} ${sy} C ${sx+gap} ${sy}, ${ex-gap} ${ey}, ${ex} ${ey}`;labelX=ex-(ex-sx)*.26;labelY=ey-(ey-sy)*.26-14;
+    }else{const sx=a.x+NODE_W/2,sy=a.y+ael.offsetHeight+1,ex=b.x+NODE_W/2,ey=b.y-2;const bend=sy<=ey?100:-105;
+      d=`M ${sx} ${sy} C ${sx} ${sy+bend}, ${ex} ${ey-bend}, ${ex} ${ey}`;labelX=(sx+ex)/2+23;labelY=(sy+ey)/2-13;
+    }
+    group.appendChild(svg('path',{d,class:'edge-path '+e.kind,'marker-end':'url(#arr-'+e.kind+')'}));if(e.label)placeLabel(group,labelX,labelY,e.label);layer.appendChild(group);edgeDOM.push({edge:e,element:group});
+  }
+}
+function applyTransform(){world.style.transform=`translate(${tx}px,${ty}px) scale(${scale})`;$('zoom-level').textContent=Math.round(scale*100)+'%';}
+function fitView(){const vw=viewport.clientWidth,vh=viewport.clientHeight;scale=Math.max(MIN_SCALE,Math.min(1.12,(vw-54)/worldWidth,(vh-48)/worldHeight));tx=(vw-worldWidth*scale)/2;ty=(vh-worldHeight*scale)/2;applyTransform();}
+function initialView(){const entry=nodeMap.get(graph.entry_node);const firstIds=new Set([entry.id,...graph.edges.filter(e=>e.from===entry.id).map(e=>e.to)]);const first=graph.nodes.filter(n=>firstIds.has(n.id));
+  const minX=Math.min(...first.map(n=>n.x)),minY=Math.min(...first.map(n=>n.y)),maxY=Math.max(...first.map(n=>n.y+nodesDOM.get(n.id).offsetHeight));
+  const vh=viewport.clientHeight;scale=Math.max(.55,Math.min(1.02,(vh-75)/Math.max(200,maxY-minY)));tx=57-minX*scale;ty=(vh-(maxY-minY)*scale)/2-minY*scale;applyTransform();}
+
+function zoomAt(next,clientX,clientY){next=Math.max(MIN_SCALE,Math.min(MAX_SCALE,next));const r=viewport.getBoundingClientRect();const px=clientX-r.left,py=clientY-r.top;const wx=(px-tx)/scale,wy=(py-ty)/scale;tx=px-wx*next;ty=py-wy*next;scale=next;applyTransform();}
+function zoomCenter(next){const r=viewport.getBoundingClientRect();zoomAt(next,r.left+r.width/2,r.top+r.height/2);}
+function bindNavigation(){
+  viewport.addEventListener('pointerdown',e=>{if(e.target.closest('.node-card'))return; if(e.button!==0 && e.pointerType==='mouse')return;dragging={x:e.clientX,y:e.clientY,tx,ty};viewport.classList.add('panning');viewport.setPointerCapture(e.pointerId);});
+  viewport.addEventListener('pointermove',e=>{if(!dragging)return;tx=dragging.tx+e.clientX-dragging.x;ty=dragging.ty+e.clientY-dragging.y;applyTransform();});
+  const release=()=>{dragging=null;viewport.classList.remove('panning');};viewport.addEventListener('pointerup',release);viewport.addEventListener('pointercancel',release);
+  viewport.addEventListener('wheel',e=>{e.preventDefault();zoomAt(scale*(e.deltaY<0?1.10:.91),e.clientX,e.clientY);},{passive:false});
+  $('zoom-out').addEventListener('click',()=>zoomCenter(scale/1.17));$('zoom-in').addEventListener('click',()=>zoomCenter(scale*1.17));$('fit').addEventListener('click',()=>{selected=null;nodesDOM.forEach(e=>e.classList.remove('selected','dimmed'));edgeDOM.forEach(o=>o.element.classList.remove('dimmed'));fitView();showPlaceholder();});
+  $('search').addEventListener('input',()=>{const q=$('search').value.trim().toLocaleLowerCase();let count=0;for(const n of graph.nodes){const hay=[n.title,n.summary,n.details,n.technical,(n.source_refs||[]).map(x=>x.path).join(' ')].join(' ').toLocaleLowerCase();const match=!q||hay.includes(q);if(q&&match)count++;nodesDOM.get(n.id).classList.toggle('search-muted',!match);} $('search-count').textContent=q?'Tìm thấy '+count+'/'+graph.nodes.length:'';});
+  window.addEventListener('resize',()=>{if(!selected)initialView();});
+}
+function showPlaceholder(){$('aside-title').textContent='Hiểu quy trình trong vài phút';$('aside-subtitle').textContent='Chọn một node trên sơ đồ để xem bước đó làm gì, đi tiếp khi nào và dựa trên mã nguồn nào.';
+  const root=$('details');root.replaceChildren();const d=add(root,'div','empty-detail');add(d,'div','illustration','↗');add(d,'h3',null,'Bắt đầu từ node xanh lá');add(d,'p',null,'Các mũi tên thể hiện thứ tự xử lý. Mỗi nút rẽ nhánh có nhãn điều kiện. Nhấn vào một ô để xem chi tiết.');}
+function pathTo(target){const q=[graph.entry_node];const visited=new Set(q);const prev=new Map();while(q.length){const id=q.shift();if(id===target)break;for(const e of graph.edges.filter(x=>x.from===id)){if(!visited.has(e.to)){visited.add(e.to);prev.set(e.to,e);q.push(e.to);}}}if(!visited.has(target))return null;
+  const routeNodes=new Set([target]),routeEdges=new Set();let cur=target;while(cur!==graph.entry_node){const e=prev.get(cur);if(!e)break;routeEdges.add(e);routeNodes.add(e.from);cur=e.from;}return {nodes:routeNodes,edges:routeEdges};}
+function detailSection(root,title){const d=add(root,'section','detail-section');add(d,'h4',null,title);return d;}
+function inspect(id){selected=id;const n=nodeMap.get(id);const trace=pathTo(id);if(trace){for(const e of graph.edges.filter(x=>x.from===id)){trace.nodes.add(e.to);trace.edges.add(e);}}
+  nodesDOM.forEach((el,nid)=>{el.classList.toggle('selected',nid===id);el.classList.toggle('dimmed',Boolean(trace)&&!trace.nodes.has(nid));});
+  for(const {edge,element} of edgeDOM)element.classList.toggle('dimmed',Boolean(trace)&&!trace.edges.has(edge));
+  $('aside-title').textContent='Chi tiết bước đang chọn';$('aside-subtitle').textContent='Đường đi từ bước bắt đầu đến đây đã được làm nổi bật trên sơ đồ.';
+  const root=$('details');root.replaceChildren();add(root,'div','detail-index',titleMap[n.type]+' · '+confMap[n.confidence]);add(root,'h3','detail-title',n.title);add(root,'p','detail-lede',n.summary);
+  if(n.details){const s=detailSection(root,'Bước này thực hiện việc gì?');add(s,'p',null,n.details);}
+  if(n.technical){const s=detailSection(root,'Thông tin kỹ thuật (dành cho developer)');add(s,'p',null,n.technical);}
+  const out=graph.edges.filter(e=>e.from===id);if(out.length){const s=detailSection(root,'Tiếp theo sẽ như thế nào?');for(const e of out){const item=add(s,'div','branch');add(item,'span','branch-label',e.label||'Tiếp tục');add(item,'span','branch-target','→ '+nodeMap.get(e.to).title);if(e.technical)add(item,'span','ref-symbol',e.technical);}}
+  if(n.source_refs?.length){const s=detailSection(root,'Chứng cứ trong mã nguồn');for(const r of n.source_refs){const item=add(s,'div','ref');let path=r.path;if(r.start_line)path+=':'+r.start_line+(r.end_line&&r.end_line!==r.start_line?'-'+r.end_line:'');add(item,'div','ref-path',path);if(r.symbol)add(item,'div','ref-symbol','Symbol: '+r.symbol);}}
+  if(['partial','inferred','unknown'].includes(n.confidence)){add(root,'div','alert','⚠ Mức xác minh: '+confMap[n.confidence]+'. Cần kiểm tra thêm mã nguồn hoặc xác nhận nghiệp vụ trước khi xem đây là hành vi chắc chắn.');}
+  if(n.confidence==='illustrative')add(root,'div','alert','ℹ Bước này chỉ dùng để minh họa giao diện; không được lấy làm bằng chứng về một dự án thực tế.');
+}
+setupHeader();graph.nodes.forEach(createNode);setupLegend();setupCanvas();bindNavigation();
+})();
+</script>
+</body>
+</html>

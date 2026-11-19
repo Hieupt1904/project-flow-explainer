@@ -36,10 +36,31 @@ Biến mã nguồn project thành sơ đồ luồng dễ hiểu, có thể truy 
 
 ## CLI nhanh
 
+Sinh cả bộ ba file từ repository (analyzer tự dựng graph có bằng chứng):
+
+```bash
+python scripts/build_flow.py \
+  --repo /duong/dan/repo \
+  --request "Giải thích từ lúc người dùng nhấn xuất báo cáo đến khi nhận được file"
+# -> <repo>/artifacts/flows/<slug>/{flow.json,flow.html,overview.md,run.json}
+python scripts/build_flow.py --repo REPO --request "..." --json   # kết quả máy đọc, cho adapter
+```
+
+Render lại từ graph có sẵn:
+
 ```bash
 python scripts/render_flow.py assets/example_workflow.json --out /tmp/workflow_demo.html
 python scripts/render_flow.py path/to/flow.json --out path/to/flow.html
 python scripts/render_flow.py path/to/flow.json --check-only
 ```
+
+Chính sách của `build_flow.py`: chỉ đọc source trong root, bỏ qua `.env`/credentials/key/dump/log và
+thư mục phụ thuộc, không network, không chạy code của repo, không chép nội dung source vào output.
+
+## Tích hợp DSH (tuỳ chọn)
+
+`dsh-plugin/` là adapter mỏng: đăng ký tool `project_flow_explain`, gọi `scripts/build_flow.py` qua
+subprocess rồi trả đường dẫn + số liệu. Core vẫn chạy độc lập khi xoá thư mục này. Chi tiết:
+[ARCHITECTURE_DECISION.md](ARCHITECTURE_DECISION.md).
 
 Không thay template HTML bằng Mermaid tĩnh khi yêu cầu tương tác; Mermaid chỉ có thể dùng như bản nháp nội bộ nếu cần.

@@ -8,11 +8,10 @@ venv/
 .mypy_cache/
 .ruff_cache/
 
-# Output sinh ra khi chạy thử (giữ assets/ và examples/ trong repo)
-flow.html
+# Output sinh ra khi chạy thử ở thư mục gốc (artifacts/ được giữ lại làm bằng chứng)
 own_flow.html
-flow.json
-overview.md
+node_modules/
+dsh-plugin/node_modules/
 
 # Editor / OS
 .vscode/

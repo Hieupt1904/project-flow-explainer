@@ -216,8 +216,12 @@ function drawEdges(){const layer=$('edge-layer');layer.replaceChildren();edgeDOM
 function applyTransform(){world.style.transform=`translate(${tx}px,${ty}px) scale(${scale})`;$('zoom-level').textContent=Math.round(scale*100)+'%';}
 function fitView(){const vw=viewport.clientWidth,vh=viewport.clientHeight;scale=Math.max(MIN_SCALE,Math.min(1.12,(vw-54)/worldWidth,(vh-48)/worldHeight));tx=(vw-worldWidth*scale)/2;ty=(vh-worldHeight*scale)/2;applyTransform();}
 function initialView(){const entry=nodeMap.get(graph.entry_node);const firstIds=new Set([entry.id,...graph.edges.filter(e=>e.from===entry.id).map(e=>e.to)]);const first=graph.nodes.filter(n=>firstIds.has(n.id));
-  const minX=Math.min(...first.map(n=>n.x)),minY=Math.min(...first.map(n=>n.y)),maxY=Math.max(...first.map(n=>n.y+nodesDOM.get(n.id).offsetHeight));
-  const vh=viewport.clientHeight;scale=Math.max(.55,Math.min(1.02,(vh-75)/Math.max(200,maxY-minY)));tx=57-minX*scale;ty=(vh-(maxY-minY)*scale)/2-minY*scale;applyTransform();}
+  const minX=Math.min(...first.map(n=>n.x)),minY=Math.min(...first.map(n=>n.y)),maxY=Math.max(...first.map(n=>n.y+nodesDOM.get(n.id).offsetHeight)),maxX=Math.max(...first.map(n=>n.x+NODE_W));
+  // Fit the opening step AND its first neighbours: a card chopped by the canvas
+  // edge reads as broken layout, not as a hint that the canvas can pan.
+  const vw=viewport.clientWidth,vh=viewport.clientHeight;
+  const scaleY=(vh-75)/Math.max(200,maxY-minY),scaleX=(vw-46)/Math.max(240,maxX-minX);
+  scale=Math.max(.55,Math.min(1.02,scaleY,scaleX));tx=24-minX*scale;ty=(vh-(maxY-minY)*scale)/2-minY*scale;applyTransform();}
 
 function zoomAt(next,clientX,clientY){next=Math.max(MIN_SCALE,Math.min(MAX_SCALE,next));const r=viewport.getBoundingClientRect();const px=clientX-r.left,py=clientY-r.top;const wx=(px-tx)/scale,wy=(py-ty)/scale;tx=px-wx*next;ty=py-wy*next;scale=next;applyTransform();}
 function zoomCenter(next){const r=viewport.getBoundingClientRect();zoomAt(next,r.left+r.width/2,r.top+r.height/2);}

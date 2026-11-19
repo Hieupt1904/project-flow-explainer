@@ -1,0 +1,64 @@
+{
+  "flow_id": "empty",
+  "title": "Luồng: thanh toán thẻ tín dụng quốc tế",
+  "description": "Sơ đồ dựng từ phân tích tĩnh repository empty-repo, theo yêu cầu: luồng thanh toán thẻ tín dụng quốc tế. Mọi bước đều trỏ tới file và dòng thật; phần chưa chứng minh được đánh dấu tin cậy thấp.",
+  "audience": "Người không đọc code, BA, kiểm thử",
+  "scope": "Đọc source trong /home/hieupt/Documents/Agent-skills-main/project-flow-explainer/artifacts/qa/empty-repo · thanh toán / đơn hàng",
+  "entry_node": "start",
+  "nodes": [
+    {
+      "id": "start",
+      "title": "Bắt đầu từ yêu cầu",
+      "type": "start",
+      "summary": "Người dùng yêu cầu phân tích luồng: “luồng thanh toán thẻ tín dụng quốc tế”. Nhóm chủ đề nhận diện được: thanh toán / đơn hàng.",
+      "confidence": "partial",
+      "source_refs": [],
+      "details": "Điểm vào của sơ đồ do yêu cầu quyết định, không phải một dòng code cụ thể.",
+      "technical": "entry=request",
+      "x": 70,
+      "y": 85
+    },
+    {
+      "id": "no-evidence",
+      "title": "Không tìm thấy mã nguồn liên quan",
+      "type": "error",
+      "summary": "Không file nào trong phạm vi đọc khớp với từ khoá của yêu cầu. Sơ đồ dừng ở đây thay vì mô tả một luồng không có bằng chứng.",
+      "confidence": "unknown",
+      "source_refs": [],
+      "details": "Cần mô tả flow cụ thể hơn, hoặc repository chưa chứa phần xử lý tương ứng.",
+      "x": 465,
+      "y": 85
+    }
+  ],
+  "edges": [
+    {
+      "from": "start",
+      "to": "no-evidence",
+      "label": "không khớp mã nguồn",
+      "kind": "error"
+    }
+  ],
+  "assumptions": [
+    "Phân tích tĩnh trên source; hành vi runtime, dữ liệu thật và cấu hình môi trường chưa được kiểm chứng.",
+    "Không chép nội dung source vào kết quả; chỉ ghi tên file, số dòng và tên hàm/khối.",
+    "Chỉ đọc file source trong repository; file cấu hình bí mật, dump, log và thư mục phụ thuộc bị loại trừ.",
+    "Thư mục test/fixture/example/sample/demo bị bỏ qua để không phân tích nhầm ứng dụng mẫu.",
+    "Không tìm được bằng chứng nào cho yêu cầu này; kết quả chỉ ghi nhận giới hạn."
+  ],
+  "notes": "Phân tích tĩnh, không chạy code của repository, không dùng network. Bước đánh dấu verified trỏ tới đúng file và dòng khai báo; bước partial/inferred là suy luận từ cấu trúc code.",
+  "meta": {
+    "schema_version": 1,
+    "generated_at": "2026-11-19T16:42:54+07:00",
+    "source": {
+      "commit": "7ab202a86c09",
+      "branch": "main",
+      "dirty": true,
+      "dirty_files": 7
+    },
+    "request": "luồng thanh toán thẻ tín dụng quốc tế",
+    "facets": [
+      "payment"
+    ],
+    "files_scanned": 1
+  }
+}

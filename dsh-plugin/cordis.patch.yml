@@ -1,0 +1,15 @@
+# DSH bundle layer: mount the Project Flow Explainer adapter.
+#
+# One row inserts the plugin package. The plugin is dependency-free: it never
+# imports @deepseek-ai/* (the profile cannot resolve those), it only uses the
+# Context object DSH hands to `apply(ctx)`.
+#
+# Config keys (all optional):
+#   pythonPath    interpreter used to call the core CLI   (default: python3)
+#   coreRoot      repository root holding scripts/         (default: parent of this package)
+#   allowedRoots  absolute roots the tool may analyse; empty = accept any readable path
+#   timeoutMs     per-call budget in milliseconds          (default: 180000)
+#   maxOutputBytes cap for core stdout/stderr capture      (default: 1048576)
+- insert:
+    - id: project-flow-explainer
+      name: dsh-project-flow-explainer

@@ -1,0 +1,23 @@
+{
+  "name": "dsh-project-flow-explainer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "DSH adapter: expose the Project Flow Explainer core (scripts/build_flow.py) as one DSH tool.",
+  "license": "MIT",
+  "exports": {
+    ".": "./index.js",
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "test": "node --test tests/plugin.test.mjs"
+  }
+}

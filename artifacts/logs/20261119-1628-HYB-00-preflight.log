@@ -1,0 +1,56 @@
+# HYB-00 preflight — 2026-11-19T16:28:10+07:00
+## OS
+Linux 6.14.0-37-generic
+PRETTY_NAME="Ubuntu 24.04.4 LTS"
+## python
+/usr/bin/python
+Python 3.12.3
+/usr/bin/python3
+Python 3.12.3
+## node/npm/pnpm
+v24.22.3
+11.19.1
+12.5.1
+## dsh
+0.2.2-rc.2
+DSH_HOME=/home/hieupt/.dsh
+DSH_PROFILE=web
+DSH_PROFILE_DIR=/home/hieupt/.dsh/profiles/web
+DSH_INSTALL_DIR=/home/hieupt/.local/share/fnm/node-versions/v24.22.3/installation/lib/node_modules/@deepseek-ai/dsh
+DSH_WEB_URL=http://127.0.0.1:3080
+## cordis / dsh-tools versions
+cordis 4.1.0
+dsh-tools 0.2.2-rc.2
+dsh-plugin-manager 0.2.2-rc.2
+dsh-experimental-inspector 0.2.2-rc.2
+## runtime inspection tools (cordis_inspect_*)
+/home/hieupt/.local/share/fnm/node-versions/v24.22.3/installation/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-cordis-client-runner/lib/client.js.map
+/home/hieupt/.local/share/fnm/node-versions/v24.22.3/installation/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-cordis-client-runner/lib/client.js
+/home/hieupt/.local/share/fnm/node-versions/v24.22.3/installation/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-cordis-client-runner/lib/types/client/slot-catalog.d.ts
+(empty = not present in installed 0.2.2-rc.2 packages)
+## plugin_manager tool present in code?
+88:    name: 'plugin_manager',
+## plugin_manager bundle listed in active profile?
+NOT LISTED -> tool not mounted in this session
+## cordis-plugin-development skill
+(empty = not installed)
+## repo
+main
+7ab202a
+?? artifacts/
+agents
+artifacts
+assets
+examples
+README.md
+references
+scripts
+SKILL.md
+tests
+## baseline unittest
+----------------------------------------------------------------------
+Ran 6 tests in 0.001s
+
+OK
+## renderer check-only
+OK: 8 nodes, 8 edges, entry=welcome
