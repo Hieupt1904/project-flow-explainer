@@ -23,6 +23,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 REVIEW = ROOT / "artifacts" / "review"
+UI_SHOT = ROOT / "artifacts" / "ui-verification" / "dsh-settings-page.png"
 REVIEW.mkdir(parents=True, exist_ok=True)
 
 
@@ -197,7 +198,25 @@ def main(argv=None):
     ui_candidates = sorted(REVIEW.glob("*-ui.json"))
     ui_path = ui_candidates[-1] if ui_candidates else REVIEW / "missing-ui.json"
     ui = json.loads(ui_path.read_text(encoding="utf-8")) if ui_path.exists() else {}
+    # The DSH settings page, captured in a real browser against a real boot.
+    settings_shot = UI_SHOT
+    shot = {}
+    if settings_shot.exists():
+        raw = settings_shot.read_bytes()
+        width = int.from_bytes(raw[16:20], "big") if raw[:8] == b"\x89PNG\r\n\x1a\n" else 0
+        height = int.from_bytes(raw[20:24], "big") if raw[:8] == b"\x89PNG\r\n\x1a\n" else 0
+        shot = {
+            "file": settings_shot.name,
+            "bytes": len(raw),
+            "sha256": hashlib.sha256(raw).hexdigest(),
+            "width": width,
+            "height": height,
+        }
+    else:
+        shot = {"file": "", "missing": True}
+
     evidence["ui"] = {
+        "settings_page_screenshot": shot,
         "status": "pass" if ui and not any(
             ui["summary"].get(key, 0) for key in
             ("overflow", "card_overlap", "label_over_card", "clipped_headers",

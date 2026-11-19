@@ -200,5 +200,6 @@ test('summary view names the roots instead of pretending configuration', () => {
 test('a missing host form is reported, not silently rendered', () => {
   const { component } = mountPage()
   const copy = texts(component({ view: 'page', form: undefined }))
-  assert.match(copy, /chưa cung cấp form cấu hình/i)
+  assert.match(copy, /không nhận được form cấu hình/i)
+  assert.match(copy, /Configure/)
 })

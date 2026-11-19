@@ -104,12 +104,16 @@ Chi tiết: [dsh-plugin/README.md](dsh-plugin/README.md).
 
 ### Chỉnh cấu hình trong UI
 
-Bundle 0.4.2 có settings card: mở **Plugins → project-flow-explainer**, phần cấu hình
-hiện 5 trường (`allowedRoots`, `pythonPath`, `coreRoot`, `timeoutMs`, `maxOutputBytes`).
-Card ghi qua slot `plugins.bundle.config`; Host lưu vào patch layer và áp cho lần gọi sau.
-Schema là `Config` native (schemastery): giá trị sai kiểu bị từ chối ngay khi mount.
-Trang Settings tự sinh của DSH **không** liệt kê bundle này (trường `.volatile()` bị chiếu
-thành `{}` khi schema đến từ bản schemastery khác instance); card trong Plugins là UI chính.
+Mở **Plugins** → card `dsh-project-flow-explainer` → bấm **Configure** ở dòng
+`project-flow-explainer`. Trang cấu hình có 5 trường (`allowedRoots`, `pythonPath`,
+`coreRoot`, `timeoutMs`, `maxOutputBytes`), nút **Lưu cấu hình** và **Khôi phục mặc định**.
+
+Vì sao phải mở từ dòng: trang bundle gọi `formFor(pkg.name)`, còn namespace settings dùng
+row id (`project-flow-explainer`), nên form chỉ có ở trang cấu hình của row.
+
+Lưu xong, Host phát `settings/document-updated`; plugin cập nhật giá trị tại chỗ nên lần gọi
+kế tiếp dùng cấu hình mới, không cần restart. Schema là `Config` native (schemastery):
+giá trị sai kiểu bị từ chối ngay khi mount.
 
 Sau khi cài hoặc nâng cấp bundle, **khởi động lại DSH** để nạp module mới; đổi cấu hình
 trong UI thì không cần restart.

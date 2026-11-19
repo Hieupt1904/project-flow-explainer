@@ -156,8 +156,10 @@ window.__ModuleLoader__.load({
       if (!form) {
         return h("div", { style: css.page },
           h("div", { style: css.callout },
-            "Host chưa cung cấp form cấu hình cho bundle này. Cấu hình bằng patch layer ",
-            h("code", null, "- id: " + ROW_ID), ", xem dsh-plugin/README.md."));
+            "Trang này không nhận được form cấu hình. Mở ",
+            h("strong", null, "Configure"), " ở dòng ", h("code", null, ROW_ID),
+            " bên dưới để sửa cấu hình, hoặc dùng patch layer ",
+            h("code", null, "- id: " + ROW_ID), " (xem dsh-plugin/README.md)."));
       }
 
       const update = (key, value) => {
@@ -224,8 +226,7 @@ window.__ModuleLoader__.load({
       return h("div", { style: css.page },
         h("div", { style: css.section },
           h("div", { style: css.sectionHead },
-            h("h2", { style: css.h2 }, "Thư mục được đọc"),
-            h("span", { style: css.meta }, rootsCount + " root")),
+            h("span", { style: css.meta }, rootsCount + " root đang được đọc")),
           field(FIELDS[0])),
         h("div", { style: css.section },
           h("div", { style: css.sectionHead }, h("h2", { style: css.h2 }, "Runtime")),

@@ -24,10 +24,10 @@ Tarball phát hành:
 
 | Mục | Giá trị |
 |---|---|
-| Tên | `dsh-project-flow-explainer-0.4.4.tgz` |
-| Byte | 97 732 |
+| Tên | `dsh-project-flow-explainer-0.5.4.tgz` |
+| Byte | 98843 |
 | Entry | 26 (gồm `client.js` và `vendor/core/{scripts,assets,tools,pfe}`) |
-| SHA-256 | `8b4fc3d193e277602300db0c8e3e61185883882e18b3ec662d29b5911f0d9723` |
+| SHA-256 | `a49a0102eae322937746344c6ad363dca193b21c6f305e09eec01c146eb4d743` |
 
 ## 2. Lỗi tái hiện được và đã sửa trong 0.4.x
 
@@ -159,11 +159,13 @@ Profile `web` không bị chạm; overlay nằm trong thư mục tạm, không s
 | `allowedRoots: []` | `allowed_roots_unconfigured` |
 | `timeoutMs: 1` | `core_timeout` |
 | `disabled: true` | không còn tool `project_*` trong registry |
+| `exports["./client"]` | resolve được, client bundle vào web boot graph |
+| `Config` + `.volatile()` | entry vào `settings.describe()`, `auto_generate=true` |
 
 Giới hạn: probe gọi **registry thật** nhưng **không qua model**, nên
 `model_driven = not_verified`. Panel UI vẫn `BLOCKED_UI_API_UNVERIFIED`.
 
-## 4d. Settings UI trong DSH (0.4.2)
+## 4d. Settings UI trong DSH (0.5.4)
 
 Bundle có `client.js` đăng ký slot `plugins.bundle.config` với key là package name.
 
@@ -180,8 +182,8 @@ Bundle có `client.js` đăng ký slot `plugins.bundle.config` với key là pac
 | Host không có form | `form: undefined` | hiện hướng dẫn dùng patch, không render form rỗng |
 | Config native | boot thật với `allowedRoots: "oops"` | `ValidationError: $.allowedRoots expected array but got oops` |
 
-6 test client (`dsh-plugin/tests/client.test.mjs`) + 1 check trong DSH smoke
-(`invalid_config_rejected`) khoá hành vi này.
+10 test client (`dsh-plugin/tests/client.test.mjs`) + 2 check trong DSH smoke
+(`invalid_config_rejected`, `client_subpath_resolves`) khoá hành vi này.
 
 
 ## 4e. Đối chiếu hướng dẫn chính thức của DSH
@@ -203,17 +205,43 @@ Tham chiếu: `deepseekdocs.com/en/docs/learn/dev/hello-plugin` và `config-publ
 | Settings UI: `Config` + trường `.volatile()` | **KHÔNG tự sinh** — xem giới hạn bên dưới |
 | UI riêng cho bundle | Card ở `plugins.bundle.config` (đã test 6 ca) |
 
-Giới hạn đã đo: khi bật `.volatile()`, loader chiếu từng trường thành `{}`
-(`cfg {"allowedRoots":{},"pythonPath":{},...}`) vì schema đến từ bản `@deepseek-ai/schemastery`
-khác instance với loader. Vì vậy bundle không bật `volatile`; UI cấu hình là card riêng
-trong trang Plugins, còn Settings tự sinh thì không xuất hiện (đã ghi trong
-`dsh-smoke.json` mục `settings_page`).
+Ba lỗi thật trên đường đi tới Settings UI, đã đo và đã sửa:
+
+| Lỗi | Triệu chứng đo được | Sửa |
+|---|---|---|
+| Thiếu `exports["./client"]` | `client-modules`: `declares dsh.client but exports no "./client" bundle`; `require.resolve('dsh-project-flow-explainer/client')` trả `ERR_PACKAGE_PATH_NOT_EXPORTED` | thêm `"./client": "./client.js"` vào `exports` |
+| Schema lấy từ bản schemastery khác | trường `.volatile()` bị chiếu thành `{}` (`cfg {"allowedRoots":{},"pythonPath":{}}`) | nạp schemastery từ **gói cài DSH** (`realpath(process.argv[1])` → `dsh/anchor.js`), không dùng bản trong profile |
+| Giá trị nằm ở settings, không ở `config` | sau khi bật volatile, patch `allowedRoots` không tới `apply()` | đọc `ctx.settings.describe()` qua `ctx.inject(['settings'])[]()`, cập nhật tại chỗ khi có `settings/document-updated` |
+
+Kết quả sau sửa: entry `project-flow-explainer` xuất hiện trong `settings.describe()` với
+`auto_generate: true` và `value.allowedRoots` đúng như patch; trang Plugins truyền `form` cho slot
+nên trang cấu hình hoạt động.
+
+## 4f. Settings UI chạy thật trong trình duyệt
+
+Thực hiện trên một instance thứ hai của profile `web` (cổng 3099), không chạm phiên đang dùng:
+mở **Plugins** → card `dsh-project-flow-explainer` → nút **Configure** ở dòng
+`project-flow-explainer`.
+
+| Kiểm chứng | Kết quả |
+|---|---|
+| `#pfe-allowedRoots` tồn tại | có, hai dòng: root làm việc của máy và root của fixture |
+| Đủ 5 trường | `allowedRoots`, `pythonPath`, `coreRoot`, `timeoutMs`, `maxOutputBytes` |
+| Section | "Runtime", "Tool đã đăng ký" (tiêu đề "Thư mục được đọc" của trang không bị lặp) |
+| Nút | "Lưu cấu hình", "Khôi phục mặc định" |
+| Fallback trên trang bundle | hiện hướng dẫn mở **Configure** ở dòng, không render form rỗng |
+
+Ảnh: [dsh-settings-page.png](artifacts/ui-verification/dsh-settings-page.png) · 1 236 × 769 ·
+sha256 `19e3feac…f6cc2` (manifest: `ui.settings_page_screenshot`).
+
+Lý do phải mở từ dòng: trang bundle gọi `formFor(pkg.name)`, còn namespace settings dùng **row id**
+(`project-flow-explainer`), nên form chỉ có ở trang cấu hình của row.
 
 ## 5. Chưa kiểm chứng
 
 | Hạng mục | Trạng thái | Lý do |
 |---|---|---|
-| Smoke registry 0.4.1 trong `pfe-test` | **ĐÃ CHẠY** — `artifacts/review/*-dsh-smoke.json` | 6 lần boot thật, 36 tool, 14/14 check pass |
+| Smoke registry 0.5.4 trong `pfe-test` | **ĐÃ CHẠY** — `artifacts/review/*-dsh-smoke.json` | 6 lần boot thật, 36 tool, 16/16 check pass |
 | Model tự chọn tool | **CHƯA CHẠY** | profile không có API key; probe gọi registry thật, không qua model |
 | Native `Config` | **ĐÃ XÁC MINH** | boot thật trả `ValidationError: $.allowedRoots expected array but got oops` |
 | Tool visibility | **BLOCKED_TOOL_VISIBILITY** | chưa xác minh cơ chế presentation/visibility |

@@ -19,6 +19,8 @@
  * refresh). They share the same path policy and the same core subprocess.
  */
 import path from 'node:path'
+import { createRequire } from 'node:module'
+import { realpathSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { runCore } from './lib/core-runner.js'
 import {
@@ -32,30 +34,64 @@ import {
 export const name = 'project-flow-explainer'
 export const inject = ['tools']
 
-// Native config schema (schemastery) when the profile can resolve it. Node
-// resolution from the installed package walks up to the profile's
-// node_modules; schemastery is present only when something else already pulled
-// it in, so the import is attempted once. A missing module keeps the
-// hand-written validation in normalizeConfig; never fake a Schema object.
+// The schema must come from the SAME schemastery instance the Loader uses.
+// Node resolution from this package reaches the profile's own copy first, and
+// a foreign copy makes the config projector emit {} for every volatile field
+// (measured: cfg {"allowedRoots":{},"pythonPath":{},...}), so the Settings page
+// drops the entry. Anchor a resolver at $DSH_HOME/profiles instead: the flat
+// closure there links to the installation's schemastery, which is the Loader's.
+function loadSchemaModule() {
+  const candidates = []
+  // The Loader runs from the installation; anchoring there resolves the exact
+  // schemastery instance it validates with.
+  try {
+    // <install>/lib/node_modules/@deepseek-ai/dsh/lib/bin.js -> package root,
+    // whose node_modules holds the Loader's own schemastery.
+    const bin = realpathSync(process.argv[1] ?? '')
+    const dshPackage = path.dirname(path.dirname(bin))
+    candidates.push(createRequire(path.join(dshPackage, 'anchor.js')))
+  } catch {
+    // no argv anchor (tests, embedders)
+  }
+  if (process.env.DSH_HOME) {
+    candidates.push(createRequire(path.join(process.env.DSH_HOME, 'profiles', 'anchor.js')))
+  }
+  candidates.push(createRequire(import.meta.url))
+  let fallback
+  for (const requireFrom of candidates) {
+    try {
+      const resolved = requireFrom.resolve('@deepseek-ai/schemastery')
+      const loaded = requireFrom(resolved)
+      const z = loaded.default ?? loaded
+      if (typeof z?.object !== 'function') continue
+      // Prefer the installation's copy: that is the instance the Loader uses.
+      const candidate = { z, source: resolved }
+      if (resolved.includes(path.join('@deepseek-ai', 'dsh', 'node_modules'))) return candidate
+      fallback ??= candidate
+    } catch {
+      // try the next anchor
+    }
+  }
+  return fallback
+}
+
+const schemaModule = loadSchemaModule()
 let ConfigSchema
-try {
-  const schemastery = await import('@deepseek-ai/schemastery')
-  const z = schemastery.default ?? schemastery
-  // Plain fields, deliberately NOT .volatile(): the Settings page projects
-  // volatile fields through the loader's own schemastery instance, and a bundle
-  // that resolves a second copy from the profile closure gets {} for every
-  // field (measured: cfg {"allowedRoots":{},"pythonPath":{},...}). The settings
-  // UI for this bundle is the client card in Plugins, not the generated page.
+if (schemaModule !== undefined) {
+  const z = schemaModule.z
+  // .volatile() is what puts the entry into settings.describe(): without it the
+  // Plugins page has no ConfigPageForm to pass to plugins.bundle.config.
   ConfigSchema = z.object({
-    allowedRoots: z.array(z.string()).description(
+    allowedRoots: z.array(z.string()).volatile().description(
       'Thư mục gốc được đọc, đường dẫn tuyệt đối. Rỗng nghĩa là từ chối mọi repository.'),
-    pythonPath: z.string().default('python3').description('Interpreter dùng để gọi core'),
-    coreRoot: z.string().description('Thư mục core; bỏ trống để tự dò vendor/core'),
-    timeoutMs: z.number().min(1).default(180000).description('Ngân sách mỗi lần gọi, mili giây'),
-    maxOutputBytes: z.number().min(1).default(1048576).description('Giới hạn stdout và stderr'),
+    pythonPath: z.string().default('python3').volatile()
+      .description('Interpreter dùng để gọi core'),
+    coreRoot: z.string().volatile().description('Thư mục core; bỏ trống để tự dò vendor/core'),
+    timeoutMs: z.number().min(1).default(180000).volatile()
+      .description('Ngân sách mỗi lần gọi, mili giây'),
+    maxOutputBytes: z.number().min(1).default(1048576).volatile()
+      .description('Giới hạn stdout và stderr'),
   })
-} catch {
-  ConfigSchema = undefined
 }
 
 /** Real schemastery schema when it resolved, otherwise undefined (fallback path). */
@@ -78,11 +114,19 @@ function badConfig(message, hint) {
 }
 
 function normalizeConfig(config) {
-  // Volatile settings arrive as explicit undefined when the user layer has no
-  // value yet, so a plain spread would overwrite the default with undefined.
+  // Volatile settings are placeholders ({}) until the user layer carries a
+  // value, so every field is type-checked and falls back to its default instead
+  // of failing the mount. A real wrong type still fails: the Loader's Config
+  // schema rejects it before apply().
+  const raw = config ?? {}
   const settings = { ...DEFAULTS }
-  for (const [key, value] of Object.entries(config ?? {})) {
-    if (value !== undefined && value !== null) settings[key] = value
+  for (const [key, value] of Object.entries(raw)) {
+    // Volatile fields arrive as {} before the settings layer has a value.
+    // That placeholder means "unset"; any other wrong shape must still fail.
+    const placeholder = typeof value === 'object' && value !== null
+      && !Array.isArray(value) && Object.keys(value).length === 0
+    if (value === undefined || value === null || placeholder) continue
+    settings[key] = value
   }
   if (typeof settings.pythonPath !== 'string' || settings.pythonPath.trim() === '') {
     badConfig('pythonPath phải là chuỗi không rỗng')
@@ -130,8 +174,51 @@ const TEXT = (value) => [{ type: 'text', text: value }]
  * @param {object} ctx - Cordis context with the `tools` service injected.
  * @param {object} [config] - profile patch config (`allowedRoots` required to use the tool).
  */
+/**
+ * Volatile fields reach apply() as {} placeholders: the Loader keeps their
+ * values in the settings document instead of the static config. Read them from
+ * the settings service once and refresh on its document event, so every tool
+ * call sees the current user layer.
+ * @param {object} ctx - Cordis context (settings service optional).
+ * @param {object} target - normalized settings object updated in place.
+ */
+function attachLiveSettings(ctx, target) {
+  const read = () => {
+    try {
+      const rows = ctx.settings?.describe?.({ redactSecrets: true }) ?? []
+      const mine = rows.find((row) => String(row.ns) === name)
+      // `value` is the resolved form: profile patch + user layer + defaults.
+      // `user` alone is just the profile's own patch layer, so using it would
+      // ignore the bundle's configured roots.
+      if (mine === undefined || mine.value === undefined) return
+      const layer = {}
+      for (const [key, value] of Object.entries(mine.value)) {
+        if (value !== undefined && value !== null) layer[key] = value
+      }
+      Object.assign(target, normalizeConfig({ ...target, ...layer }))
+    } catch {
+      // settings unavailable (headless mount, unit test): keep the static config
+    }
+  }
+  read()
+  try {
+    ctx.on('settings/document-updated', (ns) => {
+      if (String(ns).includes(name)) read()
+    })
+  } catch {
+    // no event service in this composition
+  }
+}
+
 export function apply(ctx, config = {}) {
   const settings = normalizeConfig(config)
+  // The settings service is optional: a headless mount or a unit test has none.
+  // Declaring the dependency through ctx.inject keeps the mount valid either way.
+  try {
+    ctx.inject(['settings'], (scoped) => { attachLiveSettings(scoped, settings) })
+  } catch {
+    attachLiveSettings(ctx, settings)
+  }
   const core = resolveCoreRoot({
     coreRoot: settings.coreRoot,
     packageRoot: PACKAGE_ROOT,

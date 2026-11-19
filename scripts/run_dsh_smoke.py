@@ -145,6 +145,19 @@ def main(argv=None):
         report["probe_install"] = run(["dsh", "plugin", "--profile", PROFILE, "add", str(PROBE)])
         installed_probe = report["probe_install"]["exit_code"] == 0
 
+        # client-modules requires exports["./client"] for dsh.client bundles.
+        profile_dir = Path.home() / ".dsh" / "profiles" / PROFILE
+        resolve = run(["node", "-e",
+                       "const{createRequire}=require('module');"
+                       "const req=createRequire(process.cwd()+'/package.json');"
+                       "try{console.log(JSON.stringify({resolved:req.resolve('" + PACKAGE + "/client')}))}"
+                       "catch(e){console.log(JSON.stringify({resolved:'',code:e.code||''}))}"],
+                      cwd=profile_dir)
+        try:
+            report["client_subpath"] = json.loads(resolve["stdout"].strip().splitlines()[-1])
+        except (json.JSONDecodeError, IndexError):
+            report["client_subpath"] = {"resolved": "", "code": "unparsable"}
+
         repo = work / "repo"
         shutil.copytree(ROOT / "tests" / "fixtures" / "shop-app", repo,
                         ignore=shutil.ignore_patterns("artifacts", ".pfe", "__pycache__"))
@@ -226,6 +239,11 @@ def main(argv=None):
             "disabled_hides_tools": not any(
                 name.startswith("project_") for name in (f.get("registered_tools") or [])),
             # The native schemastery Config rejects a wrong type at mount time.
+            # A dsh.client declaration without exports["./client"] never reaches
+            # the browser (client-modules throws at compose time). The headless
+            # profile carries no client-modules service, so the resolver check is
+            # the evidence here; the browser page itself is verified separately.
+            "client_subpath_resolves": bool(report.get("client_subpath", {}).get("resolved")),
             "invalid_config_rejected": (
                 "ValidationError" in (report["steps"]["g"]["stderr"] or "")
                 and not any(name.startswith("project_")

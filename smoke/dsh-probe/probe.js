@@ -41,6 +41,10 @@ async function call(definition, args, signal) {
 
 export function apply(ctx) {
   const record = {
+    argv1: process.argv[1] || '',
+    exec_path: process.execPath,
+    dsh_home: process.env.DSH_HOME || '',
+    profile_dir: process.env.DSH_PROFILE_DIR || '',
     mode: MODE,
     started_at: new Date().toISOString(),
     profile: process.env.DSH_PROFILE || '',
@@ -66,6 +70,9 @@ export function apply(ctx) {
       if (settings && typeof settings.describe === 'function') {
         const descriptors = settings.describe({ redactSecrets: true }) || []
         const mine = descriptors.find((item) => String(item.ns).includes('project-flow-explainer'))
+        record.settings_dump = mine === undefined ? null : {
+          value: mine.value, base: mine.base, user: mine.user,
+        }
         record.settings = mine === undefined ? {
           present: false,
           count: descriptors.length,
@@ -85,6 +92,46 @@ export function apply(ctx) {
       }
     } catch (error) {
       record.settings = { present: false, reason: String(error?.message || error) }
+    }
+    // The client bundle only reaches the browser when dsh.client + exports["./client"]
+    // both resolve; the composed web boot graph is the evidence.
+    try {
+      const registry = ctx.get?.('clientModules')
+      if (registry && typeof registry.graph === 'function') {
+        const graph = registry.graph()
+        const ids = (graph.entries || []).map((entry) => String(entry.id))
+        record.client_modules = {
+          present: ids.some((id) => id.includes('project-flow-explainer')),
+          id: ids.find((id) => id.includes('project-flow-explainer')) || '',
+          entries: ids.length,
+          client_path: typeof registry.clientPath === 'function'
+            ? (registry.clientPath('dsh-project-flow-explainer') || '') : '',
+        }
+      } else {
+        record.client_modules = { present: false, reason: 'clientModules service unavailable' }
+      }
+    } catch (error) {
+      record.client_modules = { present: false, reason: String(error?.message || error) }
+    }
+    try {
+      const { createRequire } = await import('node:module')
+      const req = createRequire(import.meta.url)
+      record.schema_cache = Object.keys(req.cache).filter((key) => key.includes('schemastery')).slice(0, 5)
+    } catch (error) {
+      record.schema_cache = [String(error?.message || error)]
+    }
+    try {
+      const entries = Array.from(ctx.loader?.entries?.() ?? [])
+      const mine = entries.find((entry) => String(entry?.options?.id ?? '').includes('project-flow-explainer'))
+      record.loader_entry = mine === undefined ? { present: false } : {
+        present: true,
+        id: String(mine.options.id),
+        config: mine.options.config ?? null,
+        has_schema: mine.options.schema !== undefined,
+        effective: mine.fiber?.effectiveConfig ?? null,
+      }
+    } catch (error) {
+      record.loader_entry = { present: false, reason: String(error?.message || error) }
     }
     write(record)
     const get = (tool) => ctx.tools.get(tool)
