@@ -13,6 +13,10 @@
  *   - artifacts may only be written to `<repo>/artifacts/flows`;
  *   - cancellation surfaces as AbortError so the runtime keeps the
  *     cancellation identity instead of recording a business failure.
+ *
+ * Besides `project_flow_explain`, this plugin registers the code-knowledge
+ * tools from ./lib/tools.js (index, search, context pack, impact, verify,
+ * refresh). They share the same path policy and the same core subprocess.
  */
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -20,6 +24,10 @@ import { runCore } from './lib/core-runner.js'
 import {
   InputError, resolveArtifactRoot, resolveCoreRoot, resolveRepository,
 } from './lib/paths.js'
+import { knowledgeTools } from './lib/tools.js'
+import {
+  assertObject, optionalString, requiredString,
+} from './lib/validate.js'
 
 export const name = 'project-flow-explainer'
 export const inject = ['tools']
@@ -161,6 +169,25 @@ export function apply(ctx, config = {}) {
             required: ['flow_json', 'flow_html', 'overview', 'run'],
             additionalProperties: false,
           },
+          path_visibility: {
+            type: 'object',
+            properties: {
+              repository: { type: 'string' },
+              artifacts: { type: 'string' },
+              source_refs: { type: 'string' },
+            },
+            required: ['repository', 'artifacts', 'source_refs'],
+            additionalProperties: false,
+          },
+          output_contract: {
+            type: 'object',
+            properties: {
+              public: { type: 'array', items: { type: 'string' } },
+              internal: { type: 'array', items: { type: 'string' } },
+            },
+            required: ['public', 'internal'],
+            additionalProperties: false,
+          },
           counts: {
             type: 'object',
             properties: {
@@ -189,8 +216,8 @@ export function apply(ctx, config = {}) {
           limits: { type: 'array', items: { type: 'string' } },
         },
         required: ['status', 'flow_id', 'slug', 'repository', 'repository_name',
-          'artifacts_dir', 'artifacts', 'counts', 'files_scanned', 'related_count',
-          'source_version', 'warnings', 'limits'],
+          'artifacts_dir', 'artifacts', 'path_visibility', 'output_contract', 'counts',
+          'files_scanned', 'related_count', 'source_version', 'warnings', 'limits'],
         additionalProperties: false,
       },
       render(_args, value) {
@@ -214,15 +241,18 @@ export function apply(ctx, config = {}) {
     // One call writes artifacts: never group it with a parallel batch.
     isConcurrencySafe: () => false,
     async execute(args, exec) {
-      const repository = resolveRepository(args.repository_path, {
+      // Defence in depth: the runtime validates the JSON schema first, but a
+      // direct execute() call must not be able to raise a raw TypeError.
+      assertObject(args, TOOL_NAME)
+      const repositoryPath = requiredString(args, 'repository_path', TOOL_NAME)
+      const request = requiredString(args, 'flow_request', TOOL_NAME)
+      const requestedOutput = optionalString(args, 'output_directory', TOOL_NAME)
+      const requestedSlug = optionalString(args, 'slug', TOOL_NAME)
+      const repository = resolveRepository(repositoryPath, {
         allowedRoots: settings.allowedRoots,
       })
-      const outputDirectory = resolveArtifactRoot(repository.root, args.output_directory)
-      const request = typeof args.flow_request === 'string' ? args.flow_request.trim() : ''
-      if (request === '') {
-        throw new InputError('flow_request_missing', 'Thiếu flow_request.',
-          'Mô tả flow cần phân tích, ví dụ: "từ lúc người dùng nhấn xuất báo cáo đến khi nhận file".')
-      }
+      const outputDirectory = resolveArtifactRoot(
+        repository.root, requestedOutput === '' ? undefined : requestedOutput)
       if (exec?.signal?.aborted) throw abortError(exec.signal.reason)
 
       const controller = new AbortController()
@@ -239,7 +269,7 @@ export function apply(ctx, config = {}) {
           repository: repository.root,
           request,
           outputDirectory,
-          slug: typeof args.slug === 'string' && args.slug.trim() !== '' ? args.slug.trim() : undefined,
+          slug: requestedSlug && requestedSlug.trim() !== '' ? requestedSlug.trim() : undefined,
           signal: controller.signal,
           timeoutMs: settings.timeoutMs,
           maxOutputBytes: settings.maxOutputBytes,
@@ -281,6 +311,17 @@ export function apply(ctx, config = {}) {
           overview: payload.paths.overview,
           run: payload.paths.run,
         },
+        // Absolute paths are host-only: they are shown to the caller that named
+        // the repository, never folded into knowledge results or artifacts.
+        path_visibility: {
+          repository: 'host-only',
+          artifacts: 'host-only',
+          source_refs: 'model-facing (repository-relative)',
+        },
+        output_contract: {
+          public: payload.contract?.public ?? ['flow.json', 'flow.html', 'overview.md'],
+          internal: payload.contract?.internal ?? ['run.json'],
+        },
         counts: {
           verified: payload.counts?.verified ?? 0,
           partial: payload.counts?.partial ?? 0,
@@ -300,4 +341,9 @@ export function apply(ctx, config = {}) {
       }
     },
   })
+
+  // Knowledge layer: same path policy, same core subprocess, separate tools.
+  for (const definition of knowledgeTools({ settings, core })) {
+    ctx.tools.register(definition)
+  }
 }

@@ -1,6 +1,6 @@
 {
   "name": "dsh-project-flow-explainer",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "DSH adapter: expose the Project Flow Explainer core (scripts/build_flow.py + template) as one DSH tool. Ships the core under vendor/core so a packed install works without the checkout.",
@@ -17,7 +17,9 @@
     "README.md",
     "vendor/core/scripts/build_flow.py",
     "vendor/core/scripts/render_flow.py",
-    "vendor/core/assets/workflow_template.html"
+    "vendor/core/assets/workflow_template.html",
+    "vendor/core/tools/pfe_cli.py",
+    "vendor/core/pfe/"
   ],
   "engines": {
     "node": ">=20",

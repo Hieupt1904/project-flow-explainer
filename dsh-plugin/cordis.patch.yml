@@ -4,23 +4,23 @@
 # cannot resolve those), it only uses the Context object DSH hands to
 # `apply(ctx, config)`.
 #
-# POLICY — deny-by-default: this row ships WITHOUT `allowedRoots`, so every
+# POLICY - deny-by-default: this row ships WITHOUT `allowedRoots`, so every
 # tool call fails with `allowed_roots_unconfigured` until a profile supplies
-# real roots. Uncomment and edit the block below in the profile that should use
-# the tool (never edit ~/.dsh/profiles/web for this):
+# real roots. This file already inserts the row with id
+# `project-flow-explainer`; a profile must OVERRIDE that id, never insert a
+# second row with the same id:
 #
-#   - insert:
-#       - id: project-flow-explainer
-#         name: dsh-project-flow-explainer
-#         config:
-#           allowedRoots:
-#             - /home/ban/workspace
-#           pythonPath: python3
-#           timeoutMs: 180000
+#   - id: project-flow-explainer
+#     config:
+#       allowedRoots:
+#         - /home/ban/workspace
+#       pythonPath: python3
+#       timeoutMs: 180000
+#       maxOutputBytes: 1048576
 #
-# Config keys: allowedRoots (required to use the tool), pythonPath, coreRoot,
+# Config keys: allowedRoots (required to use any tool), pythonPath, coreRoot,
 # timeoutMs, maxOutputBytes. Artifacts are always written to
-# <repo>/artifacts/flows/<slug>/ — not configurable.
+# <repo>/artifacts/flows/<slug>/ - not configurable.
 - insert:
     - id: project-flow-explainer
       name: dsh-project-flow-explainer

@@ -4,6 +4,10 @@
  * Contract: arguments are always passed as an array (never a shell string),
  * stdout carries one JSON object, stderr carries human diagnostics. The child
  * is killed on abort or timeout; it inherits a minimal environment.
+ *
+ * Two entry points share one implementation:
+ *   runCli  - arbitrary subcommand args (index/search/context-pack/impact/...)
+ *   runCore - the original flow call, kept for backward compatibility
  */
 import { spawn } from 'node:child_process'
 
@@ -36,30 +40,21 @@ class Capture {
 }
 
 /**
- * Run `scripts/build_flow.py --json` for one request.
+ * Run one CLI subcommand.
  * @param {object} options
  * @param {string} options.pythonPath - interpreter.
- * @param {string} options.coreRoot - repository root holding the core.
- * @param {string} options.script - absolute path of build_flow.py.
- * @param {string} options.repository - canonical repository root.
- * @param {string} options.request - natural-language flow request.
- * @param {string} [options.outputDirectory] - absolute artifact root inside the repo.
- * @param {string} [options.slug] - explicit artifact folder name.
+ * @param {string} options.coreRoot - directory holding the core (cwd).
+ * @param {string} options.script - absolute path of tools/pfe_cli.py.
+ * @param {string[]} options.args - argv tail (subcommand + flags).
  * @param {AbortSignal} [options.signal] - caller cancellation.
  * @param {number} [options.timeoutMs] - cooperative budget.
  * @param {number} [options.maxOutputBytes] - capture cap per stream.
- * @returns {Promise<{code:number|null, stdout:string, stderr:string, timedOut:boolean, aborted:boolean, truncated:boolean, argv:string[]}>}
  */
-export function runCore(options) {
+export function runCli(options) {
   const {
-    pythonPath, coreRoot, script, repository, request,
-    outputDirectory, slug, signal, timeoutMs, maxOutputBytes,
+    pythonPath, coreRoot, script, args, signal, timeoutMs, maxOutputBytes,
   } = options
-
-  const argv = [script, '--repo', repository, '--request', request, '--json']
-  if (outputDirectory) argv.push('--out-dir', outputDirectory)
-  if (slug) argv.push('--slug', slug)
-
+  const argv = [script, ...args]
   const limit = Number.isFinite(maxOutputBytes) && maxOutputBytes > 0
     ? Math.floor(maxOutputBytes)
     : DEFAULT_MAX_OUTPUT
@@ -151,5 +146,25 @@ export function runCore(options) {
       }
       finish(code)
     })
+  })
+}
+
+/**
+ * Run `build_flow.py --json` for one request (legacy shape, still used by the
+ * flow tool so its behaviour and tests stay stable).
+ */
+export function runCore(options) {
+  const {
+    pythonPath, coreRoot, script, repository, request,
+    outputDirectory, slug, signal, timeoutMs, maxOutputBytes,
+  } = options
+
+  const argv = [script, '--repo', repository, '--request', request, '--json']
+  if (outputDirectory) argv.push('--out-dir', outputDirectory)
+  if (slug) argv.push('--slug', slug)
+
+  return runCli({
+    pythonPath, coreRoot, script, args: argv.slice(1),
+    signal, timeoutMs, maxOutputBytes,
   })
 }

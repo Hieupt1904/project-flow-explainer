@@ -193,7 +193,9 @@ export function resolveArtifactRoot(root, outputDirectory) {
  * A packaged install (tarball) only has the vendor copy, so the parent
  * directory is a convenience for development, never an assumption.
  * @param {{coreRoot?: string, packageRoot: string, env?: NodeJS.ProcessEnv}} options
- * @returns {{root: string, script: string, source: string}}
+ * @returns {{root: string, script: string, cli: string|null, source: string}}
+ *   `script` is scripts/build_flow.py (flow tool); `cli` is tools/pfe_cli.py
+ *   (knowledge tools) and is null when this copy of the core predates it.
  */
 export function resolveCoreRoot({ coreRoot, packageRoot, env = process.env }) {
   const candidates = []
@@ -201,6 +203,7 @@ export function resolveCoreRoot({ coreRoot, packageRoot, env = process.env }) {
     const configured = path.resolve(coreRoot)
     const script = path.join(configured, 'scripts', 'build_flow.py')
     const template = path.join(configured, 'assets', 'workflow_template.html')
+    const cli = path.join(configured, 'tools', 'pfe_cli.py')
     if (!existsSync(script) || !existsSync(template)) {
       // An explicit coreRoot that is wrong is a configuration bug: fail loudly
       // instead of silently falling back to another copy.
@@ -208,7 +211,7 @@ export function resolveCoreRoot({ coreRoot, packageRoot, env = process.env }) {
         `config.coreRoot không chứa core hợp lệ: ${configured}`,
         'Cần có scripts/build_flow.py và assets/workflow_template.html trong thư mục này.')
     }
-    return { root: configured, script, source: 'config' }
+    return { root: configured, script, cli: existsSync(cli) ? cli : null, source: 'config' }
   }
   if (typeof env.PFE_CORE_ROOT === 'string' && env.PFE_CORE_ROOT.trim() !== '') {
     candidates.push({ root: path.resolve(env.PFE_CORE_ROOT), source: 'env' })
@@ -219,7 +222,8 @@ export function resolveCoreRoot({ coreRoot, packageRoot, env = process.env }) {
     const script = path.join(candidate.root, 'scripts', 'build_flow.py')
     const template = path.join(candidate.root, 'assets', 'workflow_template.html')
     if (existsSync(script) && existsSync(template)) {
-      return { ...candidate, script }
+      const cli = path.join(candidate.root, 'tools', 'pfe_cli.py')
+      return { ...candidate, script, cli: existsSync(cli) ? cli : null }
     }
   }
   throw new InputError(

@@ -73,6 +73,9 @@ test('packed tarball carries the core and works without the checkout', async () 
     'package/vendor/core/scripts/build_flow.py',
     'package/vendor/core/scripts/render_flow.py',
     'package/vendor/core/assets/workflow_template.html',
+    'package/vendor/core/tools/pfe_cli.py',
+    'package/vendor/core/pfe/index.py',
+    'package/vendor/core/pfe/retrieval.py',
   ]) {
     assert.ok(listing.includes(expected), `${expected} missing from tarball`)
   }
@@ -103,6 +106,23 @@ test('packed tarball carries the core and works without the checkout', async () 
       assert.equal(existsSync(result.artifacts[key]), true, `${key} missing`)
     }
     assert.ok(result.artifacts.flow_html.startsWith(path.join(repo, 'artifacts', 'flows')))
+
+    // The packed install must also carry the knowledge layer: index + search
+    // have to work from the tarball alone, with no checkout around it.
+    const indexTool = tools.get('project_code_index')
+    const searchTool = tools.get('project_code_search')
+    assert.ok(indexTool, 'project_code_index missing from packed install')
+    assert.ok(searchTool, 'project_code_search missing from packed install')
+    const built = await indexTool.execute(
+      { repository_path: repo, mode: 'full' },
+      { signal: new AbortController().signal },
+    )
+    assert.ok(built.files_indexed > 0)
+    const found = await searchTool.execute(
+      { repository_path: repo, query: 'export_report' },
+      { signal: new AbortController().signal },
+    )
+    assert.equal(found.results[0].symbol, 'exportReport')
   } finally {
     rmSync(workdir, { recursive: true, force: true })
     rmSync(packed.tarball, { force: true })

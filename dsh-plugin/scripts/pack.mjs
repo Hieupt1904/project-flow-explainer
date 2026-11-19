@@ -30,7 +30,12 @@ const CORE_FILES = [
   ['scripts/build_flow.py', 'vendor/core/scripts/build_flow.py'],
   ['scripts/render_flow.py', 'vendor/core/scripts/render_flow.py'],
   ['assets/workflow_template.html', 'vendor/core/assets/workflow_template.html'],
+  ['tools/pfe_cli.py', 'vendor/core/tools/pfe_cli.py'],
 ]
+
+// The knowledge layer is a package, not a single file: copy it whole, minus
+// bytecode caches, so the packed install can index/search without a checkout.
+const CORE_PACKAGE = [['pfe', 'vendor/core/pfe']]
 
 function fail(message) {
   console.log(`@@ERROR@@${message}`)
@@ -57,6 +62,16 @@ try {
     mkdirSync(path.dirname(destination), { recursive: true })
     cpSync(path.join(REPO_ROOT, source), destination)
     staged.push(target)
+  }
+
+  for (const [source, target] of CORE_PACKAGE) {
+    const destination = path.join(staging, target)
+    mkdirSync(path.dirname(destination), { recursive: true })
+    cpSync(path.join(REPO_ROOT, source), destination, {
+      recursive: true,
+      filter: (item) => !item.includes('__pycache__') && !item.endsWith('.pyc'),
+    })
+    staged.push(target + '/')
   }
 
   // Keep the manifest honest about what the tarball contains, minus scripts

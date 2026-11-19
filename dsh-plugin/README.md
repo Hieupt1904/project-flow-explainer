@@ -1,8 +1,7 @@
 # dsh-project-flow-explainer (DSH adapter)
 
-Adapter mỏng đăng ký tool `project_flow_explain` trong DeepSeek Harness và gọi lại core Python
-của [Project Flow Explainer](../README.md). Core không phụ thuộc DSH; gỡ thư mục này thì CLI
-Python vẫn chạy nguyên vẹn.
+Adapter mỏng đăng ký 7 tool trong DeepSeek Harness và gọi lại core Python qua subprocess.
+Core không phụ thuộc DSH: xoá thư mục này thì CLI Python vẫn chạy nguyên vẹn.
 
 ## Yêu cầu
 
@@ -10,8 +9,20 @@ Python vẫn chạy nguyên vẹn.
 |---|---|
 | Node | `>= 20` (đã test 24.22.3) |
 | DSH | `0.2.2-rc.2` (`engines.dsh`) |
-| Python | `3.12` (chỉ standard library) |
-| Mạng | Không cần cho lúc chạy; chỉ cần khi cài bundle lần đầu vào profile mới |
+| Python | 3.12 (chỉ standard library) |
+| Mạng | không cần lúc chạy; chỉ cần khi cài bundle lần đầu vào profile mới |
+
+## Tool
+
+| Tool | Quyền ghi | Ghi chú |
+|---|---|---|
+| `project_flow_explain` | có (artifact flow) | trả đường dẫn tuyệt đối, đánh dấu `host-only` |
+| `project_code_index` | có (`.pfe/index`) | full hoặc incremental |
+| `project_code_search` | không | chỉ trả đường dẫn tương đối |
+| `project_context_pack` | không | mặc định không snippet |
+| `project_impact_analysis` | không | cần index |
+| `project_verify_flow` | không | verdict pass/partial/fail |
+| `project_knowledge_refresh` | có (`.pfe/index`) | chỉ parse lại file đã đổi |
 
 ## Cài đặt
 
@@ -24,44 +35,41 @@ dsh plugin --profile pfe-test add /duong/dan/project-flow-explainer/dsh-plugin
 ### Từ tarball (độc lập, không cần checkout)
 
 ```bash
-node dsh-plugin/scripts/pack.mjs          # -> dist/dsh-project-flow-explainer-0.2.2.tgz
-dsh plugin --profile pfe-test add /duong/dan/project-flow-explainer/dist/dsh-project-flow-explainer-0.2.2.tgz
+node dsh-plugin/scripts/pack.mjs                                  # -> dist/dsh-project-flow-explainer-0.3.0.tgz
+dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.3.0.tgz"
 ```
 
-Tarball chứa `vendor/core/{scripts,assets}` do script pack sinh ra từ checkout hiện tại, nên bản
-cài độc lập vẫn tìm được `build_flow.py` và `workflow_template.html` mà không cần thư mục cha.
+Tarball chứa `vendor/core/{scripts,assets,tools,pfe}` do script pack sinh ra từ checkout.
+Bản cài độc lập tìm được `scripts/build_flow.py` và `tools/pfe_cli.py` mà không cần thư mục cha.
 
-## Cấu hình bắt buộc: `allowedRoots`
+## Cấu hình: override row, không insert lại
 
-Tool **deny-by-default**. Không khai báo `allowedRoots` thì mọi lần gọi trả lỗi
-`allowed_roots_unconfigured`. Thêm vào row của bundle trong profile patch:
+`cordis.patch.yml` của bundle **đã** insert row `project-flow-explainer`.
+Profile chỉ cần override theo id; insert lại cùng id sẽ tạo duplicate loader entry:
 
 ```yaml
-- insert:
-    - id: project-flow-explainer
-      name: dsh-project-flow-explainer
-      config:
-        allowedRoots:
-          - /home/ban/workspace        # tuyệt đối, tồn tại, đọc được
-          - /home/ban/du-an-khac
-        pythonPath: python3            # tùy chọn
-        timeoutMs: 180000              # tùy chọn
+- id: project-flow-explainer
+  config:
+    allowedRoots:
+      - /home/ban/workspace
+    pythonPath: python3
+    timeoutMs: 180000
+    maxOutputBytes: 1048576
 ```
 
 | Key | Mặc định | Ý nghĩa |
 |---|---|---|
-| `allowedRoots` | không có → từ chối mọi path | Danh sách thư mục gốc được phép đọc. Repository truyền vào phải nằm trong một root (so sánh sau `realpath`). |
-| `pythonPath` | `python3` | Interpreter gọi core |
-| `coreRoot` | tự dò (`vendor/core` → thư mục cha) | Chỉ đặt khi core nằm ở nơi khác; sai đường dẫn là lỗi `core_not_found` |
-| `timeoutMs` | `180000` | Ngân sách mỗi lần gọi |
-| `maxOutputBytes` | `1048576` | Giới hạn stdout/stderr của child |
+| `allowedRoots` | không có → từ chối mọi path | danh sách thư mục gốc được đọc, so sánh sau `realpath` |
+| `pythonPath` | `python3` | interpreter gọi core |
+| `coreRoot` | tự dò (`vendor/core` → thư mục cha) | chỉ đặt khi core ở nơi khác; sai là `core_not_found` |
+| `timeoutMs` | `180000` | ngân sách mỗi lần gọi |
+| `maxOutputBytes` | `1048576` | giới hạn stdout/stderr của child |
 
-Không có cấu hình nào cho phép ghi artifact ra ngoài `<repo>/artifacts/flows` — đây là quy tắc cứng.
+Không có cấu hình nào cho phép artifact ra ngoài `<repo>/artifacts/flows`.
 
-## Ghi chú khi cài vào profile `headless`
+### Profile template `headless`
 
-Template `headless` không có API key và yêu cầu preset permission tường minh. Trước khi boot, thêm
-vào patch layer của profile:
+Template này không có API key và cần preset permission tường minh. Thêm vào patch layer:
 
 ```yaml
 - id: permission
@@ -72,22 +80,37 @@ vào patch layer của profile:
     allowedRoots: ['/duong/dan/workspace']
 ```
 
-Nếu thiếu `defaultPreset`, DSH dừng với `permission: composed sandbox and approval defaults match no
-preset; configure defaultPreset explicitly`.
+Thiếu `defaultPreset` thì DSH dừng với lỗi composed sandbox/approval defaults.
+
+## Mã lỗi ổn định
+
+| Mã | Khi nào |
+|---|---|
+| `allowed_roots_unconfigured` | thiếu hoặc rỗng `allowedRoots` |
+| `allowed_roots_invalid` | phần tử không phải chuỗi hoặc không tuyệt đối |
+| `repository_outside_allowed_roots` | repo ngoài root sau realpath |
+| `repository_path_missing` / `_invalid_type` / `_relative` | tham số sai |
+| `invalid_artifact_root` / `artifact_symlink_escape` | output không phải `artifacts/flows` |
+| `core_timeout` | vượt `timeoutMs` |
+| `core_failed` / `core_spawn_failed` | core lỗi hoặc không chạy được |
+| `core_cli_not_found` | bản core cũ không có `tools/pfe_cli.py` |
+| `index_missing` | chưa chạy `project_code_index` |
+| `no_changed_files` | impact thiếu `changed_files` và `diff` |
+| `invalid_arguments` | tham số không phải object |
+| `ABORTED` | runtime map từ `Error{name:'AbortError'}` |
 
 ## Gỡ cài đặt
 
 ```bash
 dsh plugin --profile pfe-test remove dsh-project-flow-explainer
-# hoặc xoá hẳn profile thử
-rm -rf ~/.dsh/profiles/pfe-test
 ```
 
-Profile `web` không bị chạm tới trong cả hai cách.
+Profile `web` không bị chạm trong mọi bước.
 
 ## Kiểm thử
 
 ```bash
-node --test dsh-plugin/tests/plugin.test.mjs    # adapter + policy
-node --test dsh-plugin/tests/pack.test.mjs      # pack + cài độc lập
+node --test dsh-plugin/tests/plugin.test.mjs      # 16 test: policy, artifact, abort, config
+node --test dsh-plugin/tests/knowledge.test.mjs   # 9 test: 6 tool tri thức + validation
+node --test dsh-plugin/tests/pack.test.mjs        # 2 test: pack + cài độc lập
 ```

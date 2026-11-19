@@ -328,5 +328,6 @@ test('unload removes the tool and reload registers it again', () => {
 test('rejects invalid configuration at load time', () => {
   assert.throws(() => mount({ timeoutMs: 0 }, [CORPUS]), /timeoutMs/)
   assert.throws(() => mount({ allowedRoots: 'nope' }, undefined), /allowedRoots/)
-  assert.throws(() => mount({ coreRoot: '/tmp/not-a-core' }, [CORPUS]), /coreRoot/)
+  const brokenCore = path.join(os.tmpdir(), 'pfe-no-core-here')
+  assert.throws(() => mount({ coreRoot: brokenCore }, [CORPUS]), /coreRoot/)
 })
