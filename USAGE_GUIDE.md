@@ -154,6 +154,56 @@ Không đọc toàn bộ file nếu search đã trả đúng path:line.
 4. Đã mở đúng `path:line` mà kết quả trỏ tới (không tin mà không mở).
 5. Nếu là flow: đọc `limits` và `meta.related` trước khi kết luận luồng đã đủ.
 
+
+## 11. Simple view và chế độ Kỹ thuật (0.4.0)
+
+`flow.html` mở ở **Simple view**: 3–7 stage nghiệp vụ (bắt đầu, các bước xử lý, điều kiện,
+kết thúc, nhánh lỗi, điểm cần kiểm tra). Nhấn một stage để xem giải thích + nguồn.
+Cần thấy toàn bộ node và cạnh thì bấm tab **Kỹ thuật**.
+
+| Muốn gì | Làm gì |
+|---|---|
+| Hiểu nhanh cho người không đọc code | để nguyên Simple view, đọc từ trên xuống |
+| Kiểm tra thứ tự node/cạnh | tab Kỹ thuật, kéo/zoom, bấm "Toàn cảnh" |
+| Tìm một bước | ô tìm kiếm lọc stage (Simple) hoặc làm mờ node (Kỹ thuật) |
+| Xem nguồn của một bước | nhấn stage/card → panel phải |
+
+## 12. Entry point và context pack (0.4.0)
+
+`project_context_pack` trả `entry_points` có `kind`:
+
+| kind | Bằng chứng bắt buộc |
+|---|---|
+| http_route | khai báo route (app.get/post, router...) |
+| main | `if __name__ == "__main__"` hoặc `def main(` |
+| cli_command | `add_parser("...")`, `@click.command` |
+| gui_event | `command=...`, `.bind("<...>", ...)` |
+| button_click | `.clicked.connect(...)` |
+| callback | `addEventListener`, `after(...)`, `callback=...` |
+| worker | decorator `@*.task` |
+| public_api | danh sách `__all__` |
+
+`export` và `command` được khai báo nhưng **chưa phát** vì chưa có bằng chứng đủ chắc
+(module.exports là ranh giới của mọi file JS).
+
+Đọc kết quả: mỗi dependency có `path`, `start_line`, `relation`, `why_included`,
+`evidence_refs`. Nếu `external_dependencies` xuất hiện, đó là bảng/gói ngoài — không có
+path trong repo, đừng cố mở.
+
+## 13. Verify: đọc verdict cho đúng (0.4.0)
+
+| Trường | Nghĩa |
+|---|---|
+| `static_verdict` | chỉ những gì đã kiểm tại chỗ: graph, artifact, quét HTML tĩnh, privacy, test mapping |
+| `overall_verdict` | `pass` chỉ khi cả `static`, `ui`, `runtime` đều pass |
+| `gates` | trạng thái từng gate: pass/blocked |
+| `not_verified` | gate còn thiếu bằng chứng |
+| `next_action` | việc cần làm để nâng verdict |
+
+Mặc định `ui` và `runtime` là **blocked**: tool không mở trình duyệt và không chạy test.
+Vì vậy một repo sạch sẽ cho `static_verdict=pass`, `overall_verdict=partial`. Đó là kết quả đúng,
+không phải lỗi.
+
 ## 10. Bằng chứng của chính hướng dẫn này
 
 | Bằng chứng | File |

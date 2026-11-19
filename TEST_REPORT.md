@@ -1,184 +1,125 @@
 # TEST_REPORT
 
-Sinh từ lần chạy thật trên commit `bd02147` (code 0.3.0); commit kế tiếp chỉ chứa bằng chứng.
-Máy đọc: [artifacts/review/evidence-manifest.json](artifacts/review/evidence-manifest.json).
+Sinh từ lần chạy thật trên commit nguồn và bằng chứng trong
+[artifacts/review/evidence-manifest.json](artifacts/review/evidence-manifest.json).
 Môi trường: Ubuntu 24.04 · Python 3.12.3 · Node v24.22.3 · DSH 0.2.2-rc.2 · 2026-11-19.
 
 ## 1. Tổng hợp
 
 | Lệnh | Kết quả | Log |
 |---|---|---|
-| `python3 -m unittest discover -s tests` | **116 test OK** (35 core + 47 knowledge + 20 evidence + 14 schema/consistency) | `artifacts/review/*-python-tests.log` |
-| `node --test dsh-plugin/tests/plugin.test.mjs` | **16 pass / 0 fail** | `*-node-adapter.log` |
-| `node --test dsh-plugin/tests/knowledge.test.mjs` | **9 pass / 0 fail** | `*-node-knowledge.log` |
-| `node --test dsh-plugin/tests/pack.test.mjs` | **2 pass / 0 fail** | `*-node-pack.log` |
-| `python3 -m compileall -q scripts tests pfe tools` | OK, không output | `*-compileall.log` |
-| `node --check` cho 6 file adapter | OK | manifest `static.node_syntax` |
-| `python3 scripts/check_repo_policy.py` | `OK` — không absolute path, nested artifact, secret-shape; `run.json` đều khai báo internal | `*-policy.log` |
-| `node dsh-plugin/scripts/pack.mjs` | `dsh-project-flow-explainer-0.3.0.tgz`, 25 entry, 84 670 byte | `*-pack-build.log` |
-| `python3 scripts/bench_index.py --files 2000` | xem mục 6 | `*-bench.json` |
+| `python3 -m unittest discover -s tests` | **142 test OK** | `artifacts/review/*-python-tests.log` |
+| `node --test dsh-plugin/tests/plugin.test.mjs` | **16 pass** | `*-node-adapter.log` |
+| `node --test dsh-plugin/tests/knowledge.test.mjs` | **9 pass** | `*-node-knowledge.log` |
+| `node --test dsh-plugin/tests/lifecycle.test.mjs` | **7 pass** | `*-node-lifecycle.log` |
+| `node --test dsh-plugin/tests/pack.test.mjs` | **2 pass** | `*-node-pack.log` |
+| `python3 -m compileall -q scripts tests pfe tools` | OK | `*-compileall.log` |
+| `python3 scripts/check_repo_policy.py` | OK | `*-policy.log` |
+| UI (trình duyệt thật) | 12 tổ hợp × 2 chế độ, 0 lỗi | [20261119-ui.json](artifacts/review/20261119-ui.json) |
+| Benchmark 2 000 file | full 1.5 s · incremental 0.46 s · 68 MB | `*-bench.json` |
 
-Tarball:
+
+Tarball phát hành:
 
 | Mục | Giá trị |
 |---|---|
-| Tên | `dsh-project-flow-explainer-0.3.0.tgz` |
-| Byte | 84 670 |
-| SHA-256 | `b3647435f63c1d7b98259a84740cecf11b6b3034e2634e1c9e8669e220bf581c` |
+| Tên | `dsh-project-flow-explainer-0.4.0.tgz` |
+| Byte | 93 626 |
 | Entry | 25 (gồm `vendor/core/{scripts,assets,tools,pfe}`) |
+| SHA-256 | `c5dd93fdef48efaa6c411827ebbdf5757c2f61535b4abfe8fd8ac52bbec41463` |
 
-## 2. Core Python — 35 test
+## 2. Lỗi tái hiện được và đã sửa trong 0.4.0
 
-### Đường đi chuẩn
+| ID | Tái hiện | Nguyên nhân | Sửa | Test |
+|---|---|---|---|---|
+| T0 | `python3 tools/pfe_cli.py flow ...` → `internal_error: ModuleNotFoundError: build_flow` | `sys.path` chỉ có `tools` và repo root, thiếu `scripts` | thêm `scripts` vào path, bọc `ImportError` thành `core_import_failed` | 4 test CLI (repo root, cwd khác, repo sai, request rỗng) |
+| T1 | xoá một dòng `file_cache` → chạy incremental → file biến mất khỏi graph | cache được đọc **sau** vòng parse; `changed.append` không được parse lại | đọc cache trước, đưa file thiếu/hỏng vào danh sách parse, thêm invariant "mọi file đều có trong graph" | 5 test (missing, malformed, equivalence, delete, rename) |
+| T2 | `context_pack("export report")` trả route bằng tên file/symbol | dùng `result["symbol"]` làm route | resolve qua fact `handles_route` tới entity `route:` thật | 10 test context pack |
+| T4 | dispose plugin không huỷ run của tool tri thức | `inFlight` chỉ được tool flow đăng ký | chia sẻ `inFlight` cho `knowledgeTools` | `dispose cancels an in-flight run` |
+| (0.3.0) | `index` lỗi `tested_by không nhận subject test` | fact phát ngược chiều | phát `file → test` | 2 test mapping |
 
-| Test | Kiểm chứng |
-|---|---|
-| `test_three_files_are_consistent` | 3 file public tồn tại, `flow.json` qua `validate()`, `flow_id` khớp HTML, title có trong overview |
-| `test_all_artifacts_live_under_artifacts_flows` | cả 4 output nằm dưới `<repo>/artifacts/flows/` |
-| `test_entry_is_the_export_route` | điểm vào là `/api/reports/export` |
-| `test_counts_are_reported_and_match_graph` | `counts` khớp số node |
-| `test_deterministic_graph_across_runs` | hai lần chạy cùng input → cùng node/edge |
-| `test_html_is_self_contained` | không script/link/CDN ngoài |
+## 3. Test theo vùng
 
-### Policy artifact và repository
-
-| Test | Kiểm chứng |
-|---|---|
-| `test_output_directory_outside_artifacts_flows_is_rejected` | `.`, `src`, `docs`, `tmp`, `../outside` → `invalid_artifact_root`, không tạo thư mục |
-| `test_symlinked_artifact_directory_is_rejected` | `artifacts` là symlink ra ngoài → `artifact_symlink_escape` |
-| `test_existing_slug_is_not_overwritten` | → `artifact_exists` |
-| `test_no_write_before_containment_check` | input sai → chưa tạo `artifacts/` |
-| `test_secrets_never_reach_output` | secret của fixture không có trong 4 file |
-| `test_artifacts_contain_no_absolute_workstation_paths` | không home, tmp hay Windows path; không nested artifacts |
-
-## 3. Bằng chứng graph — 20 test
+### 3.1 CLI và core (T0)
 
 | Test | Kiểm chứng |
 |---|---|
-| `test_no_edge_claims_call_without_call_site` | không cạnh `evidence=call` nào; `meta.evidence_model.call_edges == false` |
-| `test_verified_never_means_runtime` | mô tả `verified` chứa "KHÔNG phải chạy runtime" |
-| `test_decision_has_no_direct_success_bypass` | mọi cạnh vào decision không đi kèm cạnh success trực tiếp |
-| `test_error_node_is_reachable_from_the_decision` | error node có cạnh `kind=error` |
-| `test_decision_points_inside_the_selected_route` | decision trỏ đúng dòng `try` trong route được chọn |
-| `test_other_route_exception_does_not_create_a_decision` | route khác có `try/catch` → không sinh decision |
-| `test_related_file_is_never_a_node` | file keyword-only không nằm trong node |
-| `test_failure_leaves_no_partial_artifact` | lỗi giữa chừng → không có slug, không còn `.staging-*` |
-| `test_concurrent_same_slug_has_one_winner` | 3 luồng cùng slug → 1 thành công, 2 `artifact_exists` |
-| `test_run_json_is_internal_provenance` | `contract=internal-provenance`, public không chứa `run.json` |
-| `test_files_scanned_is_reported_and_never_null` | `files_scanned` là số nguyên > 0 và khớp `run.json` |
-| `test_budget_note_reaches_limits` | ngân sách bị cắt → ghi vào `limits` và `assumptions` |
-| `test_bad_request_values` / `test_bad_repository_values` / `test_bad_optional_values` | mã lỗi ổn định cho `None`, số, object, chuỗi rỗng |
-| `test_two_runs_agree_on_nodes_edges_and_counts` | determinism |
+| `test_flow_from_repository_root` | chạy từ repo root, exit 0, đúng một JSON object, không có `ModuleNotFoundError` |
+| `test_flow_from_another_working_directory` | chạy từ `/tmp` bằng đường dẫn tuyệt đối |
+| `test_invalid_repository_keeps_stable_code` | `repository_not_found`, exit 2 |
+| `test_missing_request_keeps_stable_code` | `missing_flow_request`, exit 2 |
 
-## 4. Lớp tri thức — 45 test
-
-| Nhóm | Test tiêu biểu | Kiểm chứng |
-|---|---|---|
-| Ontology | `test_call_without_call_site_is_rejected` | `calls` thiếu `call_site` → `evidence_kind_mismatch` |
-| Ontology | `test_observed_without_location_is_rejected` | `observed` phải có path + line |
-| Ontology | `test_runtime_confidence_requires_runtime_evidence` | không có bằng chứng chạy thì cấm `runtime_verified` |
-| Ontology | `test_declared_only_relation_is_not_emittable` | `returns` bị từ chối |
-| Ontology | `test_structural_never_replaces_observed` | observed thắng, bản yếu ghi vào `contradicted` |
-| Knowledge | `test_call_facts_carry_a_call_site_line` | mọi fact `calls` có `evidence.kind=call_site` |
-| Knowledge | `test_relation_kinds_match_entity_types` | subject/object đúng loại cho từng relation |
-| Index | `test_full_then_incremental_reuses_parsed_files` | incremental parse 0 file |
-| Index | `test_changed_file_is_reparsed` | sửa 1 file → parse đúng 1 file |
-| Index | `test_deleted_file_is_removed` | xoá file → entity biến mất |
-| Index | `test_renamed_file_is_reported` | rename → cặp `from/to` |
-| Index | `test_index_version_change_forces_rebuild` | đổi version → rebuild full |
-| Index | `test_sensitive_files_are_not_indexed` | `.env` và file chứa secret không vào index |
-| Index | `test_symlink_to_env_is_not_indexed` | symlink trỏ `.env` bị loại |
-| Index | `test_symlink_to_artifacts_is_not_indexed` | symlink trỏ artifact bị loại |
-| Index | `test_budget_truncation_is_reported` | vượt ngân sách → note |
-| Index | `test_two_walkers_classify_the_same_files` | hai walker không lệch nhau |
-| Search | `test_symbol_search_finds_the_function` | `export_report` → `exportReport` |
-| Search | `test_route_search_finds_the_declaration` | `/api/reports/export` → route |
-| Search | `test_vietnamese_query_is_bridged_to_code_terms` | "xuất báo cáo ra excel" → symbol/route |
-| Search | `test_flow_summary_is_searchable` | query tiếng Việt tìm được flow đã render |
-| Search | `test_exact_match_outranks_vector_candidate` | exact > 1.0 trong khi vector không thể vượt |
-| Vector | `test_vector_result_is_never_verified` | `verified=false`, `confidence=inferred` |
-| Vector | `test_embedding_model_mismatch_disables_vectors` | đổi model → `embedding_model_mismatch` |
-| Vector | `test_offline_backend_is_rejected` | backend không local → từ chối |
-| Impact | `test_route_file_is_high_risk` | file có route → risk high |
-| Impact | `test_unknown_file_is_reported_not_guessed` | file lạ → `unknown_files`, không đoán |
-| Verify | `test_fabricated_call_edge_is_detected` | gắn `evidence=call` không có call site → `graph_evidence=fail` |
-| Verify | `test_decision_bypass_is_detected` | thêm cạnh bypass → fail |
-| Verify | `test_absolute_path_in_artifact_is_detected` | path máy cá nhân trong artifact → `privacy=fail` |
-| Verify | `test_no_artifact_means_blocked_not_pass` | không có artifact → `blocked%%, verdict `partial` |
-
-## 5. Adapter và đóng gói — 27 test Node
+### 3.2 Index tăng dần và cache (T1, T3)
 
 | Test | Kiểm chứng |
 |---|---|
-| `registers the flow tool and the six knowledge tools` | 7 tool, không trùng tên |
-| `every knowledge tool declares a strict schema with a renderer` | `additionalProperties:false`, có `render` |
-| `index → search → context pack → impact → verify → refresh end to end` | chuỗi đầy đủ, không lộ secret, không trả absolute path |
-| `search reports index_missing … before indexing` | mã ổn định |
-| `knowledge tools enforce allowedRoots deny-by-default` | thiếu root và ngoài root |
-| `malformed arguments produce stable codes, never a TypeError` | 14 trường hợp tham số sai |
-| `a core timeout keeps its own code` | `core_timeout` khác business failure |
-| `abort surfaces as AbortError from a knowledge tool too` | giữ identity huỷ |
-| `packed tarball carries the core and works without the checkout` | cài từ tarball, chạy index + search |
-| `packed manifest keeps metadata and drops checkout-only scripts` | manifest gọn, đúng engine |
+| `test_missing_cache_row_is_repaired` | `files_parsed >= 1`, entity/fact của file không đổi |
+| `test_malformed_cache_payload_is_repaired` | payload hỏng → parse lại, có cảnh báo |
+| `test_graph_is_equivalent_after_repair` | danh sách entity + fact trước/sau bằng nhau |
+| `test_deleted_and_renamed_still_work` | xoá file → `deleted`, entity về 0 |
+| `test_conflict_metadata_is_written_and_read_back` | cột `contradicted` còn nguyên sau khi đọc lại index |
 
-## 6. Benchmark index (A13)
+### 3.3 Context pack (T2)
 
-`python3 scripts/bench_index.py --files 2000 --json`:
-
-| Chỉ số | Giá trị |
+| Test | Kiểm chứng |
 |---|---|
-| File sinh ra | 2 001 |
-| Source | 942 071 byte |
-| Scan | 637 ms |
-| Index full | 1 422 ms |
-| Index incremental | 471 ms |
-| File parse lại (incremental) | 0 |
-| Entity / fact | 20 003 / 20 001 |
-| DB | 15 548 416 byte |
-| Peak RSS | 68.2 MB |
-| Ngân sách | 20 000 file · 32 MB source · 256 KB/file |
+| `test_route_is_a_real_route_entity_not_a_file_name` | route label bắt đầu bằng `/`, có path + line, confidence observed |
+| `test_entry_points_carry_evidence_and_kind` | kind thuộc danh sách phát, có `evidence_refs` |
+| `test_gui_cli_worker_entry_points` | fixture desktop có gui_event, cli_command, worker, main |
+| `test_desktop_has_no_invented_http_route` | dự án desktop → `routes == []`, có limitation giải thích |
+| `test_dependency_is_a_real_relation` | dependency chỉ dùng predicate thật |
+| `test_error_intent_raises_error_case_priority` | task có "lỗi" → error_case xuất hiện; task thường → không |
+| `test_seen_sets_are_separate` | seen.paths / entities / evidence tách riêng |
 
-Đo bằng `/proc/self/status:VmHWM`, không dùng `ru_maxrss` (giá trị này bị kế thừa
-high-water mark của tiến trình cha trong sandbox và cho số sai).
+### 3.4 Verify (T6)
 
-## 6b. Chạy trên dự án thật (không phải fixture)
-
-Dự án desktop riêng tư, 27 file Python, git %%BQ%%3e852be66fa7%%BQ%%. Bản ghi đã loại path và tên repo:
-[20261119-2307-real-project.json](artifacts/review/20261119-2307-real-project.json).
-
-| Bước | Kết quả |
+| Test | Kiểm chứng |
 |---|---|
-| flow | %%BQ%%ok%%BQ%%, 12 node (10 verified / 1 partial / 1 inferred), 17 file quét, 166 458 byte, 149 ms |
-| index full | 26 file · 207 symbol · 10 test · 568 entity · 575 fact · 157 ms |
-| index incremental | parse lại **0** file, dùng lại 26, 32 ms |
-| search %%BQ%%write_xls%%BQ%% | top-1 đúng hàm ghi Excel, %%BQ%%observed%%BQ%%, score 1.3 |
-| context pack | 4 file nên đọc, 0 entry point (dự án desktop, không bịa route) |
-| verify | %%BQ%%pass%%BQ%% — 7/7 check, gồm %%BQ%%test_mapping%%BQ%% |
+| `test_static_pass_ui_runtime_blocked_is_partial` | static pass + ui/runtime blocked → overall partial |
+| `test_full_pass_requires_real_gate_evidence` | chỉ pass khi cả ba gate có bằng chứng |
+| `test_static_failure_is_overall_failure` | static fail → overall fail |
+| `test_no_artifact_is_blocked_not_pass` | không artifact → blocked, không pass |
 
-### Lỗi thật do lần chạy này phát hiện
+### 3.5 Vector (T7)
 
-| Lỗi | Triệu chứng | Sửa | Test khoá |
-|---|---|---|---|
-| %%BQ%%tested_by%%BQ%% phát ngược chiều | %%BQ%%index%%BQ%% trả %%BQ%%internal_error: OntologyError: tested_by không nhận subject test%%BQ%% trên repo có thư mục test | phát theo chiều %%BQ%%file:nguồn → test%%BQ%% | %%BQ%%test_tested_by_points_from_source_to_test%%BQ%%, %%BQ%%test_impact_lists_the_related_test%%BQ%% |
+| Test | Kiểm chứng |
+|---|---|
+| `test_hashing_backend_is_declared_lexical` | `semantic=False`, tên chứa "hash", local=True |
+| `test_vectors_are_off_by_default` | `include_vectors=false` |
+| `test_missing_vector_index_falls_back_with_warning` | thiếu vector → cảnh báo + FTS |
 
-Fixture cũ không có thư mục test nên không lộ lỗi này. Đây là lý do phải chạy trên dự án thật trước khi phát hành.
+### 3.6 Lifecycle adapter (T4)
 
-### Kết quả search theo loại query
+| Test | Kiểm chứng |
+|---|---|
+| `mount registers exactly the seven tools once` | 7 tool, không trùng |
+| `dispose removes every tool and releases the names` | sau dispose còn 0 |
+| `remount after dispose restores seven tools without duplicates` | remount trả lại đúng 7 |
+| `mounting twice without dispose is rejected` | mount trùng bị từ chối |
+| `dispose cancels an in-flight run` | child bị kill, lỗi là `AbortError` |
+| `no native Config export is claimed` | `plugin.Config === undefined` (BLOCKED_DSH_CONFIG_NATIVE) |
 
-| Query | Top-1 | Ghi chú |
-|---|---|---|
-| %%BQ%%export_report%%BQ%% | %%BQ%%function exportReport%%BQ%% (1.25) | exact symbol |
-| %%BQ%%/api/reports/export%%BQ%% | %%BQ%%route /api/reports/export%%BQ%% (1.4) | exact route |
-| %%BQ%%xuất báo cáo ra excel%%BQ%% | %%BQ%%exportReport%%BQ%% / %%BQ%%loadReportRows%%BQ%% | bridge tiếng Việt |
-| câu dài 12–16 từ | trả kèm cảnh báo **Query dài** | hướng dẫn dùng flow thay thế |
+### 3.7 Bằng chứng cũ (0.3.0) vẫn giữ
 
-## 7. Chưa kiểm chứng
+- 35 test core (đường đi chuẩn, policy artifact, secret, absolute path).
+- 20 test evidence graph (không call giả, không bypass, scoped decision).
+- 45 test ontology/knowledge/index/search.
+- 11 test schema + consistency.
+
+## 4. UI
+
+12 tổ hợp (shop/self/empty × 1440×900, 1280×800, 768×1024, 375×812), mỗi tổ hợp đo cả
+Simple view và Technical view: tràn ngang 0, card chồng 0, nhãn đè card 0, header bị cắt 0,
+console error 0, request ngoài 0. Simple view có 3–7 stage tuỳ flow.
+Chi tiết: [UI_VERIFICATION_REPORT.md](UI_VERIFICATION_REPORT.md).
+
+## 5. Chưa kiểm chứng
 
 | Hạng mục | Trạng thái | Lý do |
 |---|---|---|
-| Smoke registry 0.3.0 trong `pfe-test` | **CHƯA CHẠY** | cài bundle chạy npm/pnpm trong profile → phải dừng trước bước cài và xin phép |
-| Model tự chọn tool | **CHƯA CHẠY** | profile không có API key |
-| Panel UI Harness | `BLOCKED_UI_API_UNVERIFIED` | chưa xác minh register API của slot |
-| Embedding ngữ nghĩa | **CHƯA CÓ** | không có runtime local; mặc định hashing bag-of-words |
-| Call graph type-aware | **CHƯA CÓ** | chỉ có call site lexical |
-| `calls` xuyên file qua alias/namespace | **CHƯA XÁC MINH** | resolver chỉ nhận tên symbol duy nhất |
+| Smoke registry 0.4.0 trong `pfe-test` | **BLOCKED_DSH_SMOKE** | cài bundle chạy npm/pnpm trong profile; chưa được cho phép |
+| Model tự chọn tool | **BLOCKED_DSH_SMOKE** | profile không có API key |
+| Native `Config` | **BLOCKED_DSH_CONFIG_NATIVE** | profile không resolve `@deepseek-ai/schemastery` |
+| Tool visibility | **BLOCKED_TOOL_VISIBILITY** | chưa xác minh cơ chế presentation/visibility |
+| Panel UI Harness | `BLOCKED_UI_API_UNVERIFIED` | ngoài scope |
+| Embedding ngữ nghĩa | **CHƯA CÓ** | backend hashing là lexical |

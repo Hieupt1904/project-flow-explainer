@@ -1,100 +1,62 @@
-# FINAL_REPORT — 0.3.0
+# FINAL_REPORT — 0.4.0
 
-Trạng thái pass 0.3.0: **PARTIAL** — code và test đã pass; smoke registry trong
-`pfe-test` cho 0.3.0 và đường model **CHƯA CHẠY** vì cần cài bundle (npm/pnpm trong profile)
-và profile không có API key.
+Trạng thái: **PARTIAL** — code, test, CLI, UI đã pass; smoke registry DSH cho 0.4.0,
+model-driven, native Config và tool visibility **chưa chạy được** (ghi BLOCKED_*).
 
 | Mục | Giá trị |
 |---|---|
-| Commit nguồn khi sinh bằng chứng | `bd02147` (commit code 0.3.0); commit kế tiếp chỉ chứa bằng chứng |
-| Package version | `0.3.0` |
-| `engines.dsh` | `0.2.2-rc.2` |
-| DSH đã cài (chưa nâng cấp) | `0.2.2-rc.2`, profile `pfe-test` còn bundle 0.2.2 |
-| Python / Node | 3.12.3 / v24.22.3 |
-| Tarball | `dsh-project-flow-explainer-0.3.0.tgz` · 84 670 byte · 25 entry · sha256 `b3647435…20bf581c` |
-| Test | 116 Python · 16 adapter · 9 knowledge tool · 2 pack — **0 fail** |
+| Package version | `0.4.0` |
+| `engines.dsh` | `0.2.2-rc.2` (khớp DSH đang cài) |
+| Test | 142 Python · 16 adapter · 9 knowledge · 7 lifecycle · 2 pack — 0 fail |
+| Bằng chứng | [evidence-manifest.json](artifacts/review/evidence-manifest.json) |
+| Tarball | `dsh-project-flow-explainer-0.4.0.tgz` · 93 626 byte · sha256 `c5dd93fd…bec41463` |
 
-## 1. Bảng task
+## 1. Bảng task T0–T9
 
-### PHẦN A — ổn định bản hiện tại
+| Task | Trạng thái | Thay đổi chính | Bằng chứng | Còn lại |
+|---|---|---|---|---|
+| T0 CLI flow | **DONE** | thêm `scripts` vào `sys.path`; `ImportError` → `core_import_failed`; argparse không trả 0 khi sai cờ | 4 test CLI chạy subprocess thật | — |
+| T1 Incremental cache | **DONE** | đọc cache trước khi parse; cache thiếu/hỏng → parse lại; invariant "mọi file đều có trong graph" | 5 test | — |
+| T2 Context pack | **DONE** | route thật qua `handles_route`; entry_kind có bằng chứng; rerank theo ý định; dependency đầy đủ; 3 tập seen tách; confidence tách | 10 test + fixture desktop | `export`/`command` khai báo nhưng chưa phát |
+| T3 Conflict persistence | **DONE** | cột `contradicted` trong bảng `facts`; đọc lại qua `facts_about`/`neighbours` | 1 test round-trip qua SQLite | index version 1→2 buộc rebuild |
+| T4 Config + lifecycle | **PARTIAL** | `inFlight` dùng chung cho 7 tool; test mount/dispose/remount; Config native bị chặn | 7 test lifecycle | **BLOCKED_DSH_CONFIG_NATIVE** |
+| T5 Tool surface | **PARTIAL** | 7 tool giữ nguyên tên; description 6 mục; renderer ngắn | test schema + review description | **BLOCKED_TOOL_VISIBILITY** |
+| T6 Verify semantics | **DONE** | `static_verdict` / `overall_verdict` / `gates` / `not_verified` / `next_action`; `verdict` là alias | 4 test tổ hợp | — |
+| T7 Vector/cache/privacy | **DONE** | backend `hashing-lexical` (`semantic=False`); vector mặc định tắt; canonical output dùng đường dẫn tương đối | 3 test + adapter test | boundary presentation chưa xác minh |
+| T8 Simple UI | **DONE** | Simple view mặc định (3–7 stage), tab Kỹ thuật giữ canvas; search lọc stage; keyboard; không fit toàn bộ graph khi mở | 12 tổ hợp × 2 chế độ | nút Toàn cảnh vẫn co 40% (chủ động) |
+| T9 Evidence | **DONE** | manifest tách `working_tree_dirty` và `evidence_files_changed`; `record_release.py` chứng minh hai cây chỉ khác `artifacts/review/` | manifest + log + CI | CI của commit bằng chứng ghi sau push |
 
-| Task | Trạng thái | Lệnh / bằng chứng | Known limitation |
+## 2. Hành vi đã đổi (có migration)
+
+| Trước | Sau | Lý do | Ảnh hưởng |
 |---|---|---|---|
-| A0 Baseline | **DONE** | `artifacts/review/evidence-manifest.json` (sinh bởi `scripts/regen_evidence.py`) | `files_scanned` do `run.json` + result trả về, có test |
-| A1 Đồng bộ release evidence | **DONE** | manifest là nguồn duy nhất; báo cáo cũ đã xoá, không sửa tay | không có log 0.2.x giữ lại (đã ghi lý do trong REVIEW_PACKET) |
-| A2 Sửa graph evidence | **DONE** | hướng an toàn: bỏ claim call; `pfe/flow.py` ném lỗi nếu ai gắn `evidence=call`; ontology từ chối `calls` thiếu call site | `calls` trong index là lexical call site, không type-aware |
-| A3 Sửa error branch | **DONE** | `test_decision_has_no_direct_success_bypass`; `verify` phát hiện bypass | — |
-| A4 Giới hạn error detection | **DONE** | window = route body / symbol body; `test_other_route_exception_does_not_create_a_decision` | heuristic theo dòng khai báo, không parse AST |
-| A5 Sửa DSH patch doc | **DONE** | `cordis.patch.yml` + plugin README dùng override row; CI đếm đúng 1 row | chưa chạy lại trên profile thật (xem A7) |
-| A6 DSH config schema | **PARTIAL** | validate tay trong `normalizeConfig` + `lib/validate.js`; test config sai; profile không boot nửa vời | **không** export `Config` native: profile không resolve `@deepseek-ai/schemastery` → đã ghi trade-off |
-| A7 Structured error qua pipeline | **PARTIAL** | code ổn định + hint; kiểm qua adapter in-process và CLI; `core_timeout` ≠ `core_failed` ≠ `ABORTED` | chưa đi qua pipeline runtime thật của DSH trong profile (cần cài bundle) |
-| A8 Privacy và path policy | **DONE** | `check_repo_policy.py` bắt home, Users, tmp, tilde, Windows; `test_absolute_path_in_artifact_is_detected`; tool result khai báo `path_visibility` | chưa quét metadata ảnh chụp |
-| A9 Atomic artifact write | **DONE** | staging + rename; 3 test (lỗi, retry, 3 luồng cùng slug) | rename cùng filesystem; khác filesystem sẽ lỗi rõ ràng |
-| A10 Input validation | **DONE** | `invalid_argument_type`, `*_missing`, `invalid_slug`, `top_k_out_of_range`; 20 test Python + 14 case Node | schema JSON do DSH validate trước, đây là lớp 2 |
-| A11 Symlink/Git/root hardening | **DONE** | `classify_source` loại symlink ra ngoài, symlink tới `.env`, symlink tới artifact; git read-only tắt hook/fsmonitor | root quá rộng chỉ bị cảnh báo qua chính sách, không tự từ chối |
-| A12 Output contract | **DONE** | `run.json` = `internal-provenance`; test + policy check + README | — |
-| A13 Performance/memory | **DONE** | `scripts/bench_index.py`: 2 001 file → 1.42 s, 68 MB; ngân sách byte/file/tổng | chưa benchmark > 20 000 file |
+| Tool flow trả absolute path + `path_visibility: host-only` | trả đường dẫn tương đối, `path_base: "repository"`, `absolute_paths_returned: false` | chưa xác minh presentation boundary nên absolute path không được rời tool | tên field giữ nguyên, giá trị đổi |
+| `verify` trả một `verdict` | thêm `static_verdict`, `overall_verdict`, `gates` | tránh "pass" mơ hồ | `verdict` = `overall_verdict` |
+| `context_pack.entry_points[*].route` | thêm `kind`, `label`, `evidence_refs` | route cũ lấy từ symbol nên sai | giữ `route` |
+| `dependencies` ngắn | thêm `start_line`, `end_line`, `why_included`, `evidence_refs` | agent cần vị trí | thêm field |
+| index version 1 | 2 | cột `contradicted` + bảng `entry_points` | tự rebuild lần đầu |
 
-### PHẦN B — lớp tri thức code
-
-| Task | Trạng thái | Bằng chứng | Known limitation |
-|---|---|---|---|
-| B1 Ontology nhẹ | **DONE** | `pfe/ontology.py` + `references/code-knowledge-schema.json`; 6 test schema khoá hai bên | `returns` khai báo nhưng không phát |
-| B2 Tách static facts khỏi flow | **DONE** | `pfe/facts.py` + `pfe/flow.py`; CLI cũ giữ nguyên; core chạy khi xoá `dsh-plugin` | flow vẫn là projection mới, chưa tách thành `pfe/scan.py` riêng |
-| B3 Index tăng dần | **DONE** | `pfe/index.py`; 12 test (full/inc/change/delete/rename/version/sensitive/symlink/budget) | rename nhận qua content hash, không dùng git rename detection |
-| B4 Exact search FTS5 | **DONE** | `test_symbol_search_finds_the_function`, `test_route_search_finds_the_declaration`, `test_flow_summary_is_searchable` | tokenizer `unicode61` + fold dấu; không có hình thái học |
-| B5 Vector tùy chọn | **PARTIAL** | interface backend, model/version lưu, mismatch → tắt, không local → fallback | backend mặc định là hashing bag-of-words, **không** ngữ nghĩa |
-| B6 Hybrid retrieval | **DONE** | parse → exact → vector → graph → rerank → pack; `test_exact_match_outranks_vector_candidate`, `test_stale_index_is_reported` | trọng số là heuristic cố định, chưa học từ dữ liệu |
-| B7 Thêm 6 DSH tool | **DONE (adapter)** | 7 tool trong `index.js`; 9 test Node end-to-end | registry-runtime 0.3.0 **CHƯA XÁC MINH** |
-
-## 2. Vòng kiểm tra đã chạy
-
-```text
-STATIC   compileall (scripts, tests, pfe, tools) · node --check 6 file · JSON schema
-UNIT     116 Python · 16 adapter · 9 knowledge · 2 pack
-SECURITY allowedRoots missing/empty/outside · symlink escape · symlink .env · symlink artifact
-         invalid output dir · invalid slug · malformed args · secret-shape · private path
-GRAPH    no call evidence · no decision bypass · selected route only · related not node
-         verified có source_ref · evidence khớp loại cạnh
-DETERMINISM 2 lần chạy cùng commit: node/edge/counts khớp; index content hash theo file
-PACKAGING tarball · manifest · giải nén nơi không có checkout · index + search từ vendor
-PROVENANCE commit · version · engines.dsh · tarball · sha256 · test count · generated_at
-UI       12 tổ hợp (3 sample × 4 viewport) + tương tác search/click/zoom/fit
-```
-
-## 2b. Chạy trên dự án thật trước khi phát hành
-
-Đã chạy trên một dự án desktop riêng tư (27 file Python) bằng
-%%BQ%%scripts/run_real_project_check.py%%BQ%%; bản ghi đã scrub path và tên repo:
-[20261119-2307-real-project.json](artifacts/review/20261119-2307-real-project.json).
-
-| Bước | Kết quả |
-|---|---|
-| flow | 12 node (10 verified / 1 partial / 1 inferred), 17 file, 149 ms |
-| index full | 26 file · 207 symbol · 10 test · 568 entity · 575 fact |
-| index incremental | parse lại 0 file |
-| verify | pass (7/7) |
-
-Lỗi thật phát hiện và đã sửa: %%BQ%%tested_by%%BQ%% phát ngược chiều làm %%BQ%%index%%BQ%% lỗi trên repo có thư mục test.
-Thêm fixture %%BQ%%tests/fixtures/shop-app/tests/%%BQ%% và 2 regression test. Hướng dẫn dùng:
-[USAGE_GUIDE.md](USAGE_GUIDE.md).
+Tên 7 tool không đổi.
 
 ## 3. Phân loại kết quả
 
 | Mức | Nội dung |
 |---|---|
-| **Code đã pass** | 116 unittest, 27 test Node, compileall, node --check, policy, determinism |
-| **Runtime đã pass** | adapter in-process (execute qua Context giả) và CLI thật; index/retrieval/impact/verify chạy trên fixture và trên repo này |
-| **Model-driven** | **CHƯA CHẠY** — profile không có API key |
-| **UI đã pass** | 12 tổ hợp layout sạch (overflow 0, card chồng 0, nhãn đè card 0, console error 0, request ngoài 0) |
-| **Static inference** | flow membership theo import/route; `calls` trong index là call site lexical; vector là lexical |
-| **Còn BLOCKED** | panel UI Harness (`BLOCKED_UI_API_UNVERIFIED`), smoke registry 0.3.0, model-driven smoke |
+| Code đã pass | 142 + 16 + 9 + 7 + 2 test, compileall, node --check, policy |
+| Runtime đã pass (local) | CLI thật, index/context/impact/verify trên fixture web + desktop + dự án thật |
+| UI đã pass (trình duyệt) | 12 tổ hợp × 2 chế độ, không overflow/overlap/console error/request ngoài |
+| Model-driven | **chưa chạy** — BLOCKED_DSH_SMOKE |
+| DSH registry 0.4.0 | **chưa chạy** — BLOCKED_DSH_SMOKE |
+| Static inference | membership flow theo import/route; calls lexical; entry point theo dòng đăng ký |
+| Blocked | native Config (BLOCKED_DSH_CONFIG_NATIVE), tool visibility (BLOCKED_TOOL_VISIBILITY), panel UI (BLOCKED_UI_API_UNVERIFIED), vector ngữ nghĩa; smoke và model-driven: **CHƯA CHẠY** |
 
-## 4. Điều phải nói rõ (không tô hồng)
+## 4. Việc cố ý **không** làm
 
-1. `verified` nghĩa là **xác minh tĩnh vị trí + quan hệ**, không phải đã chạy code.
-2. Không có cạnh `call` nào trong flow; index có `calls` nhưng chỉ khi đọc được call site.
-3. Vector không ngữ nghĩa. Nó chỉ mở rộng recall; kết quả vẫn phải qua exact/graph.
-4. Tool tri thức trả đường dẫn **tương đối**; tool flow trả đường dẫn tuyệt đối và khai báo `host-only`.
-5. Smoke registry 0.3.0 chưa chạy: bước cài bundle chạy npm/pnpm trong profile, phải xin phép trước.
-6. Báo cáo 0.2.x đã bị thay thế; log cũ đã xoá thay vì sửa số, và điều đó được ghi lại ở đây.
+| Việc | Lý do |
+|---|---|
+| Vector DB / cloud embedding | không có bằng chứng cần; đang là lexical candidate |
+| Plugin panel DSH | API runtime chưa xác minh |
+| Adapter cho framework khác | ngoài scope, chưa có fixture |
+| Thêm ontology relation mới | không có evidence thực tế |
+| Đổi tên/xoá tool | phá compatibility |
+| Cài bundle vào profile | chưa được cho phép |

@@ -68,6 +68,30 @@ Sự cố đã sửa trong vòng lặp (mỗi lỗi một lần sửa, không t�
 | `tested_by` phát ngược chiều (`test` → `file`) | ontology từ chối subject `test`; chỉ lộ khi repo có thư mục test | đổi sang `file` → `test` | 2 regression test + chạy lại dự án thật |
 | `ru_maxrss` báo 700 MB cho 200 file | kế thừa high-water mark tiến trình cha | đọc `VmHWM` trong `/proc/self/status` | benchmark 27.9 MB đúng |
 
+
+## 6. Pass 0.4.0 — T0…T9
+
+| Task | Trạng thái | Ghi chú |
+|---|---|---|
+| T0 CLI flow import | **DONE** | nguyên nhân: thiếu `scripts` trong sys.path; có 4 test subprocess |
+| T1 Cache incremental | **DONE** | cache thiếu/hỏng không còn làm mất file; có invariant + 5 test |
+| T2 Context pack | **DONE** | route thật, entry_kind, dependency path/line, rerank theo ý định |
+| T3 Conflict persist | **DONE** | cột `contradicted`; index version 2 |
+| T4 Config/lifecycle | **PARTIAL** | `inFlight` dùng chung; **BLOCKED_DSH_CONFIG_NATIVE** |
+| T5 Tool surface | **PARTIAL** | 7 tool giữ nguyên; description 6 mục; **BLOCKED_TOOL_VISIBILITY** |
+| T6 Verify semantics | **DONE** | static/overall tách, gates, next_action |
+| T7 Vector/privacy | **DONE** | hashing-lexical, vector off, canonical output relative |
+| T8 Simple UI | **DONE** | Simple view mặc định 3–7 stage; 12 tổ hợp × 2 chế độ sạch |
+| T9 Evidence | **DONE** | `record_release.py` chứng minh cây nguồn sạch |
+
+### Vì sao vẫn BLOCKED
+
+- **DSH smoke**: cài bundle chạy npm/pnpm trong profile `pfe-test`; hành động này chưa được cho phép.
+- **Native Config**: `@deepseek-ai/schemastery` resolve được từ cài đặt DSH nhưng **không** từ profile
+  (`MODULE_NOT_FOUND`), nên plugin không thể `import` schema thật; giữ validate tay + test.
+- **Tool visibility**: tài liệu DSH mô tả preset/presentation nhưng chưa có API visibility đã xác minh
+  cho bundle bên thứ ba; giữ 7 tool và cải thiện description thay vì đoán API.
+
 ## 5. Việc còn lại
 
 1. **Chờ duyệt**: cài tarball 0.3.0 vào `pfe-test` → chạy smoke 7 tool (index/search/context/impact/verify/refresh + flow).

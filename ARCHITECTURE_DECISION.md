@@ -120,3 +120,15 @@ flow.json · flow.html · overview.md · run.json(internal) · .pfe/index/knowle
 | Huỷ | `Error{name:'AbortError'}` | runtime map `ABORTED`; timeout có mã riêng `core_timeout` |
 | Bằng chứng | location / membership / role tách riêng | cạnh mang `evidence`; file keyword-only vào `meta.related` |
 | Provenance | artifact không chứa absolute path | `check_repo_policy.py` chặn home, Users, tmp, Documents, Windows user path |
+## 7. ADR bổ sung 0.4.0
+
+| Quyết định | Bối cảnh | Hệ quả |
+|---|---|---|
+| Canonical tool output dùng **đường dẫn tương đối** | Chưa xác minh presentation boundary của DSH; absolute path không được rời tool | Field giữ tên, giá trị đổi; CLI local vẫn in absolute path cho người dùng |
+| `static_verdict` tách khỏi `overall_verdict` | Một verdict "pass" khi chưa mở trình duyệt/chạy test là thông tin sai | Gate ui/runtime mặc định blocked; `verdict` giữ làm alias |
+| Persist `contradicted` trong SQLite | Agent không được thấy fact đã bị phủ định như fact sạch | Thêm cột + index version 2 (buộc rebuild) |
+| Entry point chỉ từ dòng đăng ký | Đoán theo tên hàm tạo false positive | Bảng `entry_points` là evidence additive, không đụng ontology |
+| `export`/`command` khai báo nhưng không phát | `module.exports` có ở mọi file JS | Ghi rõ trong code + báo cáo thay vì làm nhiễu context pack |
+| Không import `schemastery` | Profile không resolve package này | Giữ validate tay; **BLOCKED_DSH_CONFIG_NATIVE** |
+| Giữ 7 tool, không đổi tên | Chưa có cơ chế visibility đã xác minh | Cải thiện description 6 mục; **BLOCKED_TOOL_VISIBILITY** |
+| Simple view mặc định | Người vibecoding không đọc được canvas 13 node ở 55% | Stage list 3–7 mục; tab Kỹ thuật giữ nguyên canvas |
