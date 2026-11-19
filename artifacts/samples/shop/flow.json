@@ -16,7 +16,7 @@
       "details": "Điểm vào của sơ đồ do yêu cầu quyết định, không phải một dòng code cụ thể.",
       "technical": "entry=request",
       "x": 70,
-      "y": 226
+      "y": 85
     },
     {
       "id": "step-1",
@@ -35,7 +35,7 @@
       "technical": "server.js",
       "actor": "Hệ thống",
       "x": 465,
-      "y": 226
+      "y": 85
     },
     {
       "id": "step-2",
@@ -53,40 +53,8 @@
       "details": "Bằng chứng thành viên: import từ `server.js`.",
       "technical": "services/report_service.js",
       "actor": "Hệ thống",
-      "x": 1255,
-      "y": 85
-    },
-    {
-      "id": "decision-server-js",
-      "title": "Có lỗi trong bước này?",
-      "type": "decision",
-      "summary": "Bước xử lý có nhánh bắt lỗi; sơ đồ tách nhánh thành công và thất bại.",
-      "confidence": "partial",
-      "source_refs": [
-        {
-          "path": "server.js",
-          "start_line": 8
-        }
-      ],
-      "details": "Nhánh lỗi suy ra từ việc có xử lý ngoại lệ; mã lỗi chưa xác minh.",
       "x": 860,
-      "y": 226
-    },
-    {
-      "id": "error-server-js",
-      "title": "Trả lỗi cho người gọi",
-      "type": "error",
-      "summary": "Lỗi được bắt và trả về lớp gọi thay vì kết thúc im lặng.",
-      "confidence": "partial",
-      "source_refs": [
-        {
-          "path": "server.js",
-          "start_line": 8
-        }
-      ],
-      "details": "Chưa xác minh nội dung thông báo và mã lỗi.",
-      "x": 1255,
-      "y": 367
+      "y": 85
     },
     {
       "id": "step-3",
@@ -104,8 +72,8 @@
       "details": "Bằng chứng thành viên: import từ `services/report_service.js`.",
       "technical": "db/report_repo.js",
       "actor": "Hệ thống",
-      "x": 1650,
-      "y": 226
+      "x": 1255,
+      "y": 85
     },
     {
       "id": "step-4",
@@ -122,8 +90,8 @@
       "details": "Bằng chứng thành viên: import từ `db/report_repo.js`.",
       "technical": "db/connection.js",
       "actor": "Hệ thống",
-      "x": 2045,
-      "y": 226
+      "x": 1650,
+      "y": 85
     },
     {
       "id": "end",
@@ -138,8 +106,8 @@
         }
       ],
       "details": "Điểm kết thúc xác định theo lời gọi trả kết quả trong code.",
-      "x": 2440,
-      "y": 226
+      "x": 2045,
+      "y": 85
     }
   ],
   "edges": [
@@ -155,48 +123,24 @@
       "from": "step-1",
       "to": "step-2",
       "label": "dùng module",
-      "kind": "normal",
-      "technical": "`server.js` import `services/report_service.js`",
-      "evidence": "import"
-    },
-    {
-      "from": "step-1",
-      "to": "decision-server-js",
-      "label": "vào bước xử lý",
-      "kind": "normal",
-      "technical": "cùng bước `server.js`",
-      "evidence": "import"
-    },
-    {
-      "from": "decision-server-js",
-      "to": "step-2",
-      "label": "không lỗi",
       "kind": "success",
-      "technical": "đường đi tiếp khi không lỗi",
-      "evidence": "structure"
-    },
-    {
-      "from": "decision-server-js",
-      "to": "error-server-js",
-      "label": "có lỗi",
-      "kind": "error",
-      "technical": "khối xử lý ngoại lệ trong file",
-      "evidence": "structure"
+      "technical": "server.js import services/report_service.js · dòng import 3",
+      "evidence": "import"
     },
     {
       "from": "step-2",
       "to": "step-3",
       "label": "dùng module",
-      "kind": "normal",
-      "technical": "`services/report_service.js` import `db/report_repo.js`",
+      "kind": "success",
+      "technical": "services/report_service.js import db/report_repo.js · dòng import 3",
       "evidence": "import"
     },
     {
       "from": "step-3",
       "to": "step-4",
       "label": "dùng module",
-      "kind": "normal",
-      "technical": "`db/report_repo.js` import `db/connection.js`",
+      "kind": "success",
+      "technical": "db/report_repo.js import db/connection.js · dòng import 2",
       "evidence": "import"
     },
     {
@@ -205,25 +149,22 @@
       "label": "hoàn tất",
       "kind": "success",
       "technical": "bước cuối của luồng",
-      "evidence": "call"
+      "evidence": "import"
     }
   ],
   "assumptions": [
-    "Phân tích tĩnh trên source; hành vi runtime và dữ liệu thật chưa được kiểm chứng.",
-    "Chỉ đọc source trong repository; file bí mật, dump, log và thư mục phụ thuộc bị loại.",
-    "Thư mục test/fixture/example/sample/demo bị bỏ qua.",
-    "Chưa có call graph đầy đủ: quan hệ bước dựa trên route, import và lời gọi theo tên.",
-    "Thứ tự bước phản ánh quan hệ import/gọi hàm, không phải thứ tự thực thi tại runtime."
+    "Chưa có call graph runtime: cạnh chỉ mang bằng chứng entry/import/structure; không có cạnh nào tự nhận là call."
   ],
-  "notes": "Phân tích tĩnh, không chạy code của repository, không dùng network. `verified` = vị trí có thật + có bằng chứng thành viên (route/import/call). `partial`/`inferred` = suy luận từ cấu trúc. Không chép nội dung source.",
+  "notes": "Phân tích tĩnh, không chạy code của repository, không dùng network. verified = vị trí có thật + có bằng chứng thành viên (route/import). partial/inferred = suy luận từ cấu trúc. Không chép nội dung source.",
   "meta": {
     "schema_version": 2,
-    "generated_at": "2026-11-19T21:45:42+07:00",
+    "generated_at": "2026-11-19T22:53:50+07:00",
     "source": {
       "commit": null,
       "branch": null,
       "dirty": false,
-      "dirty_files": 0
+      "dirty_files": 0,
+      "read_only": true
     },
     "request": "Giải thích từ lúc người dùng nhấn xuất báo cáo đến khi nhận được file",
     "facets": [
@@ -239,6 +180,31 @@
         "path": "routes/preview.js",
         "reason": "khớp từ khoá nhưng không nối được tới điểm vào bằng import/gọi hàm"
       }
-    ]
+    ],
+    "projection": {
+      "kind": "flow",
+      "source": "static_facts",
+      "scanner": "pfe.facts",
+      "branch_count": 0
+    },
+    "evidence_model": {
+      "membership": {
+        "entry": "điểm vào do yêu cầu + khai báo route xác định",
+        "import": "file trước import trực tiếp file này",
+        "route_body": "cùng file với khai báo route",
+        "structure": "nhánh điều kiện do cấu trúc khối xử lý lỗi trong file"
+      },
+      "confidence": {
+        "verified": "vị trí có thật (file + dòng) và có bằng chứng thành viên (route/import); xác minh tĩnh, KHÔNG phải chạy runtime",
+        "partial": "vị trí có thật nhưng vai trò trong luồng chỉ suy ra từ cấu trúc",
+        "inferred": "suy luận từ ngữ cảnh, chưa có bằng chứng trực tiếp",
+        "unknown": "chưa xác minh được"
+      },
+      "call_edges": false,
+      "runtime_verified": false,
+      "note": "Không có cạnh nào mang evidence=call: projection này không có call-site parser cho flow. verified mô tả xác minh tĩnh vị trí và quan hệ, không phải đã chạy code."
+    },
+    "files_scanned": 6,
+    "scan_bytes": 2748
   }
 }

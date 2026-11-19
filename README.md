@@ -1,72 +1,167 @@
 # Project Flow Explainer
 
-> **Đang review?** Bắt đầu từ [REVIEW_PACKET.md](REVIEW_PACKET.md) — kiến trúc, lệnh chạy lại,
-> bảng kết quả tự test, bản đồ bằng chứng, danh sách việc chưa làm và checklist để tấn công.
-> Số liệu máy đọc: [artifacts/review/results.json](artifacts/review/results.json).
-> Bản phát hành mới nhất: [v0.2.2](https://github.com/Hieupt1904/project-flow-explainer/releases/tag/v0.2.2).
+Bộ công cụ đọc repository và giải thích quy trình hoạt động bằng sơ đồ HTML mở offline.
+Bản 0.3.0 thêm **lớp tri thức code**: index cục bộ, tìm kiếm exact, vector tùy chọn,
+truy hồi hybrid, phân tích tác động và kiểm tra sau khi sửa code.
 
-Bộ skill tích hợp 4 module: đọc repository → truy vết flow → viết dễ hiểu → dựng HTML. Các file trong `references/` đóng vai trò prompt/tài liệu module; `scripts/render_flow.py` là renderer offline dùng chung.
+Hai lớp, một core:
 
-## Dành cho người dùng
+| Lớp | Trạng thái | Thành phần |
+|---|---|---|
+| Giải thích flow | **ĐÃ TRIỂN KHAI** | `scripts/build_flow.py`, `pfe/flow.py`, `scripts/render_flow.py`, `assets/workflow_template.html` |
+| Tri thức code | **ĐÃ TRIỂN KHAI** (vector là tùy chọn) | `pfe/facts.py`, `pfe/ontology.py`, `pfe/knowledge.py`, `pfe/index.py`, `pfe/retrieval.py`, `pfe/impact.py`, `pfe/verify.py` |
+| DSH adapter | **ĐÃ TRIỂN KHAI**, smoke registry 0.3.0 **CHƯA XÁC MINH** | `dsh-plugin/` |
+| Panel UI trong Harness | **BLOCKED_UI_API_UNVERIFIED** | chưa có code UI |
 
-1. Đưa thư mục project hoặc source code vào môi trường nơi agent có quyền đọc. Nếu là GitHub URL, chỉ sử dụng khi agent có khả năng truy cập repository hợp lệ.
-2. Cung cấp lệnh cho agent: `Phân tích quy trình đăng ký bảo hành từ frontend đến backend trong project này. Xuất HTML dễ hiểu, kèm source file/line.`
-3. Agent đọc code và sinh `flow.json`, sau đó chạy script renderer để nhận `flow.html`.
-4. Mở file HTML bằng trình duyệt, kéo sơ đồ, phóng to, tìm tên bước hoặc nhấn vào card để kiểm tra chi tiết.
+Bắt đầu từ [USAGE_GUIDE.md](USAGE_GUIDE.md) để dùng đúng công cụ và đọc kết quả đúng cách.
 
-### Độc lập với hệ thống skill
+Bắt đầu từ [REVIEW_PACKET.md](REVIEW_PACKET.md) nếu bạn review. Số liệu máy đọc:
+[artifacts/review/evidence-manifest.json](artifacts/review/evidence-manifest.json).
 
-Nếu chỉ muốn dùng **system prompt**, sao chép nội dung từ `references/SYSTEM_PROMPT.md` vào System / Instructions của agent. Cần cấp quyền đọc file project và khả năng ghi HTML/JSON. Trong prompt, điều chỉnh đường dẫn `scripts/render_flow.py` cho phù hợp vị trí đặt skill.
+## Chạy nhanh
 
-### Render thủ công
+### 1. Giải thích một luồng
 
 ```bash
-# Một lệnh: đọc repo → graph có bằng chứng → flow.json + flow.html + overview.md
-python scripts/build_flow.py --repo /duong/dan/repo \
+python3 scripts/build_flow.py --repo /duong/dan/repo \
   --request "Giải thích từ lúc người dùng nhấn xuất báo cáo đến khi nhận được file"
-
-# Render lại từ graph có sẵn
-python scripts/render_flow.py assets/example_workflow.json --out flow.html
-python scripts/render_flow.py own_flow.json --out own_flow.html
-python scripts/render_flow.py own_flow.json --check-only
-
-# Test
-python -m unittest discover -s tests -v
-node --test dsh-plugin/tests/plugin.test.mjs      # nếu dùng adapter DSH
 ```
 
-**Demo**: `assets/example_workflow.json` minh họa sơ đồ chatbot, không được coi là kết quả phân tích project thực.
+Kết quả trong `/duong/dan/repo/artifacts/flows/<slug>/`:
 
-## Đầu ra agent nên giao
+| File | Loại | Nội dung |
+|---|---|---|
+| `flow.json` | public | graph có bằng chứng, render lại được |
+| `flow.html` | public | sơ đồ tương tác, mở offline, không CDN |
+| `overview.md` | public | giải thích, bằng chứng từng bước, giới hạn |
+| `run.json` | **internal provenance** | số đếm, giới hạn, trạng thái git; không phải public output |
 
-- `flow.html`: sơ đồ HTML mở offline, không cần server/CDN.
-- `flow.json`: dữ liệu có thể sửa hoặc render lại.
-- `overview.md`: giải thích phạm vi, assumptions, các phần chưa xác minh.
+### 2. Xây index tri thức
 
-Mọi phần `verified` cần trích file và dòng thực, `partial/inferred/unknown` được hiển thị minh bạch trên panel. Không đọc/đưa secrets vào sơ đồ. Với hệ thống nhiều chức năng, tạo mỗi workflow một HTML thay vì nhồi mọi bước vào một canvas.
+```bash
+python3 tools/pfe_cli.py index --repo /duong/dan/repo --mode full --include-vectors
+```
+
+Index nằm ở `<repo>/.pfe/index/knowledge.sqlite` (đã có trong `.gitignore`).
+Lần chạy sau dùng `--mode incremental`: file không đổi không bị parse lại.
+
+### 3. Tìm context, phân tích tác động, kiểm tra
+
+```bash
+python3 tools/pfe_cli.py search --repo /duong/dan/repo --query "export_report"
+python3 tools/pfe_cli.py context-pack --repo /duong/dan/repo --task "sửa luồng xuất Excel"
+python3 tools/pfe_cli.py impact --repo /duong/dan/repo --changed services/report_service.js
+python3 tools/pfe_cli.py verify --repo /duong/dan/repo
+python3 tools/pfe_cli.py refresh --repo /duong/dan/repo
+```
+
+Mỗi lệnh in đúng một object JSON. Lỗi có mã ổn định, không rơi traceback.
 
 ## Tích hợp DeepSeek Harness
 
-`dsh-plugin/` đăng ký tool `project_flow_explain` trong DSH và gọi lại core qua subprocess; core
-không phụ thuộc DSH, xoá thư mục plugin thì CLI Python vẫn chạy nguyên vẹn. Bundle dùng format
-`dsh.bundle.patch` (`dsh-plugin/cordis.patch.yml`), cài vào một profile riêng:
+Plugin đăng ký 7 tool và gọi lại core qua subprocess (không shell, không network):
+
+| Tool | Việc nó làm |
+|---|---|
+| `project_flow_explain` | dựng flow.json + flow.html + overview.md |
+| `project_code_index` | xây index tri thức full hoặc incremental |
+| `project_code_search` | truy hồi hybrid, trả path/symbol/line/relation/confidence |
+| `project_context_pack` | gom context cho một task code |
+| `project_impact_analysis` | file thay đổi → flow/route/symbol/test/risk |
+| `project_verify_flow` | kiểm tra graph, artifact, UI tĩnh, privacy, test mapping |
+| `project_knowledge_refresh` | refresh tăng dần sau khi sửa code |
+
+Cài vào profile riêng (không dùng profile `web`):
 
 ```bash
-dsh plugin --profile pfe-test add /duong/dan/toi/project-flow-explainer/dsh-plugin
-# hoặc từ tarball độc lập:
 node dsh-plugin/scripts/pack.mjs
-dsh plugin --profile pfe-test add /duong/dan/toi/project-flow-explainer/dist/dsh-project-flow-explainer-0.2.2.tgz
+dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.3.0.tgz"
 ```
 
-Plugin **deny-by-default**: phải khai báo `allowedRoots` trong profile patch thì tool mới đọc repo.
+Bundle đã tự insert row `project-flow-explainer`. Cấu hình bằng **override row**
+theo id, không insert lại cùng id:
 
 ```yaml
-config:
-  allowedRoots: ['/duong/dan/workspace']
+- id: project-flow-explainer
+  config:
+    allowedRoots:
+      - /duong/dan/workspace
+    pythonPath: python3
+    timeoutMs: 180000
+    maxOutputBytes: 1048576
 ```
 
-Artifact luôn ghi vào `<repo>/artifacts/flows/<slug>/`; không cấu hình được ra ngoài.
+Thiếu `allowedRoots` thì mọi lời gọi trả `allowed_roots_unconfigured` (deny-by-default).
+Chi tiết: [dsh-plugin/README.md](dsh-plugin/README.md).
 
-Trạng thái kiểm chứng, quyết định kiến trúc và giới hạn còn lại: [FINAL_REPORT.md](FINAL_REPORT.md),
-[ARCHITECTURE_DECISION.md](ARCHITECTURE_DECISION.md), [TEST_REPORT.md](TEST_REPORT.md),
+## Mô hình bằng chứng
+
+| Nhãn | Nghĩa chính xác |
+|---|---|
+| `observed` | đọc được tại `path:line` (khai báo, call site, SQL, throw) |
+| `structural` | suy ra từ cấu trúc (import, test nhắc tới tên) |
+| `inferred` | heuristic, không có bằng chứng trực tiếp |
+| `runtime_verified` | chỉ khi có bằng chứng chạy; lớp tĩnh **không** sinh nhãn này |
+| `verified` (flow) | vị trí thật + bằng chứng thành viên (route/import); **không** phải đã chạy code |
+
+Ba luật không thương lượng:
+
+1. Không có cạnh `evidence=call` nếu không có call-site (path + line).
+2. Nhánh quyết định không được có cạnh success đi tắt.
+3. File chỉ khớp từ khoá nằm ở `meta.related`, không thành node của luồng.
+
+## Chính sách đọc, ghi, mạng, riêng tư
+
+| Chủ đề | Luật |
+|---|---|
+| Đọc | chỉ `allowedRoots`, so sánh sau `realpath`; symlink trỏ ra ngoài bị loại |
+| Ghi | chỉ `<repo>/artifacts/flows/<slug>/`; ghi qua staging rồi rename |
+| Mạng | core và adapter không mở socket; embedding local-only |
+| Bí mật | loại theo tên file, theo nội dung (secret-shaped line) và theo symlink; file chứa secret không vào index |
+| Kết quả tool | trả path/symbol/line range; không trả source thô; snippet chỉ khi bật rõ |
+| Git | chỉ đọc (`rev-parse`, `status`, `log`), tắt hook và fsmonitor |
+
+## Kiểm thử
+
+```bash
+python3 -m unittest discover -s tests -v                # core + knowledge (116 test)
+node --test dsh-plugin/tests/plugin.test.mjs            # adapter (16 test)
+node --test dsh-plugin/tests/knowledge.test.mjs         # tool tri thức (9 test)
+node --test dsh-plugin/tests/pack.test.mjs              # đóng gói + cài độc lập (2 test)
+python3 scripts/check_repo_policy.py                    # policy artifact/provenance
+python3 scripts/regen_evidence.py                        # sinh lại evidence-manifest.json
+python3 scripts/bench_index.py --files 2000 --json       # benchmark index
+```
+
+## Bố cục repository
+
+```text
+pfe/                     core Python: policy, facts, flow, ontology, knowledge, index,
+                         vectors, retrieval, impact, verify, emit
+scripts/build_flow.py    CLI flow (giữ tương thích)
+scripts/render_flow.py   validate + render HTML
+tools/pfe_cli.py         CLI máy đọc cho 6 tool tri thức
+dsh-plugin/              adapter DSH (zero dependency)
+assets/                  template HTML offline
+references/              schema + prompt module + code-knowledge-schema.json
+tests/                   116 unittest + fixture
+artifacts/               bằng chứng: samples, review, ui-verification
+```
+
+## Giới hạn đã biết
+
+| Giới hạn | Trạng thái |
+|---|---|
+| Call graph đầy đủ (type-aware) | **CHƯA CÓ**; `calls` trong index chỉ là call site đọc theo lexical |
+| Vector ngữ nghĩa thật | **CHƯA CÓ**; backend mặc định là hashing bag-of-words, chỉ tạo candidate |
+| Panel UI trong Harness | BLOCKED_UI_API_UNVERIFIED |
+| Smoke registry 0.3.0 trong `pfe-test` | **CHƯA CHẠY**: cài bundle cần npm/pnpm trong profile, phải xin phép trước |
+| Model tự chọn tool | **CHƯA CHẠY**: profile không có API key |
+| Ngôn ngữ ngoài danh sách pattern | Go, Rust, C#, Kotlin chỉ có symbol/route cơ bản |
+
+Tài liệu tri thức: [references/code-knowledge-schema.json](references/code-knowledge-schema.json) (schema),
+[references/code-knowledge-examples.md](references/code-knowledge-examples.md) (fact thật từ index).
+
+Quyết định kiến trúc: [ARCHITECTURE_DECISION.md](ARCHITECTURE_DECISION.md).
+Báo cáo: [TEST_REPORT.md](TEST_REPORT.md), [FINAL_REPORT.md](FINAL_REPORT.md),
 [UI_VERIFICATION_REPORT.md](UI_VERIFICATION_REPORT.md), [IMPROVEMENT_PLAN.md](IMPROVEMENT_PLAN.md).

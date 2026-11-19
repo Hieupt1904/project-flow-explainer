@@ -2,14 +2,15 @@
   "status": "ok",
   "schema_version": 2,
   "flow_id": "luong-thanh-toan-the-tin-dung-8ebc20",
-  "generated_at": "2026-11-19T21:45:42+07:00",
+  "generated_at": "2026-11-19T22:53:50+07:00",
   "repository_name": "empty-repo",
   "request": "luồng thanh toán thẻ tín dụng quốc tế",
   "source": {
     "commit": null,
     "branch": null,
     "dirty": false,
-    "dirty_files": 0
+    "dirty_files": 0,
+    "read_only": true
   },
   "counts": {
     "verified": 0,
@@ -18,11 +19,6 @@
     "unknown": 1
   },
   "limits": [
-    "Phân tích tĩnh trên source; hành vi runtime và dữ liệu thật chưa được kiểm chứng.",
-    "Chỉ đọc source trong repository; file bí mật, dump, log và thư mục phụ thuộc bị loại.",
-    "Thư mục test/fixture/example/sample/demo bị bỏ qua.",
-    "Chưa có call graph đầy đủ: quan hệ bước dựa trên route, import và lời gọi theo tên.",
-    "Thứ tự bước phản ánh quan hệ import/gọi hàm, không phải thứ tự thực thi tại runtime.",
     "Không tìm được bằng chứng nào cho yêu cầu này."
   ],
   "warnings": [],
@@ -33,14 +29,46 @@
     "sensitive_name": 0,
     "suffix": 0,
     "symlink_escape": 0,
+    "symlink_sensitive": 0,
     "too_large": 0,
     "unreadable": 0,
-    "secret_lines": 0
+    "secret_lines": 0,
+    "budget_files": 0,
+    "budget_bytes": 0
+  },
+  "files_scanned": 1,
+  "scan_bytes": 49,
+  "budget_notes": [],
+  "evidence_model": {
+    "membership": {
+      "entry": "điểm vào do yêu cầu + khai báo route xác định",
+      "import": "file trước import trực tiếp file này",
+      "route_body": "cùng file với khai báo route",
+      "structure": "nhánh điều kiện do cấu trúc khối xử lý lỗi trong file"
+    },
+    "confidence": {
+      "verified": "vị trí có thật (file + dòng) và có bằng chứng thành viên (route/import); xác minh tĩnh, KHÔNG phải chạy runtime",
+      "partial": "vị trí có thật nhưng vai trò trong luồng chỉ suy ra từ cấu trúc",
+      "inferred": "suy luận từ ngữ cảnh, chưa có bằng chứng trực tiếp",
+      "unknown": "chưa xác minh được"
+    },
+    "call_edges": false,
+    "runtime_verified": false,
+    "note": "Không có cạnh nào mang evidence=call: projection này không có call-site parser cho flow. verified mô tả xác minh tĩnh vị trí và quan hệ, không phải đã chạy code."
   },
   "files": [
     "flow.json",
     "flow.html",
     "overview.md",
+    "run.json"
+  ],
+  "contract": "internal-provenance",
+  "public_outputs": [
+    "flow.json",
+    "flow.html",
+    "overview.md"
+  ],
+  "internal_outputs": [
     "run.json"
   ]
 }

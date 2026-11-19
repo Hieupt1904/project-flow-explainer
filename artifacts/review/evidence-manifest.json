@@ -1,0 +1,157 @@
+{
+  "generated_at": "2026-11-19T23:09:46+07:00",
+  "generator": "scripts/regen_evidence.py",
+  "source_commit": "13a2c49e4942f0db83e15966c358d4b31f6ab6ba",
+  "source_branch": "main",
+  "working_tree_dirty": true,
+  "package_version": "0.3.0",
+  "engines_dsh": "0.2.2-rc.2",
+  "dsh_version": "0.2.2-rc.2",
+  "python_version": "3.12.3",
+  "node_version": "v24.22.3",
+  "tests": {
+    "python": 116,
+    "adapter": 16,
+    "knowledge_tools": 9,
+    "pack": 2,
+    "failures": 0,
+    "adapter_engine_failures": 0
+  },
+  "tarball": {
+    "filename": "dsh-project-flow-explainer-0.3.0.tgz",
+    "path": "dist/dsh-project-flow-explainer-0.3.0.tgz",
+    "bytes": 84670,
+    "sha256": "b3647435f63c1d7b98259a84740cecf11b6b3034e2634e1c9e8669e220bf581c",
+    "entry_count": 25,
+    "contains_cli": true,
+    "contains_knowledge": true
+  },
+  "smoke": {
+    "status": "blocked",
+    "profile": "pfe-test",
+    "registry_runtime": "not_verified",
+    "model_driven": "not_verified",
+    "reason": "Bundle 0.3.0 chưa được cài vào profile pfe-test trong phiên này: cài bundle chạy npm/pnpm trong profile nên phải dừng trước bước cài và xin phép.",
+    "installed_in_profile": "0.2.2 (bản cài trước đó, chưa nâng cấp)",
+    "note": "Lời gọi tool đã được kiểm chứng qua registry thật ở pass 0.2.x; với 0.3.0 chỉ có bằng chứng adapter in-process + pack test."
+  },
+  "ui": {
+    "status": "pass",
+    "combinations": 12,
+    "summary": {
+      "horizontal_overflow": 0,
+      "card_overlap": 0,
+      "label_over_card": 0,
+      "console_errors": 0,
+      "external_requests": 0,
+      "clipped_headers": 0
+    },
+    "log": "20261119-ui.json"
+  },
+  "policy": {
+    "ok": true,
+    "summary": "OK: 67 file đã kiểm tra · không có absolute path, nested artifacts hay secret"
+  },
+  "benchmark": {
+    "files": 2000,
+    "source_bytes": 942071,
+    "scan_ms": 599.3,
+    "scan_files": 2001,
+    "budget_notes": [],
+    "index_full_ms": 1392.3,
+    "index_incremental_ms": 434.9,
+    "files_parsed_full": 2001,
+    "files_parsed_incremental": 0,
+    "entities": 20003,
+    "facts": 20001,
+    "db_bytes": 15548416,
+    "rss_mb": 68.7,
+    "limits": {
+      "max_files_scanned": 20000,
+      "max_total_source_bytes": 33554432,
+      "max_file_bytes": 262144
+    }
+  },
+  "real_project": {
+    "log": "20261119-2307-real-project.json",
+    "status": "ok",
+    "repository_id": "32eb400b099a9c9b",
+    "flow": {
+      "verified": 10,
+      "partial": 1,
+      "inferred": 1,
+      "unknown": 0
+    },
+    "files_scanned": 17,
+    "index_files": 26,
+    "index_incremental_parsed": 0,
+    "verify": "pass",
+    "privacy": "removed"
+  },
+  "static": {
+    "compileall": true,
+    "node_syntax": [
+      {
+        "file": "dsh-plugin/index.js",
+        "ok": true
+      },
+      {
+        "file": "dsh-plugin/lib/paths.js",
+        "ok": true
+      },
+      {
+        "file": "dsh-plugin/lib/core-runner.js",
+        "ok": true
+      },
+      {
+        "file": "dsh-plugin/lib/tools.js",
+        "ok": true
+      },
+      {
+        "file": "dsh-plugin/lib/validate.js",
+        "ok": true
+      },
+      {
+        "file": "dsh-plugin/scripts/pack.mjs",
+        "ok": true
+      }
+    ]
+  },
+  "logs": {
+    "python_log": "20261119-2309-python-tests.log",
+    "adapter_log": "20261119-2309-node-adapter.log",
+    "knowledge_log": "20261119-2309-node-knowledge.log",
+    "pack_log": "20261119-2309-node-pack.log",
+    "policy_log": "20261119-2309-policy.log",
+    "bundle_log": "20261119-2309-pack-build.log",
+    "bench_log": "20261119-2309-bench.json",
+    "consistency_log": "20261119-2309-consistency.log"
+  },
+  "classification": {
+    "confirmed": [
+      "python tests",
+      "adapter tests",
+      "knowledge tool tests",
+      "pack tests",
+      "policy",
+      "tarball manifest",
+      "UI layout",
+      "index benchmark"
+    ],
+    "manual_evidence": [
+      "tarball sha256",
+      "tarball entry count",
+      "real-project run (path và tên repo đã scrub)"
+    ],
+    "unverified": [
+      "DSH registry-runtime smoke cho 0.3.0",
+      "model-driven tool selection",
+      "Harness panel UI (BLOCKED_UI_API_UNVERIFIED)"
+    ]
+  },
+  "consistency_recheck": {
+    "ok": true,
+    "note": "chạy lại toàn bộ unittest sau khi manifest được ghi",
+    "ran": 116
+  }
+}

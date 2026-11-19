@@ -1,97 +1,76 @@
 # DSH_IMPLEMENTATION_PLAN — Hybrid Project Flow Explainer × DeepSeek Harness
 
-Trạng thái sau pass review: **COMPLETED — 8/8 task DONE**
-(chi tiết: [FINAL_REPORT.md](FINAL_REPORT.md)).
+Trạng thái 0.3.0: **core + adapter DONE; smoke registry 0.3.0 CHƯA CHẠY** (cần xin phép cài).
 
-Cập nhật: 2026-11-19 · commit code của pass review: `797401a61f9b` · nhánh `main`.
+Cập nhật: 2026-11-19 · commit nguồn `13a2c49e4942` + thay đổi chưa commit · nhánh `main`.
 
----
-
-## 1. Ma trận runtime (HYB-00, đo thật)
-
-Bằng chứng thô: [preflight log](artifacts/logs/20261119-1628-HYB-00-preflight.log).
+## 1. Ma trận runtime (đo thật)
 
 | Hạng mục | Giá trị |
 |---|---|
-| OS | Ubuntu 24.04.4 LTS · kernel 6.14.0-37 · x86_64 |
-| DSH | `0.2.2-rc.2`, profile `web`, `patchReload: live` |
-| Node / npm / pnpm | v24.22.3 / 11.19.1 / 12.5.1 |
-| Python | `python` và `python3` = `/usr/bin/python3.12.3` |
-| Cordis / dsh-tools | 4.1.0 / 0.2.2-rc.2 |
-| Repo root | 8 mục gốc, **không có `package.json`** |
-| Skill `cordis-plugin-development` | KHÔNG CÀI |
-| `cordis_inspect_list/query` | Có trong runtime (`dsh-tool-cordis`), **không expose cho phiên** |
-| `plugin_manager` | Không mount trong `web` → dùng CLI `dsh plugin` |
-| Browser + screenshot | Có (`ego_*`) |
-| Slot UI web bundle | 117 key trong catalog (chỉ là đầu mối, chưa verify register API) |
-
----
+| OS | Ubuntu 24.04 · x86_64 |
+| DSH | `0.2.2-rc.2`, profile `web` đang chạy phiên này |
+| Node / npm | v24.22.3 / 11.19.1 |
+| Python | `python3` = 3.12.3 |
+| SQLite | 3.45.1, có FTS5 |
+| Profile thử | `pfe-test`, còn bundle 0.2.2 (chưa nâng cấp 0.3.0) |
+| API key trong profile thử | không có |
 
 ## 2. Quyết định đã chốt
 
-Q1 local path · Q2 bắt buộc flow request · Q3 ba file, hoãn panel · Q4 source chỉ đọc, artifact trong `<repo>/artifacts/flows/<slug>/` · Q5 không network, không đưa source vào model · Q6 profile `pfe-test`.
-
-Nguyên văn và hệ quả kỹ thuật: [ARCHITECTURE_DECISION.md](ARCHITECTURE_DECISION.md).
-
----
+Q1 local path · Q2 bắt buộc flow request · Q3 ba file public + run.json internal · Q4 source chỉ đọc,
+artifact trong `<repo>/artifacts/flows/<slug>/` · Q5 không network, không đưa source vào model ·
+Q6 profile `pfe-test`.
+Chi tiết: [ARCHITECTURE_DECISION.md](ARCHITECTURE_DECISION.md).
 
 ## 3. Task list
 
-| ID | Ưu tiên | Phạm vi | Trạng thái | Điều kiện DONE (đo được) | Bằng chứng |
-|---|---|---|---|---|---|
-| HYB-00 | P0 | Preflight runtime | **DONE** | version/profile/tool/skill được ghi kèm nguồn | preflight log |
-| HYB-01 | P0 | Baseline core | **DONE** | unittest + `--check-only` + render mẫu đều chạy, log lưu | 2 log HYB-01, `artifacts/baseline/` |
-| HYB-02 | P0 | Architecture decision | **DONE** | tài liệu nêu boundary + bất biến, có bảng lệch so với prompt | `ARCHITECTURE_DECISION.md` |
-| HYB-03 | P0 | Adapter skeleton | **DONE** | thư mục riêng; xoá adapter core vẫn chạy | `dsh-plugin/`, test core độc lập |
-| HYB-04 | P0 | Core runner | **DONE** | argv array, `shell:false`, cap output, kill theo signal/timeout | `lib/core-runner.js`, test abort |
-| HYB-05 | P0 | Tool registration | **DONE (in-process)** | mount vào Context giả, schema đúng, execute end-to-end tạo 4 file | 11 test adapter |
-| HYB-06 | P0 | Security boundary | **DONE** | traversal/absolute/symlink/allowedRoots/secret đều fail-safe | test Python + Node |
-| HYB-07 | P1 | Bundle packaging | **DONE (chưa cài)** | manifest đúng format runtime | `package.json`, `cordis.patch.yml` |
-| HYB-08 | P1 | Smoke trong DSH thật | **DONE** | tool trong registry thật, gọi được, disable/enable/remove đúng | `artifacts/logs/20261119-task4-smoke.{log,json}` |
-| HYB-09 | P1 | Harness UI | **BLOCKED_UI_API_UNVERIFIED** | chỉ mở khi register API của slot được xác minh | ngoài MVP |
-| HYB-10 | P1 | Visual QA HTML | **DONE** | 3 viewport × 3 case, screenshot, console/network sạch | `UI_VERIFICATION_REPORT.md` |
-| HYB-11 | P0 | Tài liệu + bằng chứng | **DONE** | 6 báo cáo + artifacts theo naming | `FINAL_REPORT.md` |
-
----
+| ID | Phạm vi | Trạng thái | Điều kiện DONE | Bằng chứng |
+|---|---|---|---|---|
+| HYB-00 | Preflight runtime | **DONE** | version/profile/tool ghi kèm nguồn | manifest |
+| HYB-01 | Baseline core | **DONE** | unittest + render mẫu chạy | log python |
+| HYB-02 | Architecture decision | **DONE** | tài liệu nêu boundary + bất biến | ARCHITECTURE_DECISION |
+| HYB-03 | Adapter skeleton | **DONE** | xoá adapter core vẫn chạy | test core độc lập |
+| HYB-04 | Core runner | **DONE** | argv array, `shell:false`, cap output, kill theo signal/timeout | `lib/core-runner.js` |
+| HYB-05 | Tool registration | **DONE** | 7 tool, schema chặt, execute end-to-end | 16 + 9 test Node |
+| HYB-06 | Security boundary | **DONE** | traversal/absolute/symlink/allowedRoots/secret fail-safe | test Python + Node |
+| HYB-07 | Bundle packaging | **DONE** | manifest đúng, vendor core đầy đủ | `pack.test.mjs` |
+| HYB-08 | Smoke trong DSH thật (0.2.x) | **DONE (lịch sử)** | tool trong registry thật, disable/enable/remove | pass 0.2.x; log cũ đã xoá cùng báo cáo cũ |
+| HYB-08b | Smoke registry 0.3.0 | **BLOCKED_PENDING_APPROVAL** | cài tarball 0.3.0 vào `pfe-test`, gọi 7 tool | chưa có — phải xin phép trước bước cài |
+| HYB-09 | Harness UI | **BLOCKED_UI_API_UNVERIFIED** | chỉ mở khi xác minh register API | ngoài phạm vi |
+| HYB-10 | Visual QA HTML | **DONE** | 3 sample × 4 viewport, 0 lỗi | UI report + JSON |
+| HYB-11 | Tài liệu + bằng chứng | **DONE** | 7 tài liệu + manifest sinh tự động | `scripts/regen_evidence.py` |
+| KNW-01 | Ontology + schema | **DONE** | schema validate được, khớp ontology | 6 test schema |
+| KNW-02 | Index tăng dần | **DONE** | full/inc/change/delete/rename/version | 12 test |
+| KNW-03 | FTS + hybrid retrieval | **DONE** | symbol/route/tiếng Việt đều tìm đúng | 6 test search |
+| KNW-04 | Vector tùy chọn | **PARTIAL** | interface + mismatch + fallback | backend hashing, không ngữ nghĩa |
+| KNW-05 | 6 tool tri thức | **DONE (adapter)** | schema chặt, mã lỗi ổn định, không trả source | 9 test |
 
 ## 4. Vòng kiểm tra đã áp dụng
 
-```text
-IMPLEMENT → STATIC (py_compile, node --check ngầm qua import) → TEST (unittest 22, node --test 11)
-→ RUNTIME in-process (mount + execute + abort + reload) → REGRESSION (chạy lại toàn bộ sau mỗi sửa)
-→ UI (3 viewport, console, network) → EVIDENCE (log/ảnh/JSON)
-```
+@@text
+STATIC → UNIT → SECURITY → GRAPH → DETERMINISM → PACKAGING → PROVENANCE → UI
+@@
 
 Sự cố đã sửa trong vòng lặp (mỗi lỗi một lần sửa, không tắt test):
 
 | Lỗi | Nguyên nhân | Sửa | Retest |
 |---|---|---|---|
-| Sinh graph lỗi `nodes[3].source_refs[0].symbol phải là chuỗi` | truyền `symbol: null` vào ref | helper `ref()` bỏ key rỗng | 22 test PASS |
-| Entry chọn sai route (`/api/reports/:id` thay vì `/export`) | chọn route đầu file | chấm điểm body từng handler, cắt theo biên route kế tiếp | entry đúng route export |
-| Tiêu đề node chứa `{'name': ...}` | dùng nhầm dict thay tên | lấy `symbol['name']` | title sạch |
-| Fixture trong repo bị chọn làm entry khi self-analyze | route +10 điểm | loại hẳn thư mục test/fixture/example/sample/demo | entry = `scripts/build_flow.py` |
-| Entry là `class BuildError` | symbol đầu file | `pick_symbol` ưu tiên hàm, tên entry-like | entry = `run` |
-| Card kế tiếp bị cắt ở 768 (UI-001) | `initialView()` không fit ngang | thêm `scaleX` | 0 card bị cắt |
-| `"Luồng: luồng …"` | nối chuỗi thô | bỏ tiền tố flow khỏi topic | tiêu đề sạch |
+| `evidence=call` không có call site | builder gắn nhãn theo import | xoá claim call; ontology từ chối fact thiếu call site | 20 test evidence |
+| Decision sinh từ try/catch của route khác | quét cả file | cửa sổ route body / symbol body | `test_other_route_exception…` |
+| Artifact dở dang khi lỗi | ghi trực tiếp vào slug | staging + rename + cleanup | 3 test |
+| `commit` là từ khoá SQLite | đặt tên cột trùng keyword | đổi thành `commit_sha` | index test |
+| Entity id route có dấu cách bị từ chối | pattern quá chặt | cho phép khoảng trắng đơn, chuẩn hoá id | ontology test |
+| `export_report` không khớp `exportReport` | tokenizer không tách camelCase | index thêm biến thể tên | search test |
+| Query tiếng Việt không tới được code Anh | thiếu bridge thuật ngữ | lexicon hai chiều + prefix match | search test |
+| Hub (repository) chiếm top kết quả | cộng dồn điểm graph | đổi sang max(base) + bonus, bỏ hub | search test |
+| `đ` không được fold | NFD không tách `đ` | map `đ`/`Đ` → `d`/`D` | facet match |
+| `tested_by` phát ngược chiều (`test` → `file`) | ontology từ chối subject `test`; chỉ lộ khi repo có thư mục test | đổi sang `file` → `test` | 2 regression test + chạy lại dự án thật |
+| `ru_maxrss` báo 700 MB cho 200 file | kế thừa high-water mark tiến trình cha | đọc `VmHWM` trong `/proc/self/status` | benchmark 27.9 MB đúng |
 
----
+## 5. Việc còn lại
 
-## 5. Pass review — trạng thái theo task
-
-| Task | Nội dung | Trạng thái | Bằng chứng |
-|---|---|---|---|
-| TASK 1 | allowedRoots deny-by-default | DONE | `lib/paths.js`, 5 test Node |
-| TASK 2 | Artifact chỉ trong `artifacts/flows` | DONE | `validate_out_dir`, 7 test |
-| TASK 3 | Bundle cài độc lập (`pack.mjs`, vendor core) | DONE | `pack.test.mjs` |
-| TASK 4 | Smoke trong DSH thật | **DONE** | `artifacts/logs/20261119-task4-smoke.{log,json}` |
-| TASK 5 | abort vs timeout vs failure | DONE | `abortError()`, test `AbortError`/`core_timeout` |
-| TASK 6 | Graph theo bằng chứng, decoy không bị nối | DONE | `routes/preview.js` trong `related` |
-| TASK 7 | Dọn artifact, provenance | DONE | `check_repo_policy.py` OK |
-| TASK 8 | CI + regression | DONE (local) | `.github/workflows/ci.yml` |
-
-## 6. Việc còn lại
-
-1. **Chờ duyệt**: cài bundle vào `pfe-test` → chạy 10 bước smoke (FINAL_REPORT §6).
-2. Panel Harness: giữ `BLOCKED_UI_API_UNVERIFIED`.
-3. CI trên GitHub: sẽ chạy ở lần push tới; lệnh tương đương đã pass local.
+1. **Chờ duyệt**: cài tarball 0.3.0 vào `pfe-test` → chạy smoke 7 tool (index/search/context/impact/verify/refresh + flow).
+2. Model-driven smoke: cần API key.
+3. Panel Harness: giữ `BLOCKED_UI_API_UNVERIFIED`.
 4. Backlog: xem [IMPROVEMENT_PLAN.md](IMPROVEMENT_PLAN.md).

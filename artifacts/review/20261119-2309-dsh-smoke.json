@@ -1,0 +1,9 @@
+{
+  "status": "blocked",
+  "profile": "pfe-test",
+  "registry_runtime": "not_verified",
+  "model_driven": "not_verified",
+  "reason": "Bundle 0.3.0 chưa được cài vào profile pfe-test trong phiên này: cài bundle chạy npm/pnpm trong profile nên phải dừng trước bước cài và xin phép.",
+  "installed_in_profile": "0.2.2 (bản cài trước đó, chưa nâng cấp)",
+  "note": "Lời gọi tool đã được kiểm chứng qua registry thật ở pass 0.2.x; với 0.3.0 chỉ có bằng chứng adapter in-process + pack test."
+}

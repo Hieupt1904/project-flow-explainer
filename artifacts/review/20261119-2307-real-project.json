@@ -1,0 +1,311 @@
+{
+  "generated_at": "2026-11-19T23:07:14+07:00",
+  "label": "<real-project>",
+  "repository_id": "32eb400b099a9c9b",
+  "request": "Giải thích từ lúc người dùng bấm CẬP NHẬT DỮ LIỆU đến khi có file Excel quyết toán tiền ăn",
+  "privacy": {
+    "absolute_paths": "removed",
+    "relative_paths": "removed",
+    "repository_name": "removed",
+    "symbols": "kept (evidence)",
+    "reason": "dự án riêng tư; chỉ giữ số liệu và tên symbol"
+  },
+  "flow": {
+    "status": "ok",
+    "counts": {
+      "verified": 10,
+      "partial": 1,
+      "inferred": 1,
+      "unknown": 0
+    },
+    "files_scanned": 17,
+    "scan_bytes": 166458,
+    "related_count": 2,
+    "warnings": [],
+    "limits_count": 2,
+    "artifact_contract": {
+      "public": [
+        "flow.json",
+        "flow.html",
+        "overview.md"
+      ],
+      "internal": [
+        "run.json"
+      ],
+      "run_json": "internal-provenance"
+    },
+    "duration_ms": 148.7,
+    "exit_code": 0
+  },
+  "index_full": {
+    "status": "ok",
+    "mode": "full",
+    "files_indexed": 26,
+    "symbols_indexed": 207,
+    "routes_indexed": 0,
+    "tests_indexed": 10,
+    "entities": 568,
+    "facts": 575,
+    "duration_ms": 156.51,
+    "wall_ms": 216.9
+  },
+  "index_incremental": {
+    "mode": "incremental",
+    "files_parsed": 0,
+    "files_reused": 26,
+    "duration_ms": 32.44,
+    "wall_ms": 88.7
+  },
+  "search": [
+    {
+      "query": "Giải thích từ lúc người dùng bấm CẬP NHẬT DỮ LIỆU đến khi có file Excel quyết toán tiền ăn",
+      "channels": [
+        "fts",
+        "graph"
+      ],
+      "stale": false,
+      "warnings": [
+        "vector: vector_index_absent — dùng FTS + graph"
+      ],
+      "top": [
+        {
+          "kind": "file",
+          "symbol": "main",
+          "start_line": 1,
+          "confidence": "observed",
+          "relation": [
+            "calls"
+          ],
+          "score": 0.9589,
+          "why_matched": "khớp chính xác từ khoá trong đường dẫn file; quan hệ calls với src/app/main.py#user_data_dir"
+        },
+        {
+          "kind": "function",
+          "symbol": "user_data_dir",
+          "start_line": 48,
+          "confidence": "observed",
+          "relation": [
+            "defines"
+          ],
+          "score": 0.75,
+          "why_matched": "khớp chính xác từ khoá trong tên hàm; chỉ khớp từ khoá, không có quan hệ graph"
+        },
+        {
+          "kind": "function",
+          "symbol": "data_file",
+          "start_line": 82,
+          "confidence": "observed",
+          "relation": [
+            "defines"
+          ],
+          "score": 0.5228,
+          "why_matched": "khớp chính xác từ khoá trong tên hàm; chỉ khớp từ khoá, không có quan hệ graph"
+        },
+        {
+          "kind": "file",
+          "symbol": "test_biff_strict",
+          "start_line": 1,
+          "confidence": "observed",
+          "relation": [
+            "calls",
+            "contains",
+            "defines",
+            "reads_from"
+          ],
+          "score": 0.458,
+          "why_matched": "khớp chính xác từ khoá trong đường dẫn file; chỉ khớp từ khoá, không có quan hệ graph"
+        },
+        {
+          "kind": "file",
+          "symbol": "_xls",
+          "start_line": 1,
+          "confidence": "observed",
+          "relation": [
+            "calls"
+          ],
+          "score": 0.4418,
+          "why_matched": "khớp chính xác từ khoá trong đường dẫn file; chỉ khớp từ khoá, không có quan hệ graph"
+        }
+      ],
+      "wall_ms": 67.5
+    },
+    {
+      "query": "export excel",
+      "channels": [
+        "fts",
+        "graph"
+      ],
+      "stale": false,
+      "warnings": [
+        "vector: vector_index_absent — dùng FTS + graph"
+      ],
+      "top": [
+        {
+          "kind": "symbol",
+          "symbol": "read_ole_stream",
+          "start_line": 227,
+          "confidence": "observed",
+          "relation": [
+            "calls"
+          ],
+          "score": 0.95,
+          "why_matched": "quan hệ calls với src/_xls.py"
+        },
+        {
+          "kind": "symbol",
+          "symbol": "_records",
+          "start_line": 27,
+          "confidence": "observed",
+          "relation": [
+            "calls"
+          ],
+          "score": 0.95,
+          "why_matched": "quan hệ calls với src/_xls.py"
+        },
+        {
+          "kind": "symbol",
+          "symbol": "_Sst",
+          "start_line": 49,
+          "confidence": "observed",
+          "relation": [
+            "calls"
+          ],
+          "score": 0.95,
+          "why_matched": "quan hệ calls với src/_xls.py"
+        },
+        {
+          "kind": "symbol",
+          "symbol": "_rk",
+          "start_line": 36,
+          "confidence": "observed",
+          "relation": [
+            "calls"
+          ],
+          "score": 0.95,
+          "why_matched": "quan hệ calls với src/_xls.py"
+        },
+        {
+          "kind": "symbol",
+          "symbol": "sector",
+          "start_line": 250,
+          "confidence": "observed",
+          "relation": [
+            "calls"
+          ],
+          "score": 0.95,
+          "why_matched": "quan hệ calls với src/_xls.py"
+        }
+      ],
+      "wall_ms": 69.9
+    },
+    {
+      "query": "cập nhật dữ liệu",
+      "channels": [
+        "fts",
+        "graph"
+      ],
+      "stale": false,
+      "warnings": [
+        "vector: vector_index_absent — dùng FTS + graph"
+      ],
+      "top": [
+        {
+          "kind": "error_case",
+          "symbol": "caught-try",
+          "start_line": 24,
+          "confidence": "observed",
+          "relation": [
+            "catches"
+          ],
+          "score": 0.95,
+          "why_matched": "quan hệ catches với src/_log.py"
+        },
+        {
+          "kind": "error_case",
+          "symbol": "caught-except",
+          "start_line": 27,
+          "confidence": "observed",
+          "relation": [
+            "catches"
+          ],
+          "score": 0.95,
+          "why_matched": "quan hệ catches với src/_log.py"
+        },
+        {
+          "kind": "symbol",
+          "symbol": "rk_to_float",
+          "start_line": 25,
+          "confidence": "observed",
+          "relation": [
+            "calls"
+          ],
+          "score": 0.95,
+          "why_matched": "quan hệ calls với tests/test_coords.py"
+        },
+        {
+          "kind": "symbol",
+          "symbol": "cells_by_row",
+          "start_line": 38,
+          "confidence": "observed",
+          "relation": [
+            "calls"
+          ],
+          "score": 0.95,
+          "why_matched": "quan hệ calls với tests/test_coords.py"
+        },
+        {
+          "kind": "symbol",
+          "symbol": "check",
+          "start_line": 66,
+          "confidence": "observed",
+          "relation": [
+            "calls"
+          ],
+          "score": 0.95,
+          "why_matched": "quan hệ calls với tests/test_coords.py"
+        }
+      ],
+      "wall_ms": 68.0
+    }
+  ],
+  "context_pack": {
+    "entry_points": 0,
+    "likely_files": 6,
+    "impacted_symbols": [
+      "user_data_dir",
+      "data_file"
+    ],
+    "related_tests": 0,
+    "dependencies": 8,
+    "snippets_included": false,
+    "warnings": [
+      "vector: vector_index_absent — dùng FTS + graph"
+    ]
+  },
+  "impact": {
+    "risk_level": "medium",
+    "risk_reasons": [
+      "định nghĩa 16 symbol có thể bị gọi"
+    ],
+    "affected_routes": 0,
+    "affected_symbols": 16,
+    "related_tests": 1,
+    "downstream_modules": 1,
+    "suggested_verification": 1
+  },
+  "verify": {
+    "verdict": "pass",
+    "checks": {
+      "artifact_scope": "pass",
+      "flow_artifacts": "pass",
+      "graph_evidence": "pass",
+      "ui_self_contained": "pass",
+      "privacy": "pass",
+      "artifact_containment": "pass",
+      "test_mapping": "pass"
+    },
+    "ui_verified": false,
+    "runtime_verified": false
+  },
+  "status": "ok"
+}

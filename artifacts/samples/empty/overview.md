@@ -1,6 +1,6 @@
 # Luồng: thanh toán thẻ tín dụng quốc tế
 
-Sinh tự động: 2026-11-19T21:45:42+07:00 · `scripts/build_flow.py` (schema 2).
+Sinh tự động: 2026-11-19T22:53:50+07:00 · `scripts/build_flow.py` (schema 2).
 
 ## Yêu cầu
 
@@ -14,6 +14,9 @@ Sinh tự động: 2026-11-19T21:45:42+07:00 · `scripts/build_flow.py` (schema 
 | Nhánh | `không có git` |
 | Commit | `không có git` |
 | Thay đổi chưa commit | không |
+| File đã đọc | 1 |
+| Byte source đã đọc | 49 |
+| Số ngân sách bị cắt | không |
 
 Đường dẫn tuyệt đối không được ghi vào artifact để tránh lộ cấu trúc máy cá nhân.
 
@@ -24,13 +27,21 @@ Sơ đồ dựng từ phân tích tĩnh theo yêu cầu: luồng thanh toán th�
 | # | Bước | Loại | Vị trí | Bằng chứng thành viên | Tin cậy |
 |---|---|---|---|---|---|
 | 1 | Bắt đầu từ yêu cầu | start | — | — | partial |
-| 2 | Không tìm thấy mã nguồn liên quan | error | — | none | unknown |
+| 2 | Không tìm thấy mã nguồn liên quan | error | — | structure | unknown |
 
 ## Quan hệ giữa các bước
 
 | Cạnh | Nhãn | Loại | Bằng chứng | Ghi chú |
 |---|---|---|---|---|
-| start → no-evidence | `không khớp mã nguồn` | error | none | no-match |
+| start → no-evidence | không khớp mã nguồn | error | structure | no-match |
+
+## Mô hình bằng chứng
+
+- `verified` = vị trí có thật (file + dòng) và có bằng chứng thành viên (route/import); xác minh tĩnh, KHÔNG phải chạy runtime
+- `partial`  = vị trí có thật nhưng vai trò trong luồng chỉ suy ra từ cấu trúc
+- `inferred` = suy luận từ ngữ cảnh, chưa có bằng chứng trực tiếp
+- Có cạnh `call` trong sơ đồ: không
+- Có bằng chứng runtime: không
 
 ## File khớp từ khoá nhưng KHÔNG thuộc luồng
 
@@ -38,11 +49,6 @@ Sơ đồ dựng từ phân tích tĩnh theo yêu cầu: luồng thanh toán th�
 
 ## Giới hạn và phần chưa xác minh
 
-- Phân tích tĩnh trên source; hành vi runtime và dữ liệu thật chưa được kiểm chứng.
-- Chỉ đọc source trong repository; file bí mật, dump, log và thư mục phụ thuộc bị loại.
-- Thư mục test/fixture/example/sample/demo bị bỏ qua.
-- Chưa có call graph đầy đủ: quan hệ bước dựa trên route, import và lời gọi theo tên.
-- Thứ tự bước phản ánh quan hệ import/gọi hàm, không phải thứ tự thực thi tại runtime.
 - Không tìm được bằng chứng nào cho yêu cầu này.
 
 - Không có cảnh báo.
@@ -57,6 +63,7 @@ Không gọi network, không chạy code của repository, không sửa file ngu
 
 ## Tệp sinh ra
 
-- `flow.json` — dữ liệu có cấu trúc, dùng lại được cho lần render sau
-- `flow.html` — sơ đồ mở offline
-- `overview.md` — tài liệu này
+- `flow.json` — dữ liệu có cấu trúc, dùng lại được cho lần render sau (public)
+- `flow.html` — sơ đồ mở offline (public)
+- `overview.md` — tài liệu này (public)
+- `run.json` — internal provenance, KHÔNG phải public output: chứa số đếm, giới hạn và trạng thái git của lần chạy

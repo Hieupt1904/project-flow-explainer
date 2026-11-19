@@ -1,51 +1,96 @@
 {
   "status": "ok",
   "schema_version": 2,
-  "flow_id": "luong-phan-tich-repository-va-sinh-0807b5",
-  "generated_at": "2026-11-19T21:45:42+07:00",
+  "flow_id": "giai-thich-tu-luc-nguoi-dung-bc6f77",
+  "generated_at": "2026-11-19T22:53:50+07:00",
   "repository_name": "project-flow-explainer",
-  "request": "luồng phân tích repository và sinh sơ đồ HTML",
+  "request": "Giải thích từ lúc người dùng chạy build_flow trên một repository đến khi nhận flow.json",
   "source": {
     "commit": null,
     "branch": null,
     "dirty": false,
-    "dirty_files": 0
+    "dirty_files": 0,
+    "read_only": true
   },
   "counts": {
-    "verified": 2,
-    "partial": 3,
+    "verified": 7,
+    "partial": 5,
     "inferred": 1,
     "unknown": 0
   },
   "limits": [
-    "Phân tích tĩnh trên source; hành vi runtime và dữ liệu thật chưa được kiểm chứng.",
-    "Chỉ đọc source trong repository; file bí mật, dump, log và thư mục phụ thuộc bị loại.",
-    "Thư mục test/fixture/example/sample/demo bị bỏ qua.",
-    "Chưa có call graph đầy đủ: quan hệ bước dựa trên route, import và lời gọi theo tên.",
-    "Thứ tự bước phản ánh quan hệ import/gọi hàm, không phải thứ tự thực thi tại runtime.",
-    "Không tìm thấy điểm trả kết quả rõ ràng; node kết thúc là suy luận."
+    "Không tìm thấy điểm trả kết quả rõ ràng; node kết thúc là suy luận.",
+    "Chưa có call graph runtime: cạnh chỉ mang bằng chứng entry/import/structure; không có cạnh nào tự nhận là call."
   ],
   "warnings": [],
   "related": [
     {
       "path": "dsh-plugin/index.js",
       "reason": "khớp từ khoá nhưng không nối được tới điểm vào bằng import/gọi hàm"
+    },
+    {
+      "path": "dsh-plugin/lib/tools.js",
+      "reason": "khớp từ khoá nhưng không nối được tới điểm vào bằng import/gọi hàm"
+    },
+    {
+      "path": "pfe/facts.py",
+      "reason": "khớp từ khoá nhưng không nối được tới điểm vào bằng import/gọi hàm"
+    },
+    {
+      "path": "pfe/flow.py",
+      "reason": "khớp từ khoá nhưng không nối được tới điểm vào bằng import/gọi hàm"
+    },
+    {
+      "path": "pfe/ontology.py",
+      "reason": "khớp từ khoá nhưng không nối được tới điểm vào bằng import/gọi hàm"
     }
   ],
   "excluded": {
     "directory": 0,
-    "test_dir": 11,
+    "test_dir": 21,
     "sensitive_name": 0,
-    "suffix": 12,
+    "suffix": 23,
     "symlink_escape": 0,
+    "symlink_sensitive": 0,
     "too_large": 0,
     "unreadable": 0,
-    "secret_lines": 0
+    "secret_lines": 1,
+    "budget_files": 0,
+    "budget_bytes": 0
+  },
+  "files_scanned": 25,
+  "scan_bytes": 284000,
+  "budget_notes": [],
+  "evidence_model": {
+    "membership": {
+      "entry": "điểm vào do yêu cầu + khai báo route xác định",
+      "import": "file trước import trực tiếp file này",
+      "route_body": "cùng file với khai báo route",
+      "structure": "nhánh điều kiện do cấu trúc khối xử lý lỗi trong file"
+    },
+    "confidence": {
+      "verified": "vị trí có thật (file + dòng) và có bằng chứng thành viên (route/import); xác minh tĩnh, KHÔNG phải chạy runtime",
+      "partial": "vị trí có thật nhưng vai trò trong luồng chỉ suy ra từ cấu trúc",
+      "inferred": "suy luận từ ngữ cảnh, chưa có bằng chứng trực tiếp",
+      "unknown": "chưa xác minh được"
+    },
+    "call_edges": false,
+    "runtime_verified": false,
+    "note": "Không có cạnh nào mang evidence=call: projection này không có call-site parser cho flow. verified mô tả xác minh tĩnh vị trí và quan hệ, không phải đã chạy code."
   },
   "files": [
     "flow.json",
     "flow.html",
     "overview.md",
+    "run.json"
+  ],
+  "contract": "internal-provenance",
+  "public_outputs": [
+    "flow.json",
+    "flow.html",
+    "overview.md"
+  ],
+  "internal_outputs": [
     "run.json"
   ]
 }

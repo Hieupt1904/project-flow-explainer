@@ -2,27 +2,24 @@
   "status": "ok",
   "schema_version": 2,
   "flow_id": "giai-thich-tu-luc-nguoi-dung-04f9c7",
-  "generated_at": "2026-11-19T21:45:42+07:00",
+  "generated_at": "2026-11-19T22:53:50+07:00",
   "repository_name": "shop-app",
   "request": "Giải thích từ lúc người dùng nhấn xuất báo cáo đến khi nhận được file",
   "source": {
     "commit": null,
     "branch": null,
     "dirty": false,
-    "dirty_files": 0
+    "dirty_files": 0,
+    "read_only": true
   },
   "counts": {
     "verified": 5,
-    "partial": 3,
+    "partial": 1,
     "inferred": 0,
     "unknown": 0
   },
   "limits": [
-    "Phân tích tĩnh trên source; hành vi runtime và dữ liệu thật chưa được kiểm chứng.",
-    "Chỉ đọc source trong repository; file bí mật, dump, log và thư mục phụ thuộc bị loại.",
-    "Thư mục test/fixture/example/sample/demo bị bỏ qua.",
-    "Chưa có call graph đầy đủ: quan hệ bước dựa trên route, import và lời gọi theo tên.",
-    "Thứ tự bước phản ánh quan hệ import/gọi hàm, không phải thứ tự thực thi tại runtime."
+    "Chưa có call graph runtime: cạnh chỉ mang bằng chứng entry/import/structure; không có cạnh nào tự nhận là call."
   ],
   "warnings": [],
   "related": [
@@ -41,14 +38,46 @@
     "sensitive_name": 1,
     "suffix": 0,
     "symlink_escape": 0,
+    "symlink_sensitive": 0,
     "too_large": 0,
     "unreadable": 0,
-    "secret_lines": 0
+    "secret_lines": 0,
+    "budget_files": 0,
+    "budget_bytes": 0
+  },
+  "files_scanned": 6,
+  "scan_bytes": 2748,
+  "budget_notes": [],
+  "evidence_model": {
+    "membership": {
+      "entry": "điểm vào do yêu cầu + khai báo route xác định",
+      "import": "file trước import trực tiếp file này",
+      "route_body": "cùng file với khai báo route",
+      "structure": "nhánh điều kiện do cấu trúc khối xử lý lỗi trong file"
+    },
+    "confidence": {
+      "verified": "vị trí có thật (file + dòng) và có bằng chứng thành viên (route/import); xác minh tĩnh, KHÔNG phải chạy runtime",
+      "partial": "vị trí có thật nhưng vai trò trong luồng chỉ suy ra từ cấu trúc",
+      "inferred": "suy luận từ ngữ cảnh, chưa có bằng chứng trực tiếp",
+      "unknown": "chưa xác minh được"
+    },
+    "call_edges": false,
+    "runtime_verified": false,
+    "note": "Không có cạnh nào mang evidence=call: projection này không có call-site parser cho flow. verified mô tả xác minh tĩnh vị trí và quan hệ, không phải đã chạy code."
   },
   "files": [
     "flow.json",
     "flow.html",
     "overview.md",
+    "run.json"
+  ],
+  "contract": "internal-provenance",
+  "public_outputs": [
+    "flow.json",
+    "flow.html",
+    "overview.md"
+  ],
+  "internal_outputs": [
     "run.json"
   ]
 }

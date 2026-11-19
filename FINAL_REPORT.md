@@ -1,157 +1,100 @@
-# FINAL_REPORT — Hybrid Project Flow Explainer × DSH
+# FINAL_REPORT — 0.3.0
 
-Trạng thái pass review: **COMPLETED**.
-Cả 8 task review đều DONE và có bằng chứng; panel UI trong Harness vẫn giữ
-`BLOCKED_UI_API_UNVERIFIED` theo đúng phạm vi (không tính là blocker của pass này).
+Trạng thái pass 0.3.0: **PARTIAL** — code và test đã pass; smoke registry trong
+`pfe-test` cho 0.3.0 và đường model **CHƯA CHẠY** vì cần cài bundle (npm/pnpm trong profile)
+và profile không có API key.
 
 | Mục | Giá trị |
 |---|---|
-| Commit code + test của pass review | `797401a61f9b` |
-| Commit báo cáo | commit kế tiếp (chỉ sửa tài liệu) |
-| DSH đã kiểm chứng | `0.2.2-rc.2`, profile `web` (chỉ đọc, không cài gì) |
-| Python / Node | 3.12.3 / v24.22.3 (và ma trận Node 20 trong CI) |
+| Commit nguồn khi sinh bằng chứng | `13a2c49e4942` + thay đổi chưa commit của pass này |
+| Package version | `0.3.0` |
+| `engines.dsh` | `0.2.2-rc.2` |
+| DSH đã cài (chưa nâng cấp) | `0.2.2-rc.2`, profile `pfe-test` còn bundle 0.2.2 |
+| Python / Node | 3.12.3 / v24.22.3 |
+| Tarball | `dsh-project-flow-explainer-0.3.0.tgz` · 84 670 byte · 25 entry · sha256 `b3647435…20bf581c` |
+| Test | 116 Python · 16 adapter · 9 knowledge tool · 2 pack — **0 fail** |
 
-## 1. Kết quả theo task review
+## 1. Bảng task
 
-| Task | Nội dung | Trạng thái | Bằng chứng |
+### PHẦN A — ổn định bản hiện tại
+
+| Task | Trạng thái | Lệnh / bằng chứng | Known limitation |
 |---|---|---|---|
-| TASK 1 | Siết `allowedRoots` (deny-by-default) | **DONE** | `dsh-plugin/lib/paths.js` (`resolveAllowedRoots`, `resolveRepository`); 5 test Node: thiếu root, root rỗng, ngoài root, symlink escape, relative path |
-| TASK 2 | Artifact chỉ trong `<repo>/artifacts/flows` | **DONE** | `resolveArtifactRoot` + `validate_out_dir`; 5 test Python + 2 test Node cho `.`, `src`, repo root, `../outside`, symlink; test "không ghi trước khi containment check" |
-| TASK 3 | Bundle cài độc lập | **DONE** | `dsh-plugin/scripts/pack.mjs` copy core vào `vendor/core` lúc pack; `pack.test.mjs` extract tarball vào thư mục không có checkout, resolve core nguồn `vendor`, chạy end-to-end ra 4 file |
-| TASK 4 | Smoke trong DSH thật | **DONE** | Cài vào `pfe-test` bằng tarball, tool có trong registry thật, gọi thành công ra 4 file, `disabled` → mất, bật lại → trở lại (0 duplicate), `remove` → mất và profile vẫn boot. Bằng chứng: `artifacts/logs/20261119-task4-smoke.{log,json}` |
-| TASK 5 | Semantics abort | **DONE** | Adapter ném `Error{name:'AbortError'}`; runtime map thành `code: ABORTED` (`dsh-tools/src/pipeline.ts:700-707,770-780`); test phân biệt abort / `core_timeout` / `core_failed` |
-| TASK 6 | Độ chính xác graph | **DONE** | Builder tách 3 tầng bằng chứng; chỉ nối theo route/import/call; fixture decoy `routes/preview.js` nằm trong `related`, không thành node; `overview.md` có cột "Bằng chứng thành viên" |
-| TASK 7 | Dọn artifact & provenance | **DONE** | Xoá `artifacts/qa/**` lồng nhau; sample regenerate từ HEAD; artifact không còn absolute path; `scripts/check_repo_policy.py` chặn `/home/`, `\Users\`, `artifacts/…/artifacts`, secret-shape |
-| TASK 8 | CI + regression | **DONE** | `.github/workflows/ci.yml`; GitHub Actions run `44505483840`: 4/4 job success (core py3.12 · adapter node 20 · adapter node 24 · bundle manifest), log core xác nhận `Ran 35 tests … OK` |
+| A0 Baseline | **DONE** | `artifacts/review/evidence-manifest.json` (sinh bởi `scripts/regen_evidence.py`) | `files_scanned` do `run.json` + result trả về, có test |
+| A1 Đồng bộ release evidence | **DONE** | manifest là nguồn duy nhất; báo cáo cũ đã xoá, không sửa tay | không có log 0.2.x giữ lại (đã ghi lý do trong REVIEW_PACKET) |
+| A2 Sửa graph evidence | **DONE** | hướng an toàn: bỏ claim call; `pfe/flow.py` ném lỗi nếu ai gắn `evidence=call`; ontology từ chối `calls` thiếu call site | `calls` trong index là lexical call site, không type-aware |
+| A3 Sửa error branch | **DONE** | `test_decision_has_no_direct_success_bypass`; `verify` phát hiện bypass | — |
+| A4 Giới hạn error detection | **DONE** | window = route body / symbol body; `test_other_route_exception_does_not_create_a_decision` | heuristic theo dòng khai báo, không parse AST |
+| A5 Sửa DSH patch doc | **DONE** | `cordis.patch.yml` + plugin README dùng override row; CI đếm đúng 1 row | chưa chạy lại trên profile thật (xem A7) |
+| A6 DSH config schema | **PARTIAL** | validate tay trong `normalizeConfig` + `lib/validate.js`; test config sai; profile không boot nửa vời | **không** export `Config` native: profile không resolve `@deepseek-ai/schemastery` → đã ghi trade-off |
+| A7 Structured error qua pipeline | **PARTIAL** | code ổn định + hint; kiểm qua adapter in-process và CLI; `core_timeout` ≠ `core_failed` ≠ `ABORTED` | chưa đi qua pipeline runtime thật của DSH trong profile (cần cài bundle) |
+| A8 Privacy và path policy | **DONE** | `check_repo_policy.py` bắt home, Users, tmp, tilde, Windows; `test_absolute_path_in_artifact_is_detected`; tool result khai báo `path_visibility` | chưa quét metadata ảnh chụp |
+| A9 Atomic artifact write | **DONE** | staging + rename; 3 test (lỗi, retry, 3 luồng cùng slug) | rename cùng filesystem; khác filesystem sẽ lỗi rõ ràng |
+| A10 Input validation | **DONE** | `invalid_argument_type`, `*_missing`, `invalid_slug`, `top_k_out_of_range`; 20 test Python + 14 case Node | schema JSON do DSH validate trước, đây là lớp 2 |
+| A11 Symlink/Git/root hardening | **DONE** | `classify_source` loại symlink ra ngoài, symlink tới `.env`, symlink tới artifact; git read-only tắt hook/fsmonitor | root quá rộng chỉ bị cảnh báo qua chính sách, không tự từ chối |
+| A12 Output contract | **DONE** | `run.json` = `internal-provenance`; test + policy check + README | — |
+| A13 Performance/memory | **DONE** | `scripts/bench_index.py`: 2 001 file → 1.42 s, 68 MB; ngân sách byte/file/tổng | chưa benchmark > 20 000 file |
 
-Chi tiết test: [TEST_REPORT.md](TEST_REPORT.md) · UI: [UI_VERIFICATION_REPORT.md](UI_VERIFICATION_REPORT.md) ·
-quyết định kiến trúc: [ARCHITECTURE_DECISION.md](ARCHITECTURE_DECISION.md).
+### PHẦN B — lớp tri thức code
 
-## 2. Thay đổi chính của pass review
+| Task | Trạng thái | Bằng chứng | Known limitation |
+|---|---|---|---|
+| B1 Ontology nhẹ | **DONE** | `pfe/ontology.py` + `references/code-knowledge-schema.json`; 6 test schema khoá hai bên | `returns` khai báo nhưng không phát |
+| B2 Tách static facts khỏi flow | **DONE** | `pfe/facts.py` + `pfe/flow.py`; CLI cũ giữ nguyên; core chạy khi xoá `dsh-plugin` | flow vẫn là projection mới, chưa tách thành `pfe/scan.py` riêng |
+| B3 Index tăng dần | **DONE** | `pfe/index.py`; 12 test (full/inc/change/delete/rename/version/sensitive/symlink/budget) | rename nhận qua content hash, không dùng git rename detection |
+| B4 Exact search FTS5 | **DONE** | `test_symbol_search_finds_the_function`, `test_route_search_finds_the_declaration`, `test_flow_summary_is_searchable` | tokenizer `unicode61` + fold dấu; không có hình thái học |
+| B5 Vector tùy chọn | **PARTIAL** | interface backend, model/version lưu, mismatch → tắt, không local → fallback | backend mặc định là hashing bag-of-words, **không** ngữ nghĩa |
+| B6 Hybrid retrieval | **DONE** | parse → exact → vector → graph → rerank → pack; `test_exact_match_outranks_vector_candidate`, `test_stale_index_is_reported` | trọng số là heuristic cố định, chưa học từ dữ liệu |
+| B7 Thêm 6 DSH tool | **DONE (adapter)** | 7 tool trong `index.js`; 9 test Node end-to-end | registry-runtime 0.3.0 **CHƯA XÁC MINH** |
 
-### Policy đọc (TASK 1)
-
-```text
-allowedRoots thiếu/rỗng        → InputError('allowed_roots_unconfigured')   [fail closed]
-path ngoài allowedRoots        → InputError('repository_outside_allowed_roots')
-symlink trỏ ra ngoài root      → realpath rồi mới kiểm tra → bị từ chối
-```
-
-`cordis.patch.yml` **không** mang sẵn `allowedRoots`: cài xong mà chưa cấu hình thì tool từ chối
-mọi lần gọi, kèm hint cấu hình. Đây là lựa chọn deny-by-default thay vì "cho phép tất cả".
-
-### Policy ghi (TASK 2)
-
-```text
-<repo>/artifacts/flows/<slug>/     ✅
-<repo> (root), src, docs, tmp, ../outside, symlink artifacts → artifacts_symlink_escape / invalid_artifact_root ❌
-```
-
-Kiểm tra chạy **trước** khi `mkdir`; test `test_no_write_before_containment_check` khẳng định
-`artifacts/` không được tạo khi input sai. CLI luôn trả JSON `{status:"error", code, message, hint}`
-và không để traceback rơi ra ngoài (`report_error`, exit 3 cho `internal_error`).
-
-### Đóng gói (TASK 3)
-
-`node dsh-plugin/scripts/pack.mjs` → `dist/dsh-project-flow-explainer-0.2.0.tgz` (35 613 byte, 8 file),
-bên trong có `vendor/core/scripts/{build_flow.py,render_flow.py}` và `vendor/core/assets/workflow_template.html`.
-Thứ tự dò core: `config.coreRoot` → `PFE_CORE_ROOT` → `vendor/core` → thư mục cha (chỉ để dev).
-
-### Bằng chứng của graph (TASK 6)
-
-| Khái niệm | Trước | Sau |
-|---|---|---|
-| location evidence | `path` + `start_line` | giữ nguyên |
-| flow membership | suy ra từ thứ tự điểm số | chỉ `route` / `import` / `call`; cạnh mang `evidence` + ghi chú |
-| file chỉ khớp keyword | bị nối vào chuỗi | đưa vào `meta.related`, không thành node |
-| độ tin cậy | `verified` cho mọi bước | `verified` = vị trí thật **và** có cạnh chứng minh; còn lại `partial`/`inferred` |
-
-Fixture phản chứng: `tests/fixtures/shop-app/routes/preview.js` có route `/api/legacy/preview` trả CSV,
-không được `server.js` import → test `test_keyword_only_file_is_not_chained_into_the_flow` khẳng định
-nó nằm trong `related` và không xuất hiện trong `nodes`. `jobs/export_worker.py` (Python worker) cũng vậy.
-
-## 3. Kết quả kiểm chứng
+## 2. Vòng kiểm tra đã chạy
 
 ```text
-python3 -m unittest discover -s tests -v      → 32 test OK
-node --test dsh-plugin/tests/plugin.test.mjs  → 16 pass, 0 fail
-node --test dsh-plugin/tests/pack.test.mjs    →  2 pass, 0 fail
-python3 scripts/check_repo_policy.py          → OK: 30 file, không absolute path / nested artifacts / secret
-python3 -m compileall -q scripts tests        → OK
-node dsh-plugin/scripts/pack.mjs              → tarball 8 file, có vendor/core
+STATIC   compileall (scripts, tests, pfe, tools) · node --check 6 file · JSON schema
+UNIT     116 Python · 16 adapter · 9 knowledge · 2 pack
+SECURITY allowedRoots missing/empty/outside · symlink escape · symlink .env · symlink artifact
+         invalid output dir · invalid slug · malformed args · secret-shape · private path
+GRAPH    no call evidence · no decision bypass · selected route only · related not node
+         verified có source_ref · evidence khớp loại cạnh
+DETERMINISM 2 lần chạy cùng commit: node/edge/counts khớp; index content hash theo file
+PACKAGING tarball · manifest · giải nén nơi không có checkout · index + search từ vendor
+PROVENANCE commit · version · engines.dsh · tarball · sha256 · test count · generated_at
+UI       12 tổ hợp (3 sample × 4 viewport) + tương tác search/click/zoom/fit
 ```
 
-UI (7 ảnh, 3 viewport × 3 sample): 0 console error, 0 request ngoài `file://`, 0 tràn ngang,
-0 card chồng; zoom khởi đầu 102% / 94% / 55%.
+## 2b. Chạy trên dự án thật trước khi phát hành
 
-## 4. Cách dùng
-
-```bash
-# CLI (không cần DSH, không cần cấu hình root)
-python3 scripts/build_flow.py --repo /duong/dan/repo \
-  --request "Giải thích từ lúc người dùng nhấn xuất báo cáo đến khi nhận được file" --json
-# → /duong/dan/repo/artifacts/flows/<slug>/{flow.json,flow.html,overview.md,run.json}
-```
-
-Trong DSH, sau khi cài (xem mục 6), tool `project_flow_explain` yêu cầu profile khai báo
-`allowedRoots`:
-
-```yaml
-config:
-  allowedRoots: ['/duong/dan/workspace']
-```
-
-## 5. Còn lại / giới hạn
-
-| Mục | Trạng thái |
-|---|---|
-| Gọi tool qua model trong `pfe-test` | Không chạy được: profile template `headless` thiếu API key (`MISSING_CREDENTIAL`). Lời gọi được thực hiện qua registry thật bằng plugin probe tạm (xem §6). Đường model trong profile `web` không bị đụng tới. |
-| Panel UI trong Harness | `BLOCKED_UI_API_UNVERIFIED` (ngoài phạm vi, không đổi) |
-| GitHub Actions | Đã chạy: run `44505483840` success toàn bộ 4 job |
-| Call graph đa ngôn ngữ đầy đủ | Chưa có; đã ghi rõ trong `limits` của mọi kết quả |
-| "Toàn cảnh" 34% với flow dài | Trade-off đã ghi (UI-002) |
-
-## 6. TASK 4 — đã chạy (được duyệt)
-
-Profile `pfe-test` tạo từ template `headless`; bundle cài bằng tarball (`dsh plugin … add`), pnpm
-không tải gói ngoài vì package không có dependency.
+Đã chạy trên một dự án desktop riêng tư (27 file Python) bằng
+%%BQ%%scripts/run_real_project_check.py%%BQ%%; bản ghi đã scrub path và tên repo:
+[20261119-2307-real-project.json](artifacts/review/20261119-2307-real-project.json).
 
 | Bước | Kết quả |
 |---|---|
-| `--dump-config` | row `project-flow-explainer` xuất hiện kèm provenance `patched by …/pfe-test/cordis.patch.yml` và `allowedRoots` |
-| Boot + registry | `project_flow_explain` có trong registry thật (`bash`, `edit`, `glob`, … cùng danh sách) |
-| Gọi tool với fixture | `ok` · flow `giai-thich-tu-luc-nguoi-dung-04f9c7` · 5 verified / 3 partial · 2 file ngoài luồng · 4 artifact tồn tại |
-| Không lộ secret | 4 file artifact và tool result không chứa secret của fixture |
-| Config thật sự tới `apply()` | đổi sang `allowedRoots: []` → tool từ chối `allowed_roots_unconfigured` |
-| Unload | row `disabled: true` → tool biến mất khỏi registry |
-| Reload | bật lại → tool trở lại, `duplicates: []` |
-| Remove | `dsh plugin --profile pfe-test remove …` → tool mất, profile vẫn boot (chỉ còn `MISSING_CREDENTIAL` vốn có của template) |
-| Dọn dẹp | gỡ probe + xoá `node_modules` → `bundles: [dsh-base, dsh-headless]`, `dependencies: {}` |
+| flow | 12 node (10 verified / 1 partial / 1 inferred), 17 file, 149 ms |
+| index full | 26 file · 207 symbol · 10 test · 568 entity · 575 fact |
+| index incremental | parse lại 0 file |
+| verify | pass (7/7) |
 
-Điểm cần nói rõ: profile `headless` không có API key nên **không thể** để model tự gọi tool. Lời gọi
-được thực hiện bởi một plugin probe tạm thời nằm trong cùng profile: nó đọc registry thật
-(`ctx.tools.get/definitions`) rồi gọi `execute()` của tool đã cài. Đó là runtime thật, không phải
-Context giả; nhưng **chưa** phải "model chọn tool" — phần đó cần API key và nằm ngoài phạm vi pass này.
+Lỗi thật phát hiện và đã sửa: %%BQ%%tested_by%%BQ%% phát ngược chiều làm %%BQ%%index%%BQ%% lỗi trên repo có thư mục test.
+Thêm fixture %%BQ%%tests/fixtures/shop-app/tests/%%BQ%% và 2 regression test. Hướng dẫn dùng:
+[USAGE_GUIDE.md](USAGE_GUIDE.md).
 
-Rollback (đã kiểm chứng): `dsh plugin --profile pfe-test remove dsh-project-flow-explainer` hoặc
-`rm -rf ~/.dsh/profiles/pfe-test`. Profile `web` không bị chạm ở bất kỳ bước nào.
+## 3. Phân loại kết quả
 
-Bằng chứng: [smoke.log](artifacts/logs/20261119-task4-smoke.log) ·
-[smoke.json](artifacts/logs/20261119-task4-smoke.json).
+| Mức | Nội dung |
+|---|---|
+| **Code đã pass** | 116 unittest, 27 test Node, compileall, node --check, policy, determinism |
+| **Runtime đã pass** | adapter in-process (execute qua Context giả) và CLI thật; index/retrieval/impact/verify chạy trên fixture và trên repo này |
+| **Model-driven** | **CHƯA CHẠY** — profile không có API key |
+| **UI đã pass** | 12 tổ hợp layout sạch (overflow 0, card chồng 0, nhãn đè card 0, console error 0, request ngoài 0) |
+| **Static inference** | flow membership theo import/route; `calls` trong index là call site lexical; vector là lexical |
+| **Còn BLOCKED** | panel UI Harness (`BLOCKED_UI_API_UNVERIFIED`), smoke registry 0.3.0, model-driven smoke |
 
-## 7. Bảng task gốc
+## 4. Điều phải nói rõ (không tô hồng)
 
-| ID | Task | Trạng thái |
-|---|---|---|
-| HYB-00 | Preflight runtime | DONE |
-| HYB-01 | Baseline core | DONE |
-| HYB-02 | Architecture decision | DONE (đã cập nhật cho pass review) |
-| HYB-03 | Adapter skeleton | DONE |
-| HYB-04 | Core runner | DONE (abort/timeout phân biệt) |
-| HYB-05 | Tool registration | DONE (in-process) |
-| HYB-06 | Security boundary | DONE (allowedRoots + artifact root) |
-| HYB-07 | Bundle packaging | DONE (pack + cài độc lập) |
-| HYB-08 | Smoke trong DSH | DONE |
-| HYB-09 | Harness UI | BLOCKED_UI_API_UNVERIFIED |
-| HYB-10 | Visual QA | DONE (regenerate từ HEAD) |
-| HYB-11 | Tài liệu + bằng chứng | DONE |
+1. `verified` nghĩa là **xác minh tĩnh vị trí + quan hệ**, không phải đã chạy code.
+2. Không có cạnh `call` nào trong flow; index có `calls` nhưng chỉ khi đọc được call site.
+3. Vector không ngữ nghĩa. Nó chỉ mở rộng recall; kết quả vẫn phải qua exact/graph.
+4. Tool tri thức trả đường dẫn **tương đối**; tool flow trả đường dẫn tuyệt đối và khai báo `host-only`.
+5. Smoke registry 0.3.0 chưa chạy: bước cài bundle chạy npm/pnpm trong profile, phải xin phép trước.
+6. Báo cáo 0.2.x đã bị thay thế; log cũ đã xoá thay vì sửa số, và điều đó được ghi lại ở đây.

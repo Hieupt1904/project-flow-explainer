@@ -1,52 +1,49 @@
 # IMPROVEMENT_PLAN
 
-Backlog sau MVP, xếp theo giá trị/chi phí. Không mục nào ở đây chặn việc dùng bản hiện tại.
+Backlog sau 0.3.0. Không mục nào chặn việc dùng bản hiện tại.
 
-## P1 — làm tiếp ngay khi có nhu cầu
+## P0 — cần trước khi gọi 0.3.0 là phát hành đầy đủ
 
 | # | Việc | Vì sao | Cách kiểm chứng |
 |---|---|---|---|
-| 1 | Cài bundle vào `pfe-test` và chạy smoke 10 bước trong DSH thật | Điều kiện còn thiếu để gọi MVP là hoàn thành đầy đủ (TASK 4 đang BLOCKED) | `dsh --profile pfe-test --dump-config` có row plugin; gọi tool tạo 4 file; unload/reload/remove |
-| 2 | Bố cục serpentine cho chuỗi dài trong `assign_positions` | "Toàn cảnh" co còn 34% với 8 node (UI-002) | so screenshot 1440×900 trước/sau; đo `#zoom-level` sau fit |
-| 3 | Phân tích call-graph thật (import/reference) để nối bước theo quan hệ gọi, không theo điểm số | Hiện tại thứ tự bước là heuristic theo score; một số repo sẽ ra thứ tự chưa đúng | fixture có 2 nhánh gọi chéo; so graph với grep thủ công |
+| 1 | Cài tarball 0.3.0 vào `pfe-test` và chạy smoke 7 tool | Bước cài chạy npm/pnpm trong profile nên cần xin phép; hiện chỉ có bằng chứng adapter in-process | `dsh --profile pfe-test --dump-config` có 7 tool; gọi index → search → verify; disable/enable/remove |
+| 2 | Chạy model-driven smoke khi có API key | Chứng minh model tự chọn tool, không chỉ registry probe | phiên có key gọi `project_context_pack` và ghi lại trajectory |
 
-## P2 — mở rộng đầu vào
-
-| # | Việc | Ghi chú |
-|---|---|---|
-| 4 | Nhận GitHub URL (clone vào thư mục tạm, giới hạn dung lượng, xoá sau khi xong) | đã chốt hoãn ở Q1; cần thêm bước xin phép mạng rõ ràng |
-| 5 | Nhiều flow trong một repo → `index.md` + nhiều cặp JSON/HTML | schema đã hỗ trợ tách subflow; chỉ cần điều phối |
-| 6 | Hỗ trợ thêm ngôn ngữ (Go, Rust, C#, Kotlin) trong `SYMBOL_PATTERNS`/`ENTRY_PATTERNS` | thêm pattern + fixture, không đổi schema |
-
-## P2 — chất lượng kết quả
+## P1 — chất lượng tri thức
 
 | # | Việc | Ghi chú |
 |---|---|---|
-| 7 | Đọc `routes` khai báo động (router.use, file-based routing của Next/Nuxt) | giảm trường hợp `end` bị `inferred` |
-| 8 | Gắn nhãn `partial` chi tiết hơn: tách "khớp chủ đề" và "suy ra vai trò" | hiện một node có thể vừa verified về vị trí, vừa suy luận về vai trò |
-| 9 | Sinh `overview.md` có sơ đồ ASCII/Mermaid song song | hữu ích khi dán vào PR/issue |
-| 10 | Cho phép `flow_request` tiếng Anh và trộn Việt–Anh tốt hơn | lexicon hiện tại đã có cả hai, nhưng ưu tiên tiếng Việt |
+| 3 | Call graph có phân giải alias/namespace/DI | hiện chỉ nhận tên symbol duy nhất; thêm resolver theo import binding |
+| 4 | Embedding ngữ nghĩa local (sentence-transformers hoặc ONNX) | giữ nguyên interface `EmbeddingBackend`; thêm `semantic=True` và test đổi model |
+| 5 | Học trọng số rerank từ log sử dụng | hiện là hằng số; cần dữ liệu chọn kết quả |
+| 6 | Parse `router.use` / file-based routing (Next, Nuxt) | giảm trường hợp `end` bị `inferred` |
+| 7 | Ontology mở rộng: `returns` khi có type info (typed languages) | hiện khai báo nhưng không phát |
 
-## P3 — vận hành
+## P2 — vận hành
 
 | # | Việc | Ghi chú |
 |---|---|---|
-| 11 | Benchmark repo lớn (chục nghìn file) và cache kết quả quét | hiện cắt ở 20 000 file, chưa đo thời gian |
-| 12 | Ký/kiểm tra checksum cho `flow.json` để so sánh giữa hai lần chạy | hữu ích cho diff trong CI |
-| 13 | Panel UI trong Harness | chỉ mở lại khi `cordis_inspect_query` xác nhận register API của slot; hiện `BLOCKED_UI_API_UNVERIFIED` |
-| 14 | Đưa `build_flow.py` thành package cài được (`pipx`/`uv`) | giữ CLI tương thích |
+| 8 | `detect-rename` bằng git thay vì content hash | chính xác hơn khi file đổi cả nội dung lẫn tên |
+| 9 | Benchmark > 20 000 file và đo peak RSS theo bước | hiện đo tới 2 001 file |
+| 10 | Nén index (FTS5 optimize + vacuum định kỳ) | DB 15 MB cho 2 000 file |
+| 11 | Panel UI trong Harness | chỉ mở khi xác minh register API của slot |
+| 12 | Nhận GitHub URL | cần bước xin phép mạng rõ ràng; hiện chỉ local path |
 
 ## Nợ kỹ thuật đã biết
 
-- `build_flow.py` là một file ~900 dòng; khi thêm ngôn ngữ nên tách `pfe/scan.py`, `pfe/score.py`, `pfe/graph.py`.
-- `PREFERRED_SYMBOL` là danh sách tên cố định; nên chuyển sang scoring theo vị trí (đầu file, có route gọi tới).
-- Adapter chưa có `Config` schema kiểu Cordis (đang validate tay) vì không import được `@deepseek-ai/schemastery`; nếu sau này profile resolve được thì chuyển sang schema chuẩn.
+- `pfe/facts.py` còn gộp scan + extract; nên tách `scan.py` / `extract.py` khi thêm ngôn ngữ.
+- `pfe/flow.py` vẫn dùng điểm số facet để chọn route; nên chuyển sang xếp hạng theo graph + tên route.
+- `pfe/retrieval.py` giữ bảng trọng số trong code; nên đưa ra file cấu hình có version.
+- Adapter chưa có `Config` schema native (profile không resolve `@deepseek-ai/schemastery`); validate tay là mức hiện tại.
+- Chi phí `quick_staleness` là O(số file đã index) mỗi query; với repo rất lớn nên cache theo thư mục.
 
-## Đã xử lý trong pass review
+## Đã xử lý trong 0.3.0
 
-- allowedRoots deny-by-default + hint cấu hình (thay cho "cho phép mọi path").
-- Artifact chỉ còn `<repo>/artifacts/flows/<slug>/`, có kiểm tra symlink và không ghi trước khi kiểm tra.
-- Bundle đóng gói được (`pack.mjs`) với `vendor/core`, cài độc lập không cần checkout.
-- Graph tách location evidence / flow membership / inferred role; decoy không bị nối vào luồng.
-- Abort giữ identity `AbortError`; timeout và lỗi core tách mã riêng.
-- Artifact không còn absolute path; `scripts/check_repo_policy.py` + CI chặn tái phát.
+- Bỏ claim call graph khi chưa có call-site parser; ontology từ chối fact `calls` thiếu call site.
+- Decision/error node chỉ lấy từ vùng code của route/hàm được chọn.
+- Ghi artifact qua staging + rename; không còn artifact dở dang, không ghi đè khi chạy song song.
+- `run.json` trở thành internal provenance, có test và policy check.
+- allowedRoots deny-by-default giữ nguyên và áp cho cả 6 tool tri thức.
+- File chứa secret-shaped line không vào index; symlink tới `.env`/artifact bị loại.
+- `/tmp`/, `~/Documents`/ và Windows user path bị policy chặn; log cũ đã dọn.
+- Thêm benchmark có số đo thật và ngân sách byte/file/tổng.

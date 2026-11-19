@@ -34,6 +34,25 @@ Biến mã nguồn project thành sơ đồ luồng dễ hiểu, có thể truy 
 - Không có repo thực tế: được tạo một **demo minh họa**, ghi rõ không phải kết quả phân tích project.
 - Prompt hệ thống tích hợp cho agent độc lập có trong [references/SYSTEM_PROMPT.md](references/SYSTEM_PROMPT.md).
 
+## Lớp tri thức code (0.3.0)
+
+Ngoài sơ đồ, repo có index cục bộ để agent tìm context và kiểm tra sau khi sửa:
+
+```bash
+python3 tools/pfe_cli.py index --repo <repo> --mode full
+python3 tools/pfe_cli.py search --repo <repo> --query "export_report"
+python3 tools/pfe_cli.py context-pack --repo <repo> --task "sửa luồng xuất Excel"
+python3 tools/pfe_cli.py impact --repo <repo> --changed services/report_service.js
+python3 tools/pfe_cli.py verify --repo <repo>
+```
+
+Trong DSH các việc này là 6 tool: `project_code_index`, `project_code_search`,
+`project_context_pack`, `project_impact_analysis`, `project_verify_flow`,
+`project_knowledge_refresh`.
+
+Nguyên tắc giữ nguyên: chỉ local absolute path, không network, không chạy code của repository,
+kết quả trả path/symbol/line range và bằng chứng, không trả source thô.
+
 ## CLI nhanh
 
 Sinh cả bộ ba file từ repository (analyzer tự dựng graph có bằng chứng):
@@ -49,7 +68,7 @@ python scripts/build_flow.py --repo REPO --request "..." --json   # kết quả 
 Render lại từ graph có sẵn:
 
 ```bash
-python scripts/render_flow.py assets/example_workflow.json --out /tmp/workflow_demo.html
+python scripts/render_flow.py assets/example_workflow.json --out <thu-muc-ra>/workflow_demo.html
 python scripts/render_flow.py path/to/flow.json --out path/to/flow.html
 python scripts/render_flow.py path/to/flow.json --check-only
 ```

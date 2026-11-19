@@ -1,159 +1,151 @@
 # REVIEW_PACKET — bàn giao để agent khác review
 
-Tài liệu này để một agent/reviewer độc lập kiểm chứng lại toàn bộ kết quả mà không cần hỏi lại.
-Mọi con số dưới đây đều có log/ảnh tương ứng trong `artifacts/`.
+Tài liệu này để một reviewer độc lập kiểm chứng lại pass 0.3.0 mà không cần hỏi lại.
+Mọi con số đều có log/artifact tương ứng, sinh từ cùng một commit.
 
 | Mục | Giá trị |
 |---|---|
 | Repo | `https://github.com/Hieupt1904/project-flow-explainer` |
-| HEAD code được test | `72f34d8` (tag `v0.2.2`); commit chứa packet này là commit kế tiếp, chỉ thêm tài liệu + log |
-| Release | `v0.2.2` — asset `dsh-project-flow-explainer-0.2.2.tgz` (38 183 byte, sha256 `332f692a…af2e5`) |
-| DSH đã kiểm chứng | `0.2.2-rc.2` |
-| Python / Node | 3.12.3 / v24.22.3 (CI thêm Node 20) |
-| Trạng thái tự test | **PASS** — 35 unittest, 16 adapter, 2 pack, policy OK, DSH smoke OK, UI 7/7 tổ hợp sạch |
+| Commit nguồn | `13a2c49e4942` + thay đổi chưa commit của pass 0.3.0 |
+| Package version | `0.3.0` (`engines.dsh: 0.2.2-rc.2`) |
+| Tarball | `dsh-project-flow-explainer-0.3.0.tgz` · 84 670 byte · 25 entry · sha256 `b3647435…20bf581c` |
+| Test | 116 Python · 16 adapter · 9 knowledge tool · 2 pack — 0 fail |
+| Policy | `check_repo_policy.py` OK: không absolute path, nested artifact, secret-shape |
+| UI | 12 tổ hợp (3 sample × 4 viewport) sạch; tương tác search/click/zoom/fit chạy |
+| Trạng thái tổng | **PARTIAL**: code pass; registry-runtime 0.3.0 và model-driven **CHƯA CHẠY** |
 
-## 1. Kiến trúc trong 5 dòng
+Số liệu máy đọc: [artifacts/review/evidence-manifest.json](artifacts/review/evidence-manifest.json).
+Sinh lại bằng một lệnh: `python3 scripts/regen_evidence.py`.
+
+## 1. Kiến trúc trong 6 dòng
 
 ```text
-core (Python, stdlib)  : scripts/build_flow.py → graph có bằng chứng → render_flow.py → flow.json/html/overview.md
-adapter (Node ESM, 0 dep): dsh-plugin/ đăng ký tool project_flow_explain, gọi core qua subprocess argv array
-boundary              : core không import DSH; xoá dsh-plugin thì CLI vẫn chạy
-policy                : allowedRoots deny-by-default; artifact chỉ <repo>/artifacts/flows/<slug>/
-đóng gói              : dsh-plugin/scripts/pack.mjs chép core vào vendor/core rồi npm pack
+core (Python, stdlib)  : pfe.{policy,facts,flow,ontology,knowledge,index,vectors,retrieval,impact,verify,emit}
+flow CLI               : scripts/build_flow.py -> flow.json/html/overview.md (public) + run.json (internal)
+knowledge CLI          : tools/pfe_cli.py -> index | search | context-pack | impact | verify | refresh | status
+adapter (Node ESM, 0 dep): dsh-plugin/ đăng ký 7 tool, gọi core qua subprocess argv
+boundary               : core không import DSH; xoá dsh-plugin thì CLI + 116 test vẫn chạy
+policy                 : allowedRoots deny-by-default; artifact chỉ <repo>/artifacts/flows/<slug>/; index chỉ <repo>/.pfe/index/
 ```
 
 Chi tiết quyết định: [ARCHITECTURE_DECISION.md](ARCHITECTURE_DECISION.md).
 
-## 2. Chạy lại toàn bộ (copy-paste)
+## 2. Chạy lại toàn bộ
 
 ```bash
-python3 -m unittest discover -s tests -v           # 33 test
-python3 -m compileall -q scripts tests
-node --test dsh-plugin/tests/plugin.test.mjs       # 16 test
-node --test dsh-plugin/tests/pack.test.mjs         # 2 test (pack + cài độc lập)
-python3 scripts/check_repo_policy.py               # policy artifact/provenance
-node dsh-plugin/scripts/pack.mjs                   # tarball trong dist/
+python3 -m unittest discover -s tests -v                 # 116 test
+python3 -m compileall -q scripts tests pfe tools
+node --test dsh-plugin/tests/plugin.test.mjs             # 16 test
+node --test dsh-plugin/tests/knowledge.test.mjs          # 9 test
+node --test dsh-plugin/tests/pack.test.mjs               # 2 test
+python3 scripts/check_repo_policy.py
+python3 scripts/regen_evidence.py                         # sinh lại manifest + log
+python3 scripts/bench_index.py --files 2000 --json        # benchmark
 ```
 
 Smoke CLI:
 
 ```bash
-cp -r tests/fixtures/shop-app /tmp/rev/shop-app && rm -rf /tmp/rev/shop-app/artifacts
-python3 scripts/build_flow.py --repo /tmp/rev/shop-app \
+python3 scripts/build_flow.py --repo <fixture-copy> \
   --request "Giải thích từ lúc người dùng nhấn xuất báo cáo đến khi nhận được file" --json
+python3 tools/pfe_cli.py index --repo <fixture-copy> --mode full --include-vectors
+python3 tools/pfe_cli.py search --repo <fixture-copy> --query "export_report"
+python3 tools/pfe_cli.py verify --repo <fixture-copy>
 ```
 
-Kết quả mong đợi: `status=ok`, `5 verified / 3 partial`, `related = [jobs/export_worker.py, routes/preview.js]`,
-4 file trong `/tmp/rev/shop-app/artifacts/flows/<slug>/`.
+Kết quả mong đợi: `status=ok`; flow 5 verified / 1 partial; `related = [jobs/export_worker.py, routes/preview.js]`;
+index 6 file · search trả `exportReport`; verify verdict `pass` (test mapping `partial` nếu chưa index).
 
-Smoke DSH (cần profile riêng, **không** dùng `web`):
+Smoke DSH (**cần xin phép trước khi cài**, vì bước cài chạy npm/pnpm trong profile):
 
 ```bash
 dsh plugin --profile pfe-test add <tarball>
-# thêm patch layer:
+# patch layer cần:
 #   - id: permission
 #     config: { defaultPreset: workspace-write }
-#   - id: project-flow-explainer
-#     config: { allowedRoots: ['/tmp/rev'] }
-dsh --profile pfe-test --dump-config | grep -A6 project-flow-explainer
+#   - id: project-flow-explainer        # override, KHÔNG insert lại
+#     config: { allowedRoots: ['<workspace>'] }
+dsh --profile pfe-test --dump-config | grep -A8 project-flow-explainer
 ```
 
-## 3. Kết quả tự test (log trong `artifacts/review/`)
+## 3. Kết quả theo loop
 
-| # | Hạng mục | Kết quả | Bằng chứng |
-|---|---|---|---|
-| 1 | Python unittest | **35 OK** | `*-self-test.log` §1 |
-| 2 | compileall | OK | §2 |
-| 3 | Adapter (Node) | **16 pass** | §3 |
-| 4 | Pack + cài độc lập | **2 pass** (tarball 9 file) | §4, §6 |
-| 5 | Policy | `OK: 31 file`, không absolute path / nested artifacts / secret | §5 |
-| 6 | CLI trên fixture | `ok`, 5 verified / 3 partial, 2 file ngoài luồng, 4 artifact, **không lộ secret** | `*-cli-and-core.log` §7 |
-| 7 | Core độc lập (không có `dsh-plugin/`) | `ok`, cùng kết quả | §8 |
-| 8 | Artifact policy âm tính | `out-dir = .`, `src`, `../outside` → `invalid_artifact_root` | §9 |
-| 9 | DSH thật với **bản phát hành 0.2.1** | tool trong registry, gọi `ok`, 4 artifact, không secret, `duplicates: []` | `*-dsh-smoke.log` §10 |
-| 10 | UI `flow.html` | 7 tổ hợp (shop/self/empty × 3 viewport): `labelOverCard 0`, card chồng 0, tràn ngang 0, console error 0, request ngoài 0 | `*-ui.json` + `artifacts/ui-verification/*.png` |
-| 11 | Chạy dự án thật | 14 node, 10 verified / 3 partial / 1 inferred, 2 file ngoài luồng đúng thực tế | `real-project-run.json`, `real-tienanauto-1440x900.png` |
+| Loop | Kết quả | Bằng chứng |
+|---|---|---|
+| Static | compileall OK, `node --check` 6 file OK, schema JSON hợp lệ | `*-compileall.log`, manifest `static` |
+| Unit | 116 / 16 / 9 / 2 pass | `*-python-tests.log`, `*-node-*.log` |
+| Security | allowedRoots thiếu/rỗng/ngoài; symlink escape; symlink `.env`; symlink artifact; output sai; slug sai; args sai; secret-shape; private path | test Python + Node, policy log |
+| Graph | không call giả; không bypass; chỉ route được chọn; related không thành node; verified có ref | `tests/test_flow_evidence.py` |
+| Determinism | 2 lần chạy cùng commit khớp node/edge/counts; index tái dùng cache | `test_two_runs_agree…`, `test_full_then_incremental…` |
+| Packaging | tarball 25 entry, giải nén nơi không có checkout, index + search chạy từ vendor | `pack.test.mjs` |
+| Provenance | commit, version, `engines.dsh`, tarball, sha256, test count, `generated_at` | manifest |
+| UI | 12 tổ hợp + tương tác | [20261119-ui.json](artifacts/review/20261119-ui.json) |
 
 ## 4. Bản đồ bằng chứng
 
 ```text
-artifacts/review/                 log tự test, UI measurements (JSON)
-artifacts/logs/                   preflight runtime, baseline, TASK 4 smoke (log + JSON)
-artifacts/samples/{shop,self,empty}/   flow.json + flow.html + overview.md + run.json (sinh từ HEAD)
-artifacts/ui-verification/        7 ảnh 3 viewport + ảnh lỗi nhãn UI-003 + ảnh DSH (Trajectory, Plugins)
-artifacts/baseline/               HTML renderer gốc
+artifacts/review/evidence-manifest.json     nguồn số liệu duy nhất
+artifacts/review/*-python-tests.log         unittest đầy đủ
+artifacts/review/*-node-*.log               3 bộ test Node
+artifacts/review/*-policy.log               policy artifact/provenance
+artifacts/review/*-bench.json               benchmark index
+artifacts/review/*-pack-build.log           tarball
+artifacts/review/20261119-ui.json           12 tổ hợp layout + tương tác
+artifacts/samples/{shop,self,empty}/        flow sinh từ HEAD (3 file public + run.json internal)
+artifacts/ui-verification/*.png             ảnh chụp
+artifacts/review/*-real-project.json        chạy thật trên dự án riêng tư (đã scrub path/tên)
+USAGE_GUIDE.md                              hướng dẫn dùng hiệu quả + số đo thật
 ```
-
-Báo cáo chi tiết: [TEST_REPORT.md](TEST_REPORT.md) · [UI_VERIFICATION_REPORT.md](UI_VERIFICATION_REPORT.md) ·
-[FINAL_REPORT.md](FINAL_REPORT.md) · [DSH_IMPLEMENTATION_PLAN.md](DSH_IMPLEMENTATION_PLAN.md) ·
-[IMPROVEMENT_PLAN.md](IMPROVEMENT_PLAN.md).
-
-## 4b. Chạy trên dự án thật (TienAnAuto)
-
-Repo: `~/Documents/Tudonghoa/TienAnAuto` (Python desktop, 17 file source, git `3e852be`).
-
-```bash
-python3 scripts/build_flow.py --repo ~/Documents/Tudonghoa/TienAnAuto \
-  --request "Giải thích từ lúc người dùng bấm CẬP NHẬT DỮ LIỆU đến khi có file Excel quyết toán tiền ăn" --json
-```
-
-Kết quả: `10 verified / 3 partial / 1 inferred`, 14 node, artifact trong repo đó
-(`artifacts/flows/<slug>/`), UI sạch (0 nhãn đè card, 0 tràn ngang).
-
-Hai lỗi thật do lần chạy này phát hiện và đã sửa:
-
-| Lỗi | Triệu chứng | Sửa |
-|---|---|---|
-| Import kiểu `sys.path` không resolve | `src/app/main.py` viết `import _api` (file nằm ở `src/_api.py`); resolver chỉ tìm `_api.py` ở root → chuỗi chỉ còn 1 bước, 0 import edge | `find_imports()` thêm style `flat-basename`: nếu basename khớp **duy nhất** một file trong repo thì nối, ghi rõ "(qua sys.path)"; nếu trùng tên thì **không đoán** |
-| Tên bước vô nghĩa | Hiện "Xử lý tại `__init__`" cho nhiều file | `pick_symbol()` bỏ dunder, ưu tiên hàm public; không có thì đặt "Module `<tên file>`" |
-
-Thêm 2 test khoá hành vi: `test_sys_path_flat_import_is_resolved_by_unique_basename`,
-`test_ambiguous_flat_import_is_not_guessed` (35 unittest tổng).
-
-Kết quả đúng đáng chú ý: `src/_xls.py` và `tools/verify_report.py` nằm ở `related` — đúng, vì app
-không import `_xls` (chỉ dùng `_xlsio`).
-
-Giới hạn đã ghi trong `limits`: thứ tự bước phản ánh quan hệ import, **không** phải thứ tự thực thi
-runtime — nhãn cạnh vì vậy đổi thành "dùng module" thay cho "gọi tiếp".
-
-Số liệu máy đọc của lần chạy này: [artifacts/review/real-project-run.json](artifacts/review/real-project-run.json)
-(node, cạnh, file ngoài luồng, limits — đường dẫn đều tương đối).
 
 ## 5. Những chỗ **chưa** làm được (đừng coi là đã xong)
 
 | Mục | Trạng thái thật |
 |---|---|
-| Panel UI trong Harness | `BLOCKED_UI_API_UNVERIFIED` — không có code UI, không thử |
-| Model tự chọn tool trong profile `headless` | Không chạy được: profile không có API key (`MISSING_CREDENTIAL`). Lời gọi trong smoke do plugin probe gọi qua registry thật, **không** qua model. Đường model chỉ được chứng minh gián tiếp ở UI `pfe-demo` (ảnh `demo-trajectory.png`) |
-| Call graph đầy đủ | Chưa có; quan hệ bước dựa trên route/import/gọi-theo-tên. Mọi kết quả đều ghi rõ trong `limits` |
-| Fit "Toàn cảnh" 34% | Trade-off đã ghi (UI-002), chưa sửa |
-| Repo > 20 000 file | Chưa benchmark; có giới hạn cứng |
+| Smoke registry 0.3.0 trong `pfe-test` | **CHƯA CHẠY**: cài bundle cần npm/pnpm trong profile → phải xin phép trước bước cài |
+| Model tự chọn tool | **CHƯA CHẠY**: profile không có API key |
+| Panel UI Harness | `BLOCKED_UI_API_UNVERIFIED` — chưa có code UI, chưa xác minh API |
+| Config schema native của DSH | **KHÔNG LÀM ĐƯỢC**: profile không resolve `@deepseek-ai/schemastery`; validate tay + test là mức hiện tại |
+| Embedding ngữ nghĩa | **CHƯA CÓ**: backend local mặc định là hashing bag-of-words |
+| Call graph type-aware | **CHƯA CÓ**: chỉ call site lexical theo tên symbol duy nhất |
+| Repo > 20 000 file | Chưa đo; có ngân sách cứng |
+| Ảnh chụp UI | Chỉ chụp 2 viewport; phần còn lại đo bằng DOM |
 
-## 6. Gợi ý checklist cho reviewer
+Báo cáo 0.2.x trước đây đã bị **thay thế**, log cũ đã xoá thay vì sửa số liệu.
+Không có log 0.2.x nào còn trong `artifacts/` để tránh hai nguồn sự thật.
 
-Nên tấn công theo thứ tự này; tất cả đều đã có test, nên nếu phá được thì đó là bug thật:
+## 6. Checklist tấn công cho reviewer
 
-1. **allowedRoots**: symlink lồng nhiều lớp, root là `/`, root là chính repo, path có `..` đã chuẩn hoá, root không tồn tại.
-2. **Artifact containment**: `artifacts` là symlink, `flows` là symlink, slug `..`, slug trùng, chạy song song hai lần cùng slug.
-3. **Rò dữ liệu**: secret trong `.env`, trong file source, trong tên file; kiểm cả `run.json` và `flow.html`.
-4. **Bằng chứng graph**: thêm một file có route khớp từ khoá nhưng không được import → phải nằm ở `related`, không thành node.
-5. **Packaging**: sửa `dsh-plugin/package.json` bỏ `vendor/core` khỏi `files` → `pack.test.mjs` phải fail.
-6. **Abort/timeout**: abort trước khi gọi, abort giữa lúc chạy (child phải chết), `timeoutMs` rất nhỏ.
-7. **Determinism**: chạy 2 lần cùng fixture, so node/edge.
-8. **Core independence**: xoá `dsh-plugin/` rồi chạy CLI + `python3 -m unittest discover -s tests`.
+1. **allowedRoots**: symlink lồng nhiều lớp, root là `/`, root là chính repo, path có `..`, root không tồn tại, root tương đối.
+2. **Artifact containment**: `artifacts` là symlink, `flows` là symlink, slug `..`, slug trùng, chạy song song cùng slug, lỗi giữa chừng.
+3. **Rò dữ liệu**: secret trong `.env`, trong file source, trong tên file; kiểm cả `run.json` và `flow.html`; kiểm file cache index.
+4. **Bằng chứng graph**: thêm file có route khớp từ khoá nhưng không được import → phải nằm ở `related`.
+5. **Index**: sửa 1 byte → parse lại đúng 1 file; xoá file → entity mất; rename → cặp `from/to`; đổi `INDEX_VERSION` → rebuild full.
+6. **Retrieval**: exact phải thắng vector; file chỉ khớp keyword phải bị hạ hạng; index stale phải cảnh báo.
+7. **Packaging**: bỏ `vendor/core/pfe` khỏi `files` → `pack.test.mjs` phải fail.
+8. **Abort/timeout**: abort trước khi gọi, abort giữa lúc chạy, `timeoutMs` rất nhỏ.
+9. **Determinism**: chạy 2 lần cùng fixture, so node/edge.
+10. **Core independence**: xoá `dsh-plugin/` rồi chạy CLI + unittest.
 
 ## 7. Bản đồ file
 
 ```text
-scripts/build_flow.py              analyzer + CLI (core)
-scripts/render_flow.py             validate + render (core, không đổi)
-scripts/check_repo_policy.py       chặn absolute path / nested artifacts / secret / manifest
-assets/workflow_template.html      UI offline (đã sửa UI-001 fit ngang, UI-003 nhãn không đè card)
-dsh-plugin/index.js                tool project_flow_explain
-dsh-plugin/lib/paths.js            allowedRoots, artifact root, core resolution
-dsh-plugin/lib/core-runner.js      spawn argv, cap output, signal/timeout
-dsh-plugin/scripts/pack.mjs        stage + vendor/core + npm pack
-tests/                             35 unittest + fixture shop-app (có decoy routes/preview.js)
-dsh-plugin/tests/                  16 adapter + 2 packaging
-.github/workflows/ci.yml           py3.12 + node 20/24 + manifest
+pfe/                          core tri thức + flow projection
+scripts/build_flow.py         CLI flow
+scripts/render_flow.py        validate + render HTML
+scripts/check_repo_policy.py  policy artifact/provenance/privacy
+scripts/regen_evidence.py     sinh manifest từ lệnh thật
+scripts/regen_samples.py      sinh lại 3 sample
+scripts/bench_index.py        benchmark scan/index
+tools/pfe_cli.py              CLI máy đọc 6 tool tri thức
+dsh-plugin/index.js           7 tool + lifecycle
+dsh-plugin/lib/paths.js       allowedRoots, artifact root, core resolution
+dsh-plugin/lib/core-runner.js spawn argv, cap output, signal/timeout
+dsh-plugin/lib/tools.js       6 tool tri thức + output schema
+dsh-plugin/lib/validate.js    validate tham số, mã lỗi ổn định
+dsh-plugin/scripts/pack.mjs   stage + vendor core (scripts/assets/tools/pfe)
+assets/workflow_template.html UI offline
+references/code-knowledge-schema.json  schema entity/relation/confidence/chunk
+tests/                        116 unittest + fixture shop-app, two-routes-app, scope-app
+dsh-plugin/tests/             16 adapter + 9 knowledge + 2 pack
+.github/workflows/ci.yml      py3.12 + node 20/24 + manifest + policy
 ```

@@ -51,3 +51,32 @@ Một file JSON là một **luồng**, giữ bằng chứng tương ứng với 
 `python scripts/render_flow.py FLOW.json --out FLOW.html` sẽ tự xếp layout theo tầng trái → phải nếu không đặt x/y. Có thể tùy chỉnh x/y để nhóm node theo nhánh trên canvas như ví dụ mẫu.
 
 Giới hạn khuyến nghị: 5–12 node/luồng; trường hợp phức tạp phân nhỏ thành nhiều luồng.
+
+## Hợp đồng output của lần chạy (0.3.0)
+
+`scripts/build_flow.py` ghi bốn file vào `<repo>/artifacts/flows/<slug>/`:
+
+| File | Loại | Ghi chú |
+|---|---|---|
+| `flow.json` | public | graph đã validate, render lại được |
+| `flow.html` | public | một file, không CDN, không request ngoài |
+| `overview.md` | public | bằng chứng từng bước + giới hạn |
+| `run.json` | **internal provenance** | `contract: "internal-provenance"`, `public_outputs`, `internal_outputs` |
+
+`run.json` không phải public output. Nó tồn tại để reviewer đọc lại lần chạy (số đếm, giới hạn,
+trạng thái git) mà không cần mở lại repository. `scripts/check_repo_policy.py` từ chối mọi
+`run.json` thiếu trường `contract`.
+
+## Mô hình bằng chứng (bắt buộc từ 0.2.2)
+
+- `evidence` trên cạnh thuộc `{entry, import, structure}`. **Không có `call`** khi chưa có call-site
+  parser; `pfe/flow.py` ném lỗi nếu ai gắn `call` mà không kèm dấu vết call site.
+- `verified` = vị trí thật + bằng chứng thành viên. Không có nghĩa là đã chạy code.
+- Node decision/error chỉ sinh từ `try/catch` **nằm trong route body hoặc symbol body được chọn**.
+- File chỉ khớp từ khoá nằm ở `meta.related`, không thành node.
+
+## Lớp tri thức
+
+Sơ đồ flow là một **projection** của `pfe.facts`. Cùng bộ fact đó nuôi index tri thức
+(`pfe/index.py`), tìm kiếm (`pfe/retrieval.py`), phân tích tác động (`pfe/impact.py`).
+Schema entity/relation/confidence/chunk: [references/code-knowledge-schema.json](code-knowledge-schema.json).

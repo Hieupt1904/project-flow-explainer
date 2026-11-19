@@ -1,6 +1,6 @@
 # Luồng: Giải thích từ lúc người dùng nhấn xuất báo cáo đến khi nhận được file
 
-Sinh tự động: 2026-11-19T21:45:42+07:00 · `scripts/build_flow.py` (schema 2).
+Sinh tự động: 2026-11-19T22:53:50+07:00 · `scripts/build_flow.py` (schema 2).
 
 ## Yêu cầu
 
@@ -14,6 +14,9 @@ Sinh tự động: 2026-11-19T21:45:42+07:00 · `scripts/build_flow.py` (schema 
 | Nhánh | `không có git` |
 | Commit | `không có git` |
 | Thay đổi chưa commit | không |
+| File đã đọc | 6 |
+| Byte source đã đọc | 2748 |
+| Số ngân sách bị cắt | không |
 
 Đường dẫn tuyệt đối không được ghi vào artifact để tránh lộ cấu trúc máy cá nhân.
 
@@ -26,37 +29,36 @@ Sơ đồ dựng từ phân tích tĩnh theo yêu cầu: Giải thích từ lúc
 | 1 | Bắt đầu từ yêu cầu | start | — | — | partial |
 | 2 | Nhận yêu cầu /api/reports/export | action | `server.js`:16 | entry | verified |
 | 3 | Xử lý tại exportReport | action | `services/report_service.js`:5 | import | verified |
-| 4 | Có lỗi trong bước này? | decision | `server.js`:8 | import | partial |
-| 5 | Trả lỗi cho người gọi | error | `server.js`:8 | structure | partial |
-| 6 | Xử lý tại loadReportRows | action | `db/report_repo.js`:4 | import | verified |
-| 7 | Module connection | action | `db/connection.js`:1 | import | verified |
-| 8 | Trả kết quả | end | `server.js`:18 | call | verified |
+| 4 | Xử lý tại loadReportRows | action | `db/report_repo.js`:4 | import | verified |
+| 5 | Module connection | action | `db/connection.js`:1 | import | verified |
+| 6 | Trả kết quả | end | `server.js`:18 | import | verified |
 
 ## Quan hệ giữa các bước
 
 | Cạnh | Nhãn | Loại | Bằng chứng | Ghi chú |
 |---|---|---|---|---|
-| start → step-1 | `bắt đầu xử lý` | success | entry | route khai báo tại server.js:16 |
-| step-1 → step-2 | `dùng module` | normal | import | `server.js` import `services/report_service.js` |
-| step-1 → decision-server-js | `vào bước xử lý` | normal | import | cùng bước `server.js` |
-| decision-server-js → step-2 | `không lỗi` | success | structure | đường đi tiếp khi không lỗi |
-| decision-server-js → error-server-js | `có lỗi` | error | structure | khối xử lý ngoại lệ trong file |
-| step-2 → step-3 | `dùng module` | normal | import | `services/report_service.js` import `db/report_repo.js` |
-| step-3 → step-4 | `dùng module` | normal | import | `db/report_repo.js` import `db/connection.js` |
-| step-4 → end | `hoàn tất` | success | call | bước cuối của luồng |
+| start → step-1 | bắt đầu xử lý | success | entry | route khai báo tại server.js:16 |
+| step-1 → step-2 | dùng module | success | import | server.js import services/report_service.js · dòng import 3 |
+| step-2 → step-3 | dùng module | success | import | services/report_service.js import db/report_repo.js · dòng import 3 |
+| step-3 → step-4 | dùng module | success | import | db/report_repo.js import db/connection.js · dòng import 2 |
+| step-4 → end | hoàn tất | success | import | bước cuối của luồng |
+
+## Mô hình bằng chứng
+
+- `verified` = vị trí có thật (file + dòng) và có bằng chứng thành viên (route/import); xác minh tĩnh, KHÔNG phải chạy runtime
+- `partial`  = vị trí có thật nhưng vai trò trong luồng chỉ suy ra từ cấu trúc
+- `inferred` = suy luận từ ngữ cảnh, chưa có bằng chứng trực tiếp
+- Có cạnh `call` trong sơ đồ: không
+- Có bằng chứng runtime: không
 
 ## File khớp từ khoá nhưng KHÔNG thuộc luồng
 
-- `jobs/export_worker.py` — khớp từ khoá nhưng không nối được tới điểm vào bằng import/gọi hàm
-- `routes/preview.js` — khớp từ khoá nhưng không nối được tới điểm vào bằng import/gọi hàm
+- jobs/export_worker.py — khớp từ khoá nhưng không nối được tới điểm vào bằng import/gọi hàm
+- routes/preview.js — khớp từ khoá nhưng không nối được tới điểm vào bằng import/gọi hàm
 
 ## Giới hạn và phần chưa xác minh
 
-- Phân tích tĩnh trên source; hành vi runtime và dữ liệu thật chưa được kiểm chứng.
-- Chỉ đọc source trong repository; file bí mật, dump, log và thư mục phụ thuộc bị loại.
-- Thư mục test/fixture/example/sample/demo bị bỏ qua.
-- Chưa có call graph đầy đủ: quan hệ bước dựa trên route, import và lời gọi theo tên.
-- Thứ tự bước phản ánh quan hệ import/gọi hàm, không phải thứ tự thực thi tại runtime.
+- Chưa có call graph runtime: cạnh chỉ mang bằng chứng entry/import/structure; không có cạnh nào tự nhận là call.
 
 - Không có cảnh báo.
 
@@ -70,6 +72,7 @@ Không gọi network, không chạy code của repository, không sửa file ngu
 
 ## Tệp sinh ra
 
-- `flow.json` — dữ liệu có cấu trúc, dùng lại được cho lần render sau
-- `flow.html` — sơ đồ mở offline
-- `overview.md` — tài liệu này
+- `flow.json` — dữ liệu có cấu trúc, dùng lại được cho lần render sau (public)
+- `flow.html` — sơ đồ mở offline (public)
+- `overview.md` — tài liệu này (public)
+- `run.json` — internal provenance, KHÔNG phải public output: chứa số đếm, giới hạn và trạng thái git của lần chạy

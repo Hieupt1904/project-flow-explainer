@@ -1,0 +1,229 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Hieupt1904/project-flow-explainer/references/code-knowledge-schema.json",
+  "title": "Project Flow Explainer code knowledge document",
+  "description": "Schema của lớp tri thức code: entity, relation, evidence, confidence. Bản Python tương ứng là pfe/ontology.py; test tests/test_knowledge_schema.py giữ hai bên khớp nhau.",
+  "type": "object",
+  "required": ["schema_version", "repository_id", "source_commit", "entities", "facts"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "repository_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$",
+      "description": "Hash của đường dẫn repository; không chứa đường dẫn thật."
+    },
+    "repository_name": { "type": "string", "minLength": 1 },
+    "source_commit": { "type": "string" },
+    "generated_by": { "type": "string" },
+    "entities": { "type": "array", "items": { "$ref": "#/$defs/entity" } },
+    "facts": { "type": "array", "items": { "$ref": "#/$defs/fact" } },
+    "stats": {
+      "type": "object",
+      "additionalProperties": { "type": "integer" }
+    },
+    "relations_emitted": {
+      "type": "array",
+      "items": { "type": "string", "enum": [
+        "contains", "defines", "imports", "exports", "calls", "handles_route",
+        "reads_from", "writes_to", "returns", "raises", "catches", "tested_by",
+        "belongs_to_flow", "related_to", "generated_from", "changed_in_commit"
+      ] }
+    },
+    "relations_declared_only": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Quan hệ có trong từ vựng nhưng lớp tĩnh chưa sinh ra, kèm lý do."
+    }
+  },
+  "$defs": {
+    "entityKind": {
+      "type": "string",
+      "enum": [
+        "repository", "commit", "directory", "file", "module", "symbol", "function",
+        "class", "route", "service", "data_model", "external_system", "test", "flow",
+        "error_case", "artifact"
+      ]
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["observed", "structural", "inferred", "runtime_verified", "stale", "contradicted"],
+      "description": "observed = đọc tại path:line; structural = suy ra từ cấu trúc; inferred = heuristic; runtime_verified = chỉ khi có bằng chứng chạy; stale/contradicted = trạng thái sức khỏe."
+    },
+    "entityId": {
+      "type": "string",
+      "pattern": "^[a-z_]+:[^\n]{1,300}$",
+      "description": "<kind>:<name>; name có thể chứa dấu cách đơn (ví dụ 'route:GET /api/x')."
+    },
+    "entity": {
+      "type": "object",
+      "required": ["id", "kind"],
+      "additionalProperties": true,
+      "properties": {
+        "id": { "$ref": "#/$defs/entityId" },
+        "kind": { "$ref": "#/$defs/entityKind" },
+        "name": { "type": "string" },
+        "path": { "type": "string", "description": "Đường dẫn tương đối trong repository." },
+        "start_line": { "type": "integer", "minimum": 1 },
+        "end_line": { "type": "integer", "minimum": 1 },
+        "symbol": { "type": "string" },
+        "language": { "type": "string" },
+        "doc": { "type": "string", "maxLength": 1200 },
+        "content_hash": { "type": "string" },
+        "flow_ids": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["observed", "structural", "inferred", "call_site", "runtime"],
+          "description": "call_site = dòng gọi hàm thật; runtime = log/kết quả chạy."
+        },
+        "path": { "type": "string" },
+        "start_line": { "type": "integer", "minimum": 1 },
+        "end_line": { "type": "integer", "minimum": 1 },
+        "symbol": { "type": "string" },
+        "detail": { "type": "string", "maxLength": 400 },
+        "runtime": { "type": "string", "description": "Chỉ có khi kind=runtime." }
+      }
+    },
+    "fact": {
+      "type": "object",
+      "required": ["subject", "predicate", "object", "evidence", "confidence", "source_commit", "generated_by"],
+      "additionalProperties": true,
+      "properties": {
+        "subject": { "$ref": "#/$defs/entityId" },
+        "predicate": {
+          "type": "string",
+          "enum": [
+            "contains", "defines", "imports", "exports", "calls", "handles_route",
+            "reads_from", "writes_to", "returns", "raises", "catches", "tested_by",
+            "belongs_to_flow", "related_to", "generated_from", "changed_in_commit"
+          ]
+        },
+        "object": { "$ref": "#/$defs/entityId" },
+        "evidence": { "$ref": "#/$defs/evidence" },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "source_commit": { "type": "string" },
+        "generated_by": { "type": "string" },
+        "contradicted": {
+          "type": "object",
+          "description": "Fact yếu hơn bị thay thế; không bị xóa âm thầm.",
+          "properties": {
+            "confidence": { "$ref": "#/$defs/confidence" },
+            "evidence": { "$ref": "#/$defs/evidence" }
+          },
+          "required": ["confidence"],
+          "additionalProperties": false
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "predicate": { "const": "calls" } }, "required": ["predicate"] },
+          "then": {
+            "properties": {
+              "evidence": {
+                "properties": { "kind": { "const": "call_site" }, "start_line": { "type": "integer" } },
+                "required": ["kind", "start_line"]
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "confidence": { "const": "observed" } }, "required": ["confidence"] },
+          "then": {
+            "properties": {
+              "evidence": {
+                "required": ["path", "start_line"],
+                "properties": { "path": { "type": "string", "minLength": 1 }, "start_line": { "type": "integer", "minimum": 1 } }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "confidence": { "const": "runtime_verified" } }, "required": ["confidence"] },
+          "then": { "properties": { "evidence": { "required": ["runtime"] } } }
+        }
+      ]
+    },
+    "victor": { "type": "string" },
+    "chunk": {
+      "title": "Vector chunk metadata",
+      "type": "object",
+      "required": ["chunk_id", "repository_id", "source_commit", "path", "kind",
+        "flow_ids", "confidence", "content_hash", "embedding_model", "sensitive"],
+      "additionalProperties": false,
+      "properties": {
+        "chunk_id": { "type": "string" },
+        "repository_id": { "type": "string" },
+        "source_commit": { "type": "string" },
+        "path": { "type": "string" },
+        "symbol": { "type": "string" },
+        "kind": { "type": "string" },
+        "flow_ids": { "type": "array", "items": { "type": "string" } },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "content_hash": { "type": "string" },
+        "embedding_model": { "type": "string" },
+        "embedding_version": { "type": "string" },
+        "sensitive": { "type": "boolean", "const": false },
+        "start_line": { "type": "integer", "minimum": 1 },
+        "end_line": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "retrievalResult": {
+      "title": "Một kết quả truy hồi",
+      "type": "object",
+      "required": ["entity", "kind", "path", "symbol", "start_line", "end_line",
+        "relation", "confidence", "reason", "source_commit"],
+      "additionalProperties": false,
+      "properties": {
+        "entity": { "type": "string" },
+        "kind": { "type": "string" },
+        "path": { "type": "string" },
+        "symbol": { "type": "string" },
+        "start_line": { "type": "integer", "minimum": 1 },
+        "end_line": { "type": "integer", "minimum": 1 },
+        "relation": { "type": "array", "items": { "type": "string" } },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "reason": { "type": "string" },
+        "source_commit": { "type": "string" },
+        "score": { "type": "number" },
+        "why_matched": { "type": "string" },
+        "evidence_refs": { "type": "array", "items": { "$ref": "#/$defs/entityRef" } }
+      }
+    },
+    "entityRef": {
+      "type": "object",
+      "required": ["path", "start_line", "relation", "confidence"],
+      "additionalProperties": false,
+      "properties": {
+        "path": { "type": "string" },
+        "start_line": { "type": "integer", "minimum": 1 },
+        "relation": { "type": "array", "items": { "type": "string" } },
+        "confidence": { "$ref": "#/$defs/confidence" }
+      }
+    }
+  },
+  "x-relations": {
+    "contains": { "subject": ["repository", "directory", "file", "module"], "object": ["file", "symbol", "directory"], "emitted": true },
+    "defines": { "subject": ["file", "module"], "object": ["symbol", "function", "class"], "emitted": true },
+    "imports": { "subject": ["file", "module"], "object": ["module", "file"], "emitted": true },
+    "exports": { "subject": ["file", "module"], "object": ["symbol", "function", "class"], "emitted": true },
+    "calls": { "subject": ["file", "module", "symbol", "function"], "object": ["symbol", "function"], "emitted": true, "evidence": "call_site" },
+    "handles_route": { "subject": ["file", "module", "service"], "object": ["route"], "emitted": true },
+    "reads_from": { "subject": ["file", "module", "function", "symbol"], "object": ["data_model", "external_system"], "emitted": true },
+    "writes_to": { "subject": ["file", "module", "function", "symbol"], "object": ["data_model", "external_system"], "emitted": true },
+    "returns": { "subject": ["function", "symbol", "route", "class"], "object": ["data_model", "external_system", "symbol"], "emitted": false, "reason": "cần thông tin kiểu/giá trị trả về" },
+    "raises": { "subject": ["file", "function", "symbol"], "object": ["error_case"], "emitted": true },
+    "catches": { "subject": ["file", "function", "symbol"], "object": ["error_case"], "emitted": true },
+    "tested_by": { "subject": ["file", "module", "symbol", "function"], "object": ["test", "file"], "emitted": true },
+    "belongs_to_flow": { "subject": ["file", "symbol", "function", "route", "service"], "object": ["flow"], "emitted": true },
+    "related_to": { "subject": ["file", "module", "symbol", "service", "flow"], "object": ["file", "module", "symbol", "service", "flow"], "emitted": true },
+    "generated_from": { "subject": ["artifact"], "object": ["repository", "flow", "commit"], "emitted": true },
+    "changed_in_commit": { "subject": ["file", "directory"], "object": ["commit"], "emitted": true }
+  }
+}
