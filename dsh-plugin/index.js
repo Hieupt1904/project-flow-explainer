@@ -41,6 +41,11 @@ let ConfigSchema
 try {
   const schemastery = await import('@deepseek-ai/schemastery')
   const z = schemastery.default ?? schemastery
+  // Plain fields, deliberately NOT .volatile(): the Settings page projects
+  // volatile fields through the loader's own schemastery instance, and a bundle
+  // that resolves a second copy from the profile closure gets {} for every
+  // field (measured: cfg {"allowedRoots":{},"pythonPath":{},...}). The settings
+  // UI for this bundle is the client card in Plugins, not the generated page.
   ConfigSchema = z.object({
     allowedRoots: z.array(z.string()).description(
       'Thư mục gốc được đọc, đường dẫn tuyệt đối. Rỗng nghĩa là từ chối mọi repository.'),
@@ -73,7 +78,12 @@ function badConfig(message, hint) {
 }
 
 function normalizeConfig(config) {
-  const settings = { ...DEFAULTS, ...(config ?? {}) }
+  // Volatile settings arrive as explicit undefined when the user layer has no
+  // value yet, so a plain spread would overwrite the default with undefined.
+  const settings = { ...DEFAULTS }
+  for (const [key, value] of Object.entries(config ?? {})) {
+    if (value !== undefined && value !== null) settings[key] = value
+  }
   if (typeof settings.pythonPath !== 'string' || settings.pythonPath.trim() === '') {
     badConfig('pythonPath phải là chuỗi không rỗng')
   }

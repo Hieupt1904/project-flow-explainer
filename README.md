@@ -108,6 +108,8 @@ Bundle 0.4.2 có settings card: mở **Plugins → project-flow-explainer**, ph�
 hiện 5 trường (`allowedRoots`, `pythonPath`, `coreRoot`, `timeoutMs`, `maxOutputBytes`).
 Card ghi qua slot `plugins.bundle.config`; Host lưu vào patch layer và áp cho lần gọi sau.
 Schema là `Config` native (schemastery): giá trị sai kiểu bị từ chối ngay khi mount.
+Trang Settings tự sinh của DSH **không** liệt kê bundle này (trường `.volatile()` bị chiếu
+thành `{}` khi schema đến từ bản schemastery khác instance); card trong Plugins là UI chính.
 
 Sau khi cài hoặc nâng cấp bundle, **khởi động lại DSH** để nạp module mới; đổi cấu hình
 trong UI thì không cần restart.

@@ -231,6 +231,18 @@ def main(argv=None):
                 and not any(name.startswith("project_")
                             for name in (report["steps"]["g"]["probe"].get("registered_tools") or []))),
         }
+        # Informational, not a gate: the generated Settings page only lists
+        # entries whose volatile fields project through the loader's own
+        # schemastery instance. Measured behaviour is recorded instead of
+        # pretending the page exists.
+        descriptor = (a.get("settings") or {})
+        report["settings_page"] = {
+            "auto_generated": bool(descriptor.get("present") and descriptor.get("auto_generate")),
+            "reason": ("entry absent from settings.describe()" if not descriptor.get("present")
+                       else "listed"),
+            "namespaces_seen": descriptor.get("count"),
+            "ui_provided_by": "client card in plugins.bundle.config",
+        }
         report["checks"] = checks
         report["tool_count"] = len(a.get("registered_tools") or [])
         report["status"] = "verified" if all(checks.values()) else "partial"

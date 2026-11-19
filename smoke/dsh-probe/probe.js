@@ -58,6 +58,34 @@ export function apply(ctx) {
     const names = (ctx.tools.definitions?.() || []).map((item) => item.name).sort()
     record.registered_tools = names
     record.missing_tools = record.expected_tools.filter((tool) => !names.includes(tool))
+    // The standard settings page comes from the Host's settings service: a
+    // loader entry with a real Config is described there and the UI may
+    // generate a page. Reading the descriptor is the evidence, not writing.
+    try {
+      const settings = ctx.get?.('settings')
+      if (settings && typeof settings.describe === 'function') {
+        const descriptors = settings.describe({ redactSecrets: true }) || []
+        const mine = descriptors.find((item) => String(item.ns).includes('project-flow-explainer'))
+        record.settings = mine === undefined ? {
+          present: false,
+          count: descriptors.length,
+          available: descriptors.slice(0, 12).map((item) => String(item.ns)),
+        } : {
+          present: true,
+          ns: String(mine.ns),
+          auto_generate: mine.autoGenerate !== false,
+          has_schema: mine.schema !== undefined && mine.schema !== null,
+          value_keys: Object.keys(mine.value || {}).sort(),
+          revision: mine.revision,
+          applies: mine.applies,
+          namespaces: descriptors.length,
+        }
+      } else {
+        record.settings = { present: false, reason: 'settings service unavailable' }
+      }
+    } catch (error) {
+      record.settings = { present: false, reason: String(error?.message || error) }
+    }
     write(record)
     const get = (tool) => ctx.tools.get(tool)
     const tool = get('project_flow_explain')

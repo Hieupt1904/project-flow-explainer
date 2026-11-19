@@ -24,10 +24,10 @@ Tarball phát hành:
 
 | Mục | Giá trị |
 |---|---|
-| Tên | `dsh-project-flow-explainer-0.4.2.tgz` |
-| Byte | 96 442 |
+| Tên | `dsh-project-flow-explainer-0.4.3.tgz` |
+| Byte | 96 724 |
 | Entry | 26 (gồm `client.js` và `vendor/core/{scripts,assets,tools,pfe}`) |
-| SHA-256 | `742c46a0d8824e3b5542b7800fbbb4eaa0f9e40fc9c93c87288ff3bdc2a71f20` |
+| SHA-256 | `281d588b30f1efedc39ab4cadfa769ea7b59535ba512dbadcf517ce05a78f615` |
 
 ## 2. Lỗi tái hiện được và đã sửa trong 0.4.x
 
@@ -179,6 +179,32 @@ Bundle có `client.js` đăng ký slot `plugins.bundle.config` với key là pac
 
 6 test client (`dsh-plugin/tests/client.test.mjs`) + 1 check trong DSH smoke
 (`invalid_config_rejected`) khoá hành vi này.
+
+
+## 4e. Đối chiếu hướng dẫn chính thức của DSH
+
+Tham chiếu: `deepseekdocs.com/en/docs/learn/dev/hello-plugin` và `config-publish`.
+
+| Yêu cầu trong tài liệu | Trạng thái trong bundle |
+|---|---|
+| Module export `name` + `apply(ctx, config)` | Đã có |
+| `dsh.bundle.patch` là một chuỗi đường dẫn | Đã có (`./cordis.patch.yml`) |
+| Patch layer dạng `- insert: [{id, name}]` | Đã có, 1 row `project-flow-explainer` |
+| `Config` là schemastery schema thật, có default | Đã có; boot sai kiểu trả `ValidationError` |
+| Không export `Config` rỗng để lấy validation giả | Có fallback `undefined` khi thiếu schemastery |
+| Tool khai báo `output { schema, render }` | Đã có cho 7 tool |
+| `inject` khai báo service dùng (`tools`) | Đã có |
+| Đóng gói: `files` gồm entry, lib, patch, client | Đã có; `client.js` từng bị thiếu, đã sửa |
+| Cài bằng `dsh plugin add` (tarball/link/git) | Đã chạy với tarball |
+| Kiểm composition bằng `--dump-config` | Đã chạy, exit 0, đúng 1 row |
+| Settings UI: `Config` + trường `.volatile()` | **KHÔNG tự sinh** — xem giới hạn bên dưới |
+| UI riêng cho bundle | Card ở `plugins.bundle.config` (đã test 6 ca) |
+
+Giới hạn đã đo: khi bật `.volatile()`, loader chiếu từng trường thành `{}`
+(`cfg {"allowedRoots":{},"pythonPath":{},...}`) vì schema đến từ bản `@deepseek-ai/schemastery`
+khác instance với loader. Vì vậy bundle không bật `volatile`; UI cấu hình là card riêng
+trong trang Plugins, còn Settings tự sinh thì không xuất hiện (đã ghi trong
+`dsh-smoke.json` mục `settings_page`).
 
 ## 5. Chưa kiểm chứng
 
