@@ -22,7 +22,7 @@ Lý do duy nhất: **TASK 4 (smoke trong DSH thật) đang BLOCKED** vì bước
 | TASK 5 | Semantics abort | **DONE** | Adapter ném `Error{name:'AbortError'}`; runtime map thành `code: ABORTED` (`dsh-tools/src/pipeline.ts:700-707,770-780`); test phân biệt abort / `core_timeout` / `core_failed` |
 | TASK 6 | Độ chính xác graph | **DONE** | Builder tách 3 tầng bằng chứng; chỉ nối theo route/import/call; fixture decoy `routes/preview.js` nằm trong `related`, không thành node; `overview.md` có cột "Bằng chứng thành viên" |
 | TASK 7 | Dọn artifact & provenance | **DONE** | Xoá `artifacts/qa/**` lồng nhau; sample regenerate từ HEAD; artifact không còn absolute path; `scripts/check_repo_policy.py` chặn `/home/`, `\Users\`, `artifacts/…/artifacts`, secret-shape |
-| TASK 8 | CI + regression | **DONE (local), CHƯA CHẠY trên GitHub** | `.github/workflows/ci.yml`: 3 job (python 3.12, node 20+24, manifest); mọi lệnh trong CI đã chạy pass ở máy |
+| TASK 8 | CI + regression | **DONE** | `.github/workflows/ci.yml`; GitHub Actions run `44505483840`: 4/4 job success (core py3.12 · adapter node 20 · adapter node 24 · bundle manifest), log core xác nhận `Ran 32 tests … OK` |
 
 Chi tiết test: [TEST_REPORT.md](TEST_REPORT.md) · UI: [UI_VERIFICATION_REPORT.md](UI_VERIFICATION_REPORT.md) ·
 quyết định kiến trúc: [ARCHITECTURE_DECISION.md](ARCHITECTURE_DECISION.md).
@@ -107,7 +107,7 @@ config:
 |---|---|
 | Smoke trong DSH thật (cài `pfe-test`, gọi tool, unload/reload, remove) | **BLOCKED** — chờ duyệt |
 | Panel UI trong Harness | `BLOCKED_UI_API_UNVERIFIED` (ngoài phạm vi, không đổi) |
-| GitHub Actions thực chạy | Chưa push lần nào sau khi thêm `ci.yml`; lệnh tương đương đã pass local |
+| GitHub Actions | Đã chạy: run `44505483840` success toàn bộ 4 job |
 | Call graph đa ngôn ngữ đầy đủ | Chưa có; đã ghi rõ trong `limits` của mọi kết quả |
 | "Toàn cảnh" 34% với flow dài | Trade-off đã ghi (UI-002) |
 

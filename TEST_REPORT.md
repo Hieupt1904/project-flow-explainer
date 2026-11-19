@@ -13,6 +13,7 @@ Trạng thái: **toàn bộ test tự động PASS**. Chỉ TASK 4 (smoke trong 
 | `node --test dsh-plugin/tests/pack.test.mjs` | **2 pass / 0 fail** |
 | `python3 -m compileall -q scripts tests` | OK (không output) |
 | `python3 scripts/check_repo_policy.py` | `OK: 30 file … không absolute path, nested artifacts hay secret` |
+| GitHub Actions run `44505483840` | 4/4 job success; log core: `Ran 32 tests in 0.198s … OK`, policy OK |
 | `node dsh-plugin/scripts/pack.mjs` | tarball 35 613 byte, 8 file, có `vendor/core/**` |
 | `python3 scripts/render_flow.py assets/example_workflow.json --check-only` | `OK: 8 nodes, 8 edges, entry=welcome` |
 
@@ -102,7 +103,7 @@ Trạng thái: **toàn bộ test tự động PASS**. Chỉ TASK 4 (smoke trong 
 |---|---|---|
 | Tool ACTIVE trong DSH thật | **CHƯA CHẠY** | TASK 4 chờ duyệt cài vào `pfe-test` |
 | Gọi tool từ agent DSH | **CHƯA CHẠY** | phụ thuộc bước trên |
-| GitHub Actions chạy thật | **CHƯA CHẠY** | `ci.yml` mới thêm; toàn bộ lệnh tương đương đã pass local |
+| GitHub Actions | Đã chạy: run `44505483840` — core py3.12, adapter node 20/24, manifest: success |
 | Repo > 20 000 file | **CHƯA ĐO** | có giới hạn cứng, chưa benchmark |
 | Panel UI Harness | `BLOCKED_UI_API_UNVERIFIED` | ngoài phạm vi |
 
