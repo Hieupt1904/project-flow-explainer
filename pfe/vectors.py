@@ -43,17 +43,18 @@ class EmbeddingBackend:
 
 
 class HashingEmbedding(EmbeddingBackend):
-    """Deterministic hashed bag-of-words; dependency-free and lexical.
+    """Hashing lexical candidate generator (NOT a semantic embedding).
 
-    This is not a semantic model. It widens recall for morphological variants
-    (report/reports/reporting) and is used only to propose candidates; every
-    candidate still has to be confirmed by exact match or graph evidence. A
-    real local sentence-embedding model can be plugged in through the same
-    interface without changing callers.
+    It hashes stems into fixed buckets, so it widens recall for morphological
+    variants (report/reports/reporting) and nothing more. semantic=False is part
+    of the contract: a vector hit is a candidate that exact match or graph
+    evidence still has to confirm. A real local sentence-embedding model can be
+    plugged in through the same interface without touching callers.
     """
 
-    name = "hashing-bow"
-    version = "1"
+    name = "hashing-lexical"
+    version = "2"
+    description = "lexical hash fallback; semantic=False"
     local = True
     semantic = False
 

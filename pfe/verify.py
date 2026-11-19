@@ -34,7 +34,20 @@ def _check(name, status, detail, evidence=None):
             "evidence": evidence or []}
 
 
-def verify_repository(root, artifact_subdir=("artifacts", "flows")):
+def verify_repository(root, artifact_subdir=("artifacts", "flows"),
+                      ui_verified=False, runtime_verified=False):
+    """Run every verification that does not need a model or a network.
+
+    Verdicts are split on purpose:
+
+      static_verdict   only what was actually inspected here (graph, artifacts,
+                       static HTML scan, privacy, test mapping);
+      overall_verdict  'pass' only when a required gate outside this function
+                       has real evidence too (browser render, executed tests).
+
+    A green static scan is not a rendered page and not an executed test, so it
+    must not read as an unqualified pass.
+    """
     """Run every verification that does not need a model or a network."""
     root = Path(os.path.realpath(str(root)))
     flows_root = root.joinpath(*artifact_subdir)
@@ -125,20 +138,43 @@ def verify_repository(root, artifact_subdir=("artifacts", "flows")):
 
     failures = [item for item in checks if item["status"] == "fail"]
     blocked = [item for item in checks if item["status"] == "blocked"]
-    verdict = "fail" if failures else ("partial" if blocked else "pass")
+    static_verdict = "fail" if failures else ("partial" if blocked else "pass")
+    gates = {
+        "static": static_verdict,
+        "ui": "pass" if ui_verified else "blocked",
+        "runtime": "pass" if runtime_verified else "blocked",
+    }
+    if static_verdict == "fail":
+        overall_verdict = "fail"
+    elif all(value == "pass" for value in gates.values()):
+        overall_verdict = "pass"
+    else:
+        overall_verdict = "partial"
+    not_verified = [name for name, value in gates.items() if value != "pass"]
     return {
         "status": "ok",
-        "verdict": verdict,
+        "static_verdict": static_verdict,
+        "overall_verdict": overall_verdict,
+        "verdict": overall_verdict,  # deprecated alias, identical value
+        "gates": gates,
+        "not_verified": not_verified,
         "repository_name": root.name,
         "source_commit": index_status.get("source_commit", ""),
         "flow_artifacts": len(flow_dirs),
         "checks": checks,
-        "ui_verified": False,
-        "runtime_verified": False,
+        "ui_verified": bool(ui_verified),
+        "runtime_verified": bool(runtime_verified),
         "notes": [
-            "ui_verified=false: kiểm tra này chỉ đọc HTML tĩnh, không mở trình duyệt.",
-            "runtime_verified=false: không có bằng chứng chạy code của repository.",
+            "static_verdict chỉ nói về những gì đã kiểm tra tại đây: graph, artifact, "
+            "quét HTML tĩnh, privacy, test mapping.",
+            "ui: " + ("đã xác minh bằng trình duyệt" if ui_verified
+                     else "chưa mở trình duyệt — chỉ quét HTML tĩnh"),
+            "runtime: " + ("đã chạy test" if runtime_verified
+                          else "chưa chạy code/test của repository"),
         ],
+        "next_action": (
+            "mở flow.html trên trình duyệt và chạy test liên quan để nâng overall_verdict"
+            if overall_verdict != "pass" else "không còn gate nào chờ"),
     }
 
 

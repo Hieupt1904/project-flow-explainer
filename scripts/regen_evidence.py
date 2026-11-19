@@ -125,6 +125,11 @@ def main(argv=None):
     evidence["knowledge_log"] = write_log(stamp, "node-knowledge", knowledge).name
     evidence["knowledge"] = parse_node_tests(knowledge["stdout"])
 
+    lifecycle = run(["node", "--test", "dsh-plugin/tests/lifecycle.test.mjs"],
+                    "lifecycle tests")
+    evidence["lifecycle_log"] = write_log(stamp, "node-lifecycle", lifecycle).name
+    evidence["lifecycle"] = parse_node_tests(lifecycle["stdout"])
+
     pack = run(["node", "--test", "dsh-plugin/tests/pack.test.mjs"], "pack tests")
     evidence["pack_log"] = write_log(stamp, "node-pack", pack).name
     evidence["pack"] = parse_node_tests(pack["stdout"])
@@ -173,18 +178,31 @@ def main(argv=None):
         "privacy": real.get("privacy", {}).get("absolute_paths", ""),
     }
 
-    ui_path = REVIEW / "20261119-ui.json"
+    ui_candidates = sorted(REVIEW.glob("*-ui.json"))
+    ui_path = ui_candidates[-1] if ui_candidates else REVIEW / "missing-ui.json"
     ui = json.loads(ui_path.read_text(encoding="utf-8")) if ui_path.exists() else {}
     evidence["ui"] = {
-        "status": "pass" if ui and not any(ui["summary"].values()) else "partial",
+        "status": "pass" if ui and not any(
+            ui["summary"].get(key, 0) for key in
+            ("overflow", "card_overlap", "label_over_card", "clipped_headers",
+             "console_errors", "external_requests")) and not ui.get("problems")
+                  else "partial",
         "combinations": ui.get("combinations", 0),
         "summary": ui.get("summary", {}),
+        "problems": ui.get("problems", []),
         "log": ui_path.name if ui_path.exists() else "",
     }
 
     git = run(["git", "rev-parse", "HEAD"], "git head")
     branch = run(["git", "rev-parse", "--abbrev-ref", "HEAD"], "git branch")
     status = run(["git", "status", "--porcelain"], "git status")
+    # Evidence files are what this run produces; they are not "uncommitted
+    # source". Report both so "source tree clean" stays a verifiable claim.
+    status_lines = [line for line in status["stdout"].splitlines() if line.strip()]
+    source_dirty = [line for line in status_lines
+                    if "artifacts/review/" not in line]
+    evidence_dirty = [line for line in status_lines
+                      if "artifacts/review/" in line]
     manifest_pkg = json.loads((ROOT / "dsh-plugin" / "package.json").read_text(encoding="utf-8"))
 
     dsh = run(["dsh", "--version"], "dsh version")
@@ -209,7 +227,10 @@ def main(argv=None):
         "generator": "scripts/regen_evidence.py",
         "source_commit": git["stdout"].strip(),
         "source_branch": branch["stdout"].strip(),
-        "working_tree_dirty": bool(status["stdout"].strip()),
+        "working_tree_dirty": bool(source_dirty),
+        "evidence_files_changed": len(evidence_dirty),
+        "dirty_semantics": ("working_tree_dirty chỉ tính file ngoài artifacts/review; "
+                            "evidence_files_changed là số file bằng chứng do lần chạy này sinh."),
         "package_version": manifest_pkg["version"],
         "engines_dsh": manifest_pkg["engines"]["dsh"],
         "dsh_version": dsh_version,
@@ -219,12 +240,14 @@ def main(argv=None):
             "python": evidence["python"]["count"],
             "adapter": evidence["adapter"]["pass"],
             "knowledge_tools": evidence["knowledge"]["pass"],
+            "lifecycle": evidence["lifecycle"]["pass"],
             "pack": evidence["pack"]["pass"],
             "failures": (0 if evidence["python"]["ok"] else 1)
                         + evidence["adapter"]["fail"] + evidence["knowledge"]["fail"]
-                        + evidence["pack"]["fail"],
+                        + evidence["lifecycle"]["fail"] + evidence["pack"]["fail"],
             "adapter_engine_failures": (evidence["adapter"]["fail"]
                                         + evidence["knowledge"]["fail"]
+                                        + evidence["lifecycle"]["fail"]
                                         + evidence["pack"]["fail"]),
         },
         "tarball": evidence["tarball"],

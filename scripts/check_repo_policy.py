@@ -23,6 +23,7 @@ TEXT_SUFFIXES = {".md", ".json", ".html", ".js", ".mjs", ".py", ".yml", ".yaml",
 SCAN_ROOTS = ["artifacts", "README.md", "SKILL.md", "ARCHITECTURE_DECISION.md",
               "DSH_IMPLEMENTATION_PLAN.md", "FINAL_REPORT.md", "IMPROVEMENT_PLAN.md",
               "TEST_REPORT.md", "UI_VERIFICATION_REPORT.md", "REVIEW_PACKET.md",
+              "USAGE_GUIDE.md",
               "dsh-plugin", "pfe", "tools", "references", "scripts"]
 
 # Placeholder user names used in documentation examples are not workstation paths.

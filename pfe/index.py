@@ -37,7 +37,7 @@ from . import knowledge as knowledge_mod
 from . import ontology
 from .text import normalize_text, sha256_text, strip_diacritics, utc_now
 
-INDEX_VERSION = 1
+INDEX_VERSION = 2
 INDEX_DIR = (".pfe", "index")
 DB_NAME = "knowledge.sqlite"
 SCHEMA = [
@@ -53,12 +53,17 @@ SCHEMA = [
     """CREATE TABLE IF NOT EXISTS facts (
         subject TEXT, predicate TEXT, object TEXT, path TEXT, evidence TEXT,
         confidence TEXT, source_commit TEXT, generated_by TEXT,
+        contradicted TEXT,
         PRIMARY KEY (subject, predicate, object))""",
     """CREATE TABLE IF NOT EXISTS flows (
         flow_id TEXT PRIMARY KEY, title TEXT, request TEXT, entry_node TEXT,
         artifact_dir TEXT, generated_at TEXT, confidence TEXT, counts TEXT)""",
     """CREATE TABLE IF NOT EXISTS file_cache (
         path TEXT PRIMARY KEY, content_hash TEXT, payload TEXT)""",
+    """CREATE TABLE IF NOT EXISTS entry_points (
+        path TEXT, kind TEXT, label TEXT, symbol TEXT, start_line INTEGER,
+        evidence_kind TEXT, confidence TEXT,
+        PRIMARY KEY (path, kind, start_line, label))""",
     """CREATE TABLE IF NOT EXISTS vectors (
         entity_id TEXT, model TEXT, version TEXT, dim INTEGER, vector BLOB,
         PRIMARY KEY (entity_id, model, version))""",
@@ -123,7 +128,7 @@ def _ensure_schema(connection, force=False):
     version = _meta(connection, "index_version") if exists else None
     if force or version != str(INDEX_VERSION):
         for table in ("meta", "files", "entities", "facts", "flows",
-                      "file_cache", "vectors", "search"):
+                      "file_cache", "entry_points", "vectors", "search"):
             connection.execute("DROP TABLE IF EXISTS " + table)
         for statement in SCHEMA:
             connection.execute(statement)
@@ -152,7 +157,8 @@ def _set_meta(connection, key, value):
 CACHE_FIELDS = ("rel", "size", "language", "content_hash", "symbols", "routes",
                 "entries", "imports", "external_imports", "call_sites",
                 "response_lines", "error_sites", "raise_sites", "exports",
-                "reads", "writes", "doc", "secret_lines", "is_test", "identifiers")
+                "reads", "writes", "doc", "secret_lines", "is_test", "identifiers",
+                "entry_points")
 
 
 def _payload(item):
@@ -163,6 +169,7 @@ def _payload(item):
 def _from_payload(payload, real=""):
     data = json.loads(payload)
     data.setdefault("identifiers", [])
+    data.setdefault("entry_points", [])
     data["lines"] = []
     data["real"] = real
     return facts_mod.FileFacts(**data)
@@ -234,13 +241,37 @@ def build_index(root, mode="incremental", include_vectors=False, vector_backend=
             connection.execute("DELETE FROM facts WHERE path = ?", (rel,))
             connection.execute("DELETE FROM search WHERE path = ?", (rel,))
             connection.execute("DELETE FROM file_cache WHERE path = ?", (rel,))
+            connection.execute("DELETE FROM entry_points WHERE path = ?", (rel,))
             connection.execute("DELETE FROM files WHERE path = ?", (rel,))
 
         parse_ms = {"total": 0.0, "count": 0}
         parsed = {}
-        for rel in added + changed:
+        # Resolve the cache BEFORE parsing: a file whose cache row is missing or
+        # unreadable must be re-parsed, not silently dropped from the graph.
+        reusable = {}
+        needs_parse = []
+        for rel in unchanged:
+            row = connection.execute(
+                "SELECT content_hash, payload FROM file_cache WHERE path = ?", (rel,)).fetchone()
+            if row is None:
+                warnings.append("Cache thiếu cho " + rel + "; parse lại.")
+                needs_parse.append(rel)
+                continue
+            try:
+                reusable[rel] = _from_payload(row["payload"], current[rel][0].real)
+            except (ValueError, TypeError, KeyError) as error:
+                warnings.append("Cache hỏng cho " + rel + " (" + type(error).__name__
+                                + "); parse lại.")
+                needs_parse.append(rel)
+                continue
+            connection.execute(
+                "UPDATE files SET mtime_ns = ?, commit_sha = ?, dirty = ?, indexed_at = ?"
+                " WHERE path = ?",
+                (current[rel][0].mtime_ns, commit, int(dirty), utc_now(), rel))
+
+        for rel in added + changed + needs_parse:
             entry, digest = current[rel]
-            if rel in {item["from"] for item in renamed}:
+            if rel in {item["from"] for item in renamed} or rel in needs_parse:
                 purge(rel)
             stamp = time.time()
             item = facts_mod.parse_entry(entry)
@@ -270,18 +301,6 @@ def build_index(root, mode="incremental", include_vectors=False, vector_backend=
                 "INSERT OR REPLACE INTO file_cache(path, content_hash, payload)"
                 " VALUES(?,?,?)", (rel, digest, _payload(item)))
 
-        reusable = {}
-        for rel in unchanged:
-            row = connection.execute(
-                "SELECT content_hash, payload FROM file_cache WHERE path = ?", (rel,)).fetchone()
-            if row is None:
-                changed.append(rel)
-                continue
-            reusable[rel] = _from_payload(row["payload"], current[rel][0].real)
-            connection.execute(
-                "UPDATE files SET mtime_ns = ?, commit_sha = ?, dirty = ?, indexed_at = ?"
-                " WHERE path = ?",
-                (current[rel][0].mtime_ns, commit, int(dirty), utc_now(), rel))
         for rel in removed:
             purge(rel)
 
@@ -292,10 +311,59 @@ def build_index(root, mode="incremental", include_vectors=False, vector_backend=
                 reusable.pop(rel)
         all_files = dict(reusable)
         all_files.update(parsed)
+
+        # Invariant: every file the index claims to know is in the graph. A hole
+        # here means a file row survives while its entities disappear, which is
+        # exactly the failure mode this repair exists for.
+        missing = [rel for rel in current if rel not in all_files
+                   and rel not in sensitive_content]
+        for rel in missing:
+            entry, digest = current[rel]
+            item = facts_mod.parse_entry(entry)
+            if item is None:
+                continue
+            item.content_hash = digest
+            if item.secret_lines > 0:
+                sensitive_content.append(rel)
+                purge(rel)
+                continue
+            parsed[rel] = item
+            parse_ms["count"] += 1
+            all_files[rel] = item
+            connection.execute(
+                "INSERT OR REPLACE INTO files(path, language, size, mtime_ns, content_hash,"
+                " commit_sha, dirty, is_test, sensitive, indexed_at, parse_ms)"
+                " VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                (rel, item.language, item.size, entry.mtime_ns, digest, commit,
+                 int(dirty), int(item.is_test), 0, utc_now(), 0.0))
+            connection.execute(
+                "INSERT OR REPLACE INTO file_cache(path, content_hash, payload)"
+                " VALUES(?,?,?)", (rel, digest, _payload(item)))
+        if missing:
+            warnings.append("Đã parse bù " + str(len(missing))
+                            + " file bị thiếu khỏi graph (cache thiếu/hỏng).")
         for rel in deleted:
             if rel in {item["from"] for item in renamed} and rel not in all_files:
                 all_files[rel] = None
         live_files = [item for item in all_files.values() if item is not None]
+
+        # Entry points are additive evidence: routes come from route entities,
+        # everything else from a registration line in the file. Nothing here is
+        # inferred from a function name.
+        connection.execute("DELETE FROM entry_points")
+        for item in live_files:
+            for route in item.routes:
+                connection.execute(
+                    "INSERT OR REPLACE INTO entry_points(path, kind, label, symbol,"
+                    " start_line, evidence_kind, confidence) VALUES(?,?,?,?,?,?,?)",
+                    (item.rel, "http_route", route["label"], route["label"],
+                     route["line"], "observed", "observed"))
+            for entry in item.entry_points:
+                connection.execute(
+                    "INSERT OR REPLACE INTO entry_points(path, kind, label, symbol,"
+                    " start_line, evidence_kind, confidence) VALUES(?,?,?,?,?,?,?)",
+                    (item.rel, entry["kind"], entry.get("label") or "",
+                     entry.get("label") or "", entry["line"], "observed", "observed"))
 
         # Knowledge is rebuilt from the in-memory fact set: parse cache keeps
         # unchanged files out of the parser, not out of the graph.
@@ -327,11 +395,16 @@ def build_index(root, mode="incremental", include_vectors=False, vector_backend=
                 evidence = fact.get("evidence") or {}
                 connection.execute(
                     "INSERT OR REPLACE INTO facts(subject, predicate, object, path, evidence,"
-                    " confidence, source_commit, generated_by) VALUES(?,?,?,?,?,?,?,?)",
+                    " confidence, source_commit, generated_by, contradicted)"
+                    " VALUES(?,?,?,?,?,?,?,?,?)",
                     (fact["subject"], fact["predicate"], fact["object"],
                      evidence.get("path") or "", json.dumps(evidence, ensure_ascii=False),
                      fact["confidence"], fact.get("source_commit") or "",
-                     fact.get("generated_by") or ""))
+                     fact.get("generated_by") or "",
+                     # Never drop a known conflict: an agent that trusts the
+                     # stronger fact must still see that a weaker one existed.
+                     json.dumps(fact["contradicted"], ensure_ascii=False)
+                     if fact.get("contradicted") else None))
 
         _set_meta(connection, "repository_id", knowledge["repository_id"])
         _set_meta(connection, "repository_name", knowledge["repository_name"])
@@ -339,6 +412,8 @@ def build_index(root, mode="incremental", include_vectors=False, vector_backend=
         _set_meta(connection, "dirty", int(dirty))
         _set_meta(connection, "generated_at", utc_now())
         _set_meta(connection, "mode", "full" if full else "incremental")
+        _set_meta(connection, "entry_points",
+                  connection.execute("SELECT COUNT(*) AS c FROM entry_points").fetchone()["c"])
         _set_meta(connection, "files_indexed", len(live_files))
         _set_meta(connection, "excluded_sensitive",
                   excluded.get("sensitive_name", 0) + excluded.get("symlink_sensitive", 0)
@@ -376,7 +451,7 @@ def build_index(root, mode="incremental", include_vectors=False, vector_backend=
         "mode": "full" if full else "incremental",
         "files_indexed": len(live_files),
         "files_parsed": parse_ms["count"],
-        "files_reused": len(unchanged),
+        "files_reused": len(reusable),
         "symbols_indexed": symbols,
         "routes_indexed": routes,
         "tests_indexed": tests,
@@ -603,11 +678,22 @@ def entity(connection, entity_id):
 
 def facts_about(connection, entity_id, limit=40):
     rows = connection.execute(
-        "SELECT subject, predicate, object, evidence, confidence FROM facts "
+        "SELECT subject, predicate, object, evidence, confidence, contradicted FROM facts "
         "WHERE subject = ? OR object = ? LIMIT ?", (entity_id, entity_id, limit)).fetchall()
-    return [{"subject": row["subject"], "predicate": row["predicate"],
-             "object": row["object"], "confidence": row["confidence"],
-             "evidence": json.loads(row["evidence"] or "{}")} for row in rows]
+    return [_fact_row(row) for row in rows]
+
+
+def _fact_row(row):
+    item = {"subject": row["subject"], "predicate": row["predicate"],
+            "object": row["object"], "confidence": row["confidence"],
+            "evidence": json.loads(row["evidence"] or "{}")}
+    try:
+        conflict = row["contradicted"]
+    except (IndexError, KeyError):
+        conflict = None
+    if conflict:
+        item["contradicted"] = json.loads(conflict)
+    return item
 
 
 def neighbours(connection, entity_id, predicates=None, limit=50):
@@ -615,16 +701,14 @@ def neighbours(connection, entity_id, predicates=None, limit=50):
     if predicates:
         placeholders = ",".join("?" for _ in predicates)
         rows = connection.execute(
-            "SELECT subject, predicate, object, evidence, confidence FROM facts "
+            "SELECT subject, predicate, object, evidence, confidence, contradicted FROM facts "
             "WHERE predicate IN (" + placeholders + ") AND (subject = ? OR object = ?) "
             "LIMIT ?", (*predicates, entity_id, entity_id, limit)).fetchall()
     else:
         rows = connection.execute(
-            "SELECT subject, predicate, object, evidence, confidence FROM facts "
+            "SELECT subject, predicate, object, evidence, confidence, contradicted FROM facts "
             "WHERE subject = ? OR object = ? LIMIT ?", (entity_id, entity_id, limit)).fetchall()
-    return [{"subject": row["subject"], "predicate": row["predicate"],
-             "object": row["object"], "confidence": row["confidence"],
-             "evidence": json.loads(row["evidence"] or "{}")} for row in rows]
+    return [_fact_row(row) for row in rows]
 
 
 def list_entities(connection, kind=None, path=None, limit=200):

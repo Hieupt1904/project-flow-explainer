@@ -27,7 +27,11 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
-for candidate in (str(HERE), str(ROOT)):
+SCRIPTS = ROOT / "scripts"
+# The flow subcommand reuses scripts/build_flow.py, which imports its sibling
+# render_flow as a top-level module. Both directories must be importable no
+# matter which working directory the caller used (repo root, elsewhere, DSH).
+for candidate in (str(HERE), str(ROOT), str(SCRIPTS)):
     if candidate not in sys.path:
         sys.path.insert(0, candidate)
 
@@ -60,7 +64,15 @@ def _repository(value):
 
 
 def cmd_flow(args):
-    import build_flow
+    try:
+        import build_flow
+    except ImportError as error:
+        # Never let a broken installation look like a successful run: report the
+        # missing module as a tool error with its own code.
+        raise BuildError(
+            "core_import_failed",
+            "Không import được scripts/build_flow.py: " + str(error),
+            "Chạy CLI từ checkout của repo hoặc cài bundle có vendor/core đầy đủ.")
     result = build_flow.run(args.repo, args.request, args.out_dir, args.slug)
     result.pop("repository", None)
     return _json(result)
@@ -178,7 +190,10 @@ def build_parser():
 
 
 def main(argv=None):
-    args = build_parser().parse_args(argv)
+    try:
+        args = build_parser().parse_args(argv)
+    except SystemExit as exit_error:  # argparse: bad flags, not a crash
+        return int(exit_error.code or 2)
     try:
         return args.handler(args)
     except BuildError as error:

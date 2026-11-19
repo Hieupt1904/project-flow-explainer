@@ -137,6 +137,58 @@ EXPORT_PATTERNS = [
 
 COMMENT_LINE = re.compile(r"^\s*(?:#|//|/\*|\*|<!--)")
 
+# Entry points are recognised from a registration line, never from a name.
+# Each pattern proves *how* control enters the code; a function merely called
+# "handle_click" is not an entry point without a binding or a decorator.
+ENTRY_POINT_PATTERNS = [
+    (re.compile(r"^\s*if\s+__name__\s*==\s*['\"]__main__['\"]"), "main"),
+    (re.compile(r"^\s*if\s+__name__\s*==\s*['\"]__main__['\"]\s*:"), "main"),
+    (re.compile(r"^\s*(?:async\s+)?def\s+(main)\s*\("), "main"),
+    (re.compile(r"\.add_parser\s*\(\s*['\"]([\w.-]+)['\"]"), "cli_command"),
+    (re.compile(r"^\s*@(?:click|typer)\.(?:command|group)\b"), "cli_command"),
+    (re.compile(r"\bcommand\s*=\s*([A-Za-z_][\w.]*)"), "gui_event"),
+    (re.compile(r"\.clicked\.connect\s*\(\s*([A-Za-z_][\w.]*)"), "button_click"),
+    (re.compile(r"\.bind\s*\(\s*['\"]([^'\"]+)['\"]\s*,\s*([A-Za-z_][\w.]*)"), "gui_event"),
+    (re.compile(r"^\s*@[\w.]*\btask\b"), "worker"),
+    (re.compile(r"\.addEventListener\s*\(\s*['\"]([^'\"]+)['\"]"), "callback"),
+    (re.compile(r"\bafter\s*\(\s*\d+\s*,"), "callback"),
+    (re.compile(r"\bcallback\s*=\s*([A-Za-z_][\w.]*)"), "callback"),
+]
+
+# Only an explicit public list is a public API declaration. `module.exports` is
+# a module boundary every JavaScript file has, so counting it as an entry point
+# would put every file in the context pack.
+PUBLIC_API_LINE = re.compile(r"^\s*__all__\s*=")
+
+
+def find_entry_points(lines):
+    """Return entry points with the line that proves them.
+
+    Only registration syntax counts: a decorator, a binding, a parser
+    registration, an export list, a __main__ guard. Each result is 'observed'
+    because the line is present in the file.
+    """
+    found = []
+    seen = set()
+    for number, line in enumerate(lines, start=1):
+        for regex, kind in ENTRY_POINT_PATTERNS:
+            match = regex.search(line)
+            if not match:
+                continue
+            label = ""
+            for group in match.groups():
+                if group:
+                    label = group
+                    break
+            key = (kind, number, label)
+            if key in seen:
+                continue
+            seen.add(key)
+            found.append({"kind": kind, "line": number, "label": label})
+        if PUBLIC_API_LINE.search(line):
+            found.append({"kind": "public_api", "line": number, "label": ""})
+    return found
+
 
 def is_excluded_name(name):
     return any(re.search(pattern, name) for pattern in EXCLUDED_NAME_PATTERNS)
@@ -190,6 +242,7 @@ class FileFacts:
     is_test: bool = False
     last_commit: str = ""
     identifiers: list = field(default_factory=list)
+    entry_points: list = field(default_factory=list)
 
     @property
     def line_count(self):
@@ -644,6 +697,7 @@ def _facts_from(rel, real, lines, size, is_test):
         rel=rel, real=real, size=size, language=language_of(rel), lines=lines,
         content_hash=hashlib.sha256(text.encode("utf-8", "replace")).hexdigest(),
         symbols=symbols, routes=find_routes(lines), entries=find_entries(lines),
+        entry_points=find_entry_points(lines),
         external_imports=find_external_imports(text),
         call_sites=find_call_sites(lines, symbols),
         response_lines=response_lines(lines),

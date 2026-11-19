@@ -426,68 +426,305 @@ def _snippets(root, results, max_lines=40):
     return output
 
 
+ENTRY_KIND_ORDER = {"http_route": 0, "main": 1, "cli_command": 2, "gui_event": 3,
+                    "button_click": 4, "callback": 5, "worker": 6, "public_api": 7,
+                    "export": 8, "command": 9}
+ENTRY_KINDS_EMITTED = {"http_route", "main", "cli_command", "gui_event", "button_click",
+                       "callback", "worker", "public_api"}
+ENTRY_KINDS_DECLARED_ONLY = {
+    "export": "module.exports là ranh giới module, mọi file JS đều có; cần consumer edge mới là entry",
+    "command": "chưa có parser cho shell command; cần fixture riêng trước khi phát",
+}
+# Containment (`defines`) and module boundaries (`exports`) are not
+# dependencies: including them filled the pack with every symbol of the file.
+DEPENDENCY_PREDICATES = ["imports", "calls", "reads_from", "writes_to", "tested_by",
+                         "raises", "catches"]
+
+
+def _relevance(result, error_intent):
+    """Task-aware relevance for the pack (search ranking is left untouched)."""
+    score = float(result.get("score") or 0.0)
+    kind = result.get("kind")
+    why = []
+    if kind == "route":
+        score += 0.3
+        why.append("entry point (route có khai báo)")
+    if kind in {"function", "class"}:
+        score += 0.1
+        why.append("symbol thực thi được")
+    if error_intent:
+        if kind == "error_case" or any(item in {"raises", "catches"} for item in result["relation"]):
+            score += 0.35
+            why.append("khớp ý định tìm lỗi")
+        if kind == "test":
+            score += 0.2
+            why.append("test liên quan tới lỗi")
+    else:
+        if kind == "error_case":
+            score -= 0.3
+            why.append("không hỏi lỗi nên hạ ưu tiên error_case")
+        if kind == "test":
+            score -= 0.15
+            why.append("không hỏi lỗi nên hạ ưu tiên test")
+    return score, why
+
+
+def _entry_points(connection, results, paths):
+    """Entry points that carry observed evidence, joined by file."""
+    entries = []
+    if not paths:
+        return entries
+    placeholders = ",".join("?" for _ in paths)
+    rows = connection.execute(
+        "SELECT path, kind, label, start_line, evidence_kind, confidence FROM entry_points "
+        "WHERE path IN (" + placeholders + ") ORDER BY path, start_line",
+        tuple(paths)).fetchall()
+    for row in rows:
+        if row["kind"] not in ENTRY_KINDS_EMITTED:
+            continue
+        entries.append({
+            "path": row["path"],
+            "kind": row["kind"],
+            "label": row["label"] or "",
+            "route": row["label"] or "",  # backward-compatible field
+            "start_line": row["start_line"],
+            "confidence": row["confidence"] or "observed",
+            "evidence_kind": row["evidence_kind"] or "observed",
+            "evidence_refs": [{"path": row["path"], "start_line": row["start_line"],
+                               "relation": ["handles_route"] if row["kind"] == "http_route"
+                               else ["registered_entry"],
+                               "confidence": row["confidence"] or "observed"}],
+        })
+    entries.sort(key=lambda item: (ENTRY_KIND_ORDER.get(item["kind"], 99),
+                                   item["path"], item["start_line"]))
+    return entries
+
+
+def _route_entities(connection, results):
+    """Real route entities reachable from a result by handles_route.
+
+    Never uses result['symbol'] as a route: a symbol is a function or file name
+    unless a handles_route fact points at an actual route entity.
+    """
+    routes = []
+    seen = set()
+    for result in results:
+        for hop in index_mod.neighbours(connection, result["entity"], ["handles_route"], limit=10):
+            target = hop["object"] if hop["predicate"] == "handles_route" else None
+            if not target or not target.startswith("route:"):
+                continue
+            if target in seen:
+                continue
+            seen.add(target)
+            entity = index_mod.entity(connection, target)
+            if entity is None:
+                continue
+            routes.append({
+                "route": entity["name"],
+                "path": entity["path"] or "",
+                "start_line": entity["start_line"] or 1,
+                "confidence": hop["confidence"],
+                "via": result["entity"],
+                "evidence_refs": [{"path": entity["path"] or "",
+                                   "start_line": entity["start_line"] or 1,
+                                   "relation": ["handles_route"],
+                                   "confidence": hop["confidence"]}],
+            })
+    return routes
+
+
+def _dependency(connection, entity_id, source, error_intent):
+    entity = index_mod.entity(connection, entity_id)
+    if entity is None:
+        return None
+    hops = index_mod.neighbours(connection, source["entity"], DEPENDENCY_PREDICATES, limit=40)
+    relation, confidence, why = None, None, None
+    for hop in hops:
+        other = hop["object"] if hop["subject"] == source["entity"] else hop["subject"]
+        if other == entity_id:
+            relation, confidence = hop["predicate"], hop["confidence"]
+            line = (hop["evidence"] or {}).get("start_line") or 1
+            why = ("quan hệ " + relation + " với " + (source.get("symbol") or source["path"])
+                   + " tại dòng " + str(line))
+            break
+    if relation is None:
+        return None
+    kind = entity["kind"]
+    has_location = bool(entity["path"]) and bool(entity["start_line"])
+    if error_intent and kind in {"error_case", "test"}:
+        relevance = "observed"
+    elif confidence == "observed":
+        relevance = "observed"
+    elif confidence == "structural":
+        relevance = "structural"
+    else:
+        relevance = "inferred"
+    return {
+        "entity": entity["id"],
+        "kind": kind,
+        "path": entity["path"] or "",
+        "symbol": entity["symbol"] or entity["name"] or "",
+        "start_line": entity["start_line"] or 1,
+        "end_line": entity["end_line"] or entity["start_line"] or 1,
+        "relation": relation,
+        "confidence": relevance,
+        "location_confidence": "observed" if entity["path"] and entity["start_line"] else "unknown",
+        "relevance_confidence": relevance,
+        "why_included": why,
+        "has_location": has_location,
+        "evidence_refs": [{
+            "path": entity["path"] or "",
+            "start_line": entity["start_line"] or 1,
+            "relation": [relation],
+            "confidence": relevance,
+        }] if has_location else [],
+    }
+
+
 def context_pack(root, task, max_files=12, include_snippets=False, backend=None):
-    """Assemble a context pack for a coding task. No raw source by default."""
+    """Assemble a context pack for a coding task.
+
+    Output answers three questions and says what it does not know:
+
+      where does this code start?   entry_points (observed registration lines)
+      what must I read?             likely_files + dependencies (path + line)
+      why is this here?             why_matched / why_included + evidence_refs
+
+    Entry points are never inferred from a function name, and a route label is
+    only reported when a `handles_route` fact points at a real route entity.
+    """
     parsed = parse_query(task)
-    retrieval = retrieve(root, task, top_k=max(max_files, 6), backend=backend,
+    error_intent = parsed["has_error_term"]
+    retrieval = retrieve(root, task, top_k=max(max_files * 2, 12), backend=backend,
                          include_snippets=False)
     stale = retrieval["stale"]
     warnings = list(retrieval["warnings"])
-    files, entry_points, impacted, tests, deps = [], [], [], [], []
-    seen = set()
-    for result in retrieval["results"]:
-        if result["path"] and result["path"] not in seen:
-            seen.add(result["path"])
-            files.append({
-                "path": result["path"], "symbol": result["symbol"],
-                "start_line": result["start_line"], "end_line": result["end_line"],
-                "confidence": result["confidence"], "why_matched": result["why_matched"],
-                "relation": result["relation"],
-            })
-        if "handles_route" in result["relation"]:
-            entry_points.append({"path": result["path"], "route": result["symbol"],
-                                 "start_line": result["start_line"],
-                                 "confidence": result["confidence"]})
-        if result["kind"] in {"function", "class", "symbol"}:
-            impacted.append({"symbol": result["symbol"], "path": result["path"],
-                             "start_line": result["start_line"]})
-        if result["kind"] == "test":
-            tests.append({"path": result["path"], "start_line": result["start_line"]})
+    limitations = [
+        "Phân tích tĩnh: chưa chạy code, chưa thực thi test.",
+        "Entry point chỉ lấy từ dòng đăng ký thật (route, add_parser, command=, bind, "
+        "decorator task, __main__, __all__); không suy từ tên hàm.",
+    ]
+    if not parsed["routes"]:
+        limitations.append("Không có route HTTP nào trong câu hỏi; dự án desktop/CLI "
+                           "có thể có 0 http_route và điều đó là đúng.")
+
     with index_mod.connect(root, create=False) as connection:
         index_mod._ensure_schema(connection)
-        flows = index_mod.list_flows(root)
+        ranked = []
         for result in retrieval["results"]:
+            score, why = _relevance(result, error_intent)
+            result = dict(result)
+            result["relevance_score"] = round(score, 4)
+            result["relevance_why"] = why
+            ranked.append(result)
+        ranked.sort(key=lambda item: (-item["relevance_score"], item["path"]))
+        ranked = ranked[:max_files]
+
+        seen_paths, seen_entities, seen_evidence = set(), set(), set()
+
+        def add_evidence(refs):
+            fresh = []
+            for ref in refs or []:
+                key = (ref.get("path"), ref.get("start_line"),
+                       tuple(ref.get("relation") or []))
+                if key in seen_evidence:
+                    continue
+                seen_evidence.add(key)
+                fresh.append(ref)
+            return fresh
+
+        likely_files = []
+        for result in ranked:
+            if result["path"] and result["path"] not in seen_paths:
+                seen_paths.add(result["path"])
+                seen_entities.add(result["entity"])
+                likely_files.append({
+                    "path": result["path"],
+                    "symbol": result["symbol"],
+                    "kind": result["kind"],
+                    "start_line": result["start_line"],
+                    "end_line": result["end_line"],
+                    "confidence": result["confidence"],
+                    "location_confidence": ("observed" if result["path"] and result["start_line"]
+                                            else "unknown"),
+                    "relevance_confidence": result["confidence"],
+                    "why_matched": result["why_matched"],
+                    "relevance_why": result["relevance_why"],
+                    "relation": result["relation"],
+                    "evidence_refs": add_evidence(result["evidence_refs"]),
+                })
+
+        entry_points = _entry_points(connection, ranked, list(seen_paths))
+        routes = _route_entities(connection, ranked)
+
+        dependencies, external = [], []
+        for result in ranked[:max_files]:
             for hop in index_mod.neighbours(connection, result["entity"],
-                                            ["imports", "reads_from", "writes_to"], limit=8):
+                                            DEPENDENCY_PREDICATES, limit=30):
                 other = hop["object"] if hop["subject"] == result["entity"] else hop["subject"]
-                if other not in seen:
-                    deps.append({"entity": other, "relation": hop["predicate"],
-                                 "confidence": hop["confidence"]})
-                    seen.add(other)
-        for row in connection.execute(
-                "SELECT id, path, start_line FROM entities WHERE kind = 'test' LIMIT 40"):
-            if parsed["symbol"] and parsed["symbol"].lower() in (row["path"] or "").lower():
-                tests.append({"path": row["path"], "start_line": row["start_line"]})
-    if stale:
-        warnings.append("Knowledge index cũ hơn HEAD; kết quả có thể lệch.")
+                if other in seen_entities:
+                    continue
+                dep = _dependency(connection, other, result, error_intent)
+                if dep is None:
+                    continue
+                seen_entities.add(other)
+                if dep.pop("has_location", True):
+                    dep["evidence_refs"] = add_evidence(dep["evidence_refs"])
+                    dependencies.append(dep)
+                else:
+                    # A data model or an external package has no file: keep it,
+                    # but never pretend it has a path/line.
+                    external.append({
+                        "entity": dep["entity"], "kind": dep["kind"],
+                        "symbol": dep["symbol"], "relation": dep["relation"],
+                        "confidence": dep["confidence"],
+                        "why_included": dep["why_included"],
+                        "location": "không có trong repository",
+                    })
+                if len(dependencies) >= max_files * 3:
+                    break
+            if len(dependencies) >= max_files * 3:
+                break
+
+        tests = [item for item in dependencies if item["kind"] == "test"]
+        impacted = [item for item in likely_files
+                    if item["kind"] in {"function", "class", "symbol"}]
+        flows = index_mod.list_flows(root)
+
     pack = {
         "status": "ok",
+        "analysis_kind": "context_pack",
         "task": task,
+        "intent": parsed["intent"],
         "source_commit": retrieval["source_commit"],
         "head_commit": retrieval["head_commit"],
         "stale": stale,
-        "relevant_flows": [{"flow_id": row["flow_id"], "title": row["title"]} for row in flows[:5]],
+        "relevant_flows": [{"flow_id": row["flow_id"], "title": row["title"]}
+                           for row in flows[:5]],
         "entry_points": entry_points[:max_files],
-        "impacted_symbols": impacted[:max_files],
-        "related_tests": tests[:max_files],
-        "likely_files": files[:max_files],
-        "dependencies": deps[:max_files],
+        "routes": routes[:max_files],
+        "impacted_symbols": [{"symbol": item["symbol"], "path": item["path"],
+                              "start_line": item["start_line"],
+                              "kind": item["kind"],
+                              "confidence": item["relevance_confidence"]}
+                             for item in impacted[:max_files]],
+        "related_tests": [{"path": item["path"], "test": item["symbol"],
+                           "start_line": item["start_line"],
+                           "confidence": item["relevance_confidence"],
+                           "why_included": item["why_included"]}
+                          for item in tests[:max_files]],
+        "likely_files": likely_files,
+        "dependencies": dependencies,
+        "external_dependencies": external[:max_files],
         "warnings": warnings,
-        "evidence_refs": [ref for result in retrieval["results"]
-                          for ref in result["evidence_refs"]][:40],
+        "limitations": limitations,
+        "seen": {"paths": len(seen_paths), "entities": len(seen_entities),
+                 "evidence": len(seen_evidence)},
+        "evidence_refs": [ref for item in likely_files for ref in item["evidence_refs"]][:40],
         "max_files": max_files,
         "snippets_included": bool(include_snippets),
+        "not_verified": ["runtime", "ui"] if not include_snippets else ["runtime", "ui"],
     }
     if include_snippets:
-        pack["snippets"] = _snippets(root, retrieval["results"])
+        pack["snippets"] = _snippets(root, ranked)
     return pack
