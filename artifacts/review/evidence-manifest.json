@@ -153,5 +153,14 @@
     "ok": true,
     "note": "chạy lại toàn bộ unittest sau khi manifest được ghi",
     "ran": 116
+  },
+  "ci": {
+    "run_id": "44563079783",
+    "commit": "9195956",
+    "conclusion": "success",
+    "jobs": 4,
+    "url": "https://github.com/Hieupt1904/project-flow-explainer/actions/runs/44563079783",
+    "recorded_at": "2026-11-19T23:11:44+07:00",
+    "note": "CI chạy trên commit chứa chính manifest này; commit kế tiếp chỉ thêm run id."
   }
 }
