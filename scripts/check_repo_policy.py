@@ -22,7 +22,8 @@ SKIP_DIRS = {".git", "node_modules", "__pycache__", ".pytest_cache", "dist"}
 TEXT_SUFFIXES = {".md", ".json", ".html", ".js", ".mjs", ".py", ".yml", ".yaml", ".txt"}
 SCAN_ROOTS = ["artifacts", "README.md", "SKILL.md", "ARCHITECTURE_DECISION.md",
               "DSH_IMPLEMENTATION_PLAN.md", "FINAL_REPORT.md", "IMPROVEMENT_PLAN.md",
-              "TEST_REPORT.md", "UI_VERIFICATION_REPORT.md", "dsh-plugin"]
+              "TEST_REPORT.md", "UI_VERIFICATION_REPORT.md", "REVIEW_PACKET.md",
+              "dsh-plugin", "pfe", "tools", "references", "scripts"]
 
 # Placeholder user names used in documentation examples are not workstation paths.
 PLACEHOLDER_USERS = {"ban", "you", "user", "example", "youruser", "me", "username"}
@@ -30,8 +31,13 @@ ABSOLUTE_PATH_PATTERNS = [
     re.compile(r"/home/(?!<)([A-Za-z0-9._-]+)"),
     re.compile(r"/Users/(?!<)([A-Za-z0-9._-]+)"),
     re.compile(r"[A-Za-z]:\\\\Users\\\\"),
-    re.compile(r"/tmp/pfe-"),
+    re.compile(r"/tmp/[A-Za-z0-9._-]+"),
+    re.compile(r"~/(?:Documents|Desktop|Projects|Downloads|src|code)/"),
+    re.compile(r"/mnt/[a-z]/Users/"),
+    re.compile(r"/private/var/folders/"),
 ]
+# This file defines the patterns, so scanning it would only match itself.
+SELF_EXEMPT = {"check_repo_policy.py"}
 SECRET_PATTERNS = [
     re.compile(r"gh[pousr]_[A-Za-z0-9]{20,}"),
     re.compile(r"sk-[A-Za-z0-9]{20,}"),
@@ -60,6 +66,8 @@ def iter_files(root):
 def check_paths(files):
     findings = []
     for path in files:
+        if path.name in SELF_EXEMPT:
+            continue
         try:
             text = path.read_text(encoding="utf-8", errors="replace")
         except OSError as error:
@@ -78,6 +86,27 @@ def check_paths(files):
             for hit in pattern.finditer(text):
                 line = text.count("\n", 0, hit.start()) + 1
                 findings.append(f"{path}:{line}: secret-shaped value in artifact")
+    return findings
+
+
+def check_run_json_contract(root):
+    """run.json must declare itself internal, and .pfe must never be committed."""
+    findings = []
+    for path in (root / "artifacts").rglob("run.json"):
+        if any(part in SKIP_DIRS for part in path.parts):
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            findings.append(f"{path}: run.json không đọc được ({error})")
+            continue
+        if payload.get("contract") != "internal-provenance":
+            findings.append(f"{path}: run.json thiếu contract=internal-provenance")
+        if "run.json" in (payload.get("public_outputs") or []):
+            findings.append(f"{path}: run.json bị khai báo là public output")
+    for path in root.rglob(".pfe"):
+        if path.is_dir():
+            findings.append(f"{path}: index cục bộ không được commit")
     return findings
 
 
@@ -126,6 +155,7 @@ def main(argv=None):
     findings = []
     findings.extend(check_paths(files))
     findings.extend(check_nested_artifacts(root))
+    findings.extend(check_run_json_contract(root))
     findings.extend(check_manifest(root))
     if findings:
         print(f"FAIL: {len(findings)} vi phạm policy", file=sys.stderr)
