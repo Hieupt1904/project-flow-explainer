@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-11-20T00:17:05+07:00",
+  "generated_at": "2026-11-20T00:21:45+07:00",
   "generator": "scripts/regen_evidence.py",
-  "source_commit": "afc895b8c5d2aea716edc472eb347774f9c8362e",
+  "source_commit": "d90ccef45c5ffea7862c6c98f1d6ac43fea50fd4",
   "source_branch": "main",
   "working_tree_dirty": false,
-  "evidence_files_changed": 27,
+  "evidence_files_changed": 32,
   "dirty_semantics": "working_tree_dirty chỉ tính file ngoài artifacts/review; evidence_files_changed là số file bằng chứng do lần chạy này sinh.",
-  "package_version": "0.4.2",
+  "package_version": "0.4.3",
   "engines_dsh": "0.2.2-rc.2",
   "dsh_version": "0.2.2-rc.2",
   "python_version": "3.12.3",
@@ -22,10 +22,10 @@
     "adapter_engine_failures": 0
   },
   "tarball": {
-    "filename": "dsh-project-flow-explainer-0.4.2.tgz",
-    "path": "dist/dsh-project-flow-explainer-0.4.2.tgz",
-    "bytes": 96442,
-    "sha256": "742c46a0d8824e3b5542b7800fbbb4eaa0f9e40fc9c93c87288ff3bdc2a71f20",
+    "filename": "dsh-project-flow-explainer-0.4.3.tgz",
+    "path": "dist/dsh-project-flow-explainer-0.4.3.tgz",
+    "bytes": 96724,
+    "sha256": "281d588b30f1efedc39ab4cadfa769ea7b59535ba512dbadcf517ce05a78f615",
     "entry_count": 26,
     "contains_cli": true,
     "contains_knowledge": true
@@ -54,7 +54,7 @@
       "disabled_hides_tools": true,
       "invalid_config_rejected": true
     },
-    "record": "20261120-0016-dsh-smoke.json",
+    "record": "20261120-002107-dsh-smoke.json",
     "blocked": {
       "model_driven": "not_verified: profile không có API key; probe gọi registry, không qua model",
       "panel_ui": "BLOCKED_UI_API_UNVERIFIED"
@@ -84,22 +84,22 @@
   },
   "policy": {
     "ok": true,
-    "summary": "OK: 79 file đã kiểm tra · không có absolute path, nested artifacts hay secret"
+    "summary": "OK: 86 file đã kiểm tra · không có absolute path, nested artifacts hay secret"
   },
   "benchmark": {
     "files": 2000,
     "source_bytes": 942071,
-    "scan_ms": 710.7,
+    "scan_ms": 680.1,
     "scan_files": 2001,
     "budget_notes": [],
-    "index_full_ms": 1500.4,
-    "index_incremental_ms": 433.9,
+    "index_full_ms": 1475.7,
+    "index_incremental_ms": 419.9,
     "files_parsed_full": 2001,
     "files_parsed_incremental": 0,
     "entities": 20003,
     "facts": 20001,
     "db_bytes": 15601664,
-    "rss_mb": 68.2,
+    "rss_mb": 68.7,
     "limits": {
       "max_files_scanned": 20000,
       "max_total_source_bytes": 33554432,
@@ -232,16 +232,16 @@
     ]
   },
   "logs": {
-    "python_log": "20261120-0016-python-tests.log",
-    "adapter_log": "20261120-0016-node-adapter.log",
-    "knowledge_log": "20261120-0016-node-knowledge.log",
-    "lifecycle_log": "20261120-0016-node-lifecycle.log",
-    "client_log": "20261120-0016-node-client.log",
-    "pack_log": "20261120-0016-node-pack.log",
-    "policy_log": "20261120-0016-policy.log",
-    "bundle_log": "20261120-0016-pack-build.log",
-    "bench_log": "20261120-0016-bench.json",
-    "consistency_log": "20261120-0016-consistency.log"
+    "python_log": "20261120-0021-python-tests.log",
+    "adapter_log": "20261120-0021-node-adapter.log",
+    "knowledge_log": "20261120-0021-node-knowledge.log",
+    "lifecycle_log": "20261120-0021-node-lifecycle.log",
+    "client_log": "20261120-0021-node-client.log",
+    "pack_log": "20261120-0021-node-pack.log",
+    "policy_log": "20261120-0021-policy.log",
+    "bundle_log": "20261120-0021-pack-build.log",
+    "bench_log": "20261120-0021-bench.json",
+    "consistency_log": "20261120-0021-consistency.log"
   },
   "classification": {
     "confirmed": [
