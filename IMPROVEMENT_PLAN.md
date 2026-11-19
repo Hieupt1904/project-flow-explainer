@@ -6,7 +6,7 @@ Backlog sau MVP, xếp theo giá trị/chi phí. Không mục nào ở đây ch�
 
 | # | Việc | Vì sao | Cách kiểm chứng |
 |---|---|---|---|
-| 1 | Cài bundle vào `pfe-test` và chạy smoke 12 bước trong DSH thật | Điều kiện còn thiếu để gọi MVP là hoàn thành đầy đủ | `dsh --profile pfe-test --dump-config` có row plugin; gọi tool tạo 3 file; unload/reload |
+| 1 | Cài bundle vào `pfe-test` và chạy smoke 10 bước trong DSH thật | Điều kiện còn thiếu để gọi MVP là hoàn thành đầy đủ (TASK 4 đang BLOCKED) | `dsh --profile pfe-test --dump-config` có row plugin; gọi tool tạo 4 file; unload/reload/remove |
 | 2 | Bố cục serpentine cho chuỗi dài trong `assign_positions` | "Toàn cảnh" co còn 34% với 8 node (UI-002) | so screenshot 1440×900 trước/sau; đo `#zoom-level` sau fit |
 | 3 | Phân tích call-graph thật (import/reference) để nối bước theo quan hệ gọi, không theo điểm số | Hiện tại thứ tự bước là heuristic theo score; một số repo sẽ ra thứ tự chưa đúng | fixture có 2 nhánh gọi chéo; so graph với grep thủ công |
 
@@ -41,3 +41,12 @@ Backlog sau MVP, xếp theo giá trị/chi phí. Không mục nào ở đây ch�
 - `build_flow.py` là một file ~900 dòng; khi thêm ngôn ngữ nên tách `pfe/scan.py`, `pfe/score.py`, `pfe/graph.py`.
 - `PREFERRED_SYMBOL` là danh sách tên cố định; nên chuyển sang scoring theo vị trí (đầu file, có route gọi tới).
 - Adapter chưa có `Config` schema kiểu Cordis (đang validate tay) vì không import được `@deepseek-ai/schemastery`; nếu sau này profile resolve được thì chuyển sang schema chuẩn.
+
+## Đã xử lý trong pass review
+
+- allowedRoots deny-by-default + hint cấu hình (thay cho "cho phép mọi path").
+- Artifact chỉ còn `<repo>/artifacts/flows/<slug>/`, có kiểm tra symlink và không ghi trước khi kiểm tra.
+- Bundle đóng gói được (`pack.mjs`) với `vendor/core`, cài độc lập không cần checkout.
+- Graph tách location evidence / flow membership / inferred role; decoy không bị nối vào luồng.
+- Abort giữ identity `AbortError`; timeout và lỗi core tách mã riêng.
+- Artifact không còn absolute path; `scripts/check_repo_policy.py` + CI chặn tái phát.

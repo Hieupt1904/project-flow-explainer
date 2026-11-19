@@ -6,6 +6,13 @@
  * result. It imports nothing from @deepseek-ai/* on purpose — a profile's
  * node_modules cannot resolve those packages, so the definition is hand-built
  * and handed to `ctx.tools.register`, which manages its lifecycle.
+ *
+ * Security posture (see README):
+ *   - deny-by-default: without `allowedRoots` every call fails with
+ *     `allowed_roots_unconfigured`;
+ *   - artifacts may only be written to `<repo>/artifacts/flows`;
+ *   - cancellation surfaces as AbortError so the runtime keeps the
+ *     cancellation identity instead of recording a business failure.
  */
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -18,18 +25,19 @@ export const name = 'project-flow-explainer'
 export const inject = ['tools']
 
 export const TOOL_NAME = 'project_flow_explain'
-const PACKAGE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const PACKAGE_ROOT = path.dirname(fileURLToPath(import.meta.url))
 
 const DEFAULTS = {
   pythonPath: 'python3',
-  coreRoot: PACKAGE_ROOT,
-  allowedRoots: [],
+  coreRoot: undefined,
+  // Deny-by-default: undefined/empty means "no repository is allowed".
+  allowedRoots: undefined,
   timeoutMs: 180000,
   maxOutputBytes: 1024 * 1024,
 }
 
-function badConfig(message) {
-  throw new Error(`${name}: ${message}`)
+function badConfig(message, hint) {
+  throw new InputError('invalid_plugin_config', `${name}: ${message}`, hint)
 }
 
 function normalizeConfig(config) {
@@ -37,10 +45,10 @@ function normalizeConfig(config) {
   if (typeof settings.pythonPath !== 'string' || settings.pythonPath.trim() === '') {
     badConfig('pythonPath phải là chuỗi không rỗng')
   }
-  if (typeof settings.coreRoot !== 'string' || settings.coreRoot.trim() === '') {
-    badConfig('coreRoot phải là chuỗi không rỗng')
+  if (settings.coreRoot !== undefined && typeof settings.coreRoot !== 'string') {
+    badConfig('coreRoot phải là chuỗi đường dẫn')
   }
-  if (!Array.isArray(settings.allowedRoots) || settings.allowedRoots.some((item) => typeof item !== 'string')) {
+  if (settings.allowedRoots !== undefined && !Array.isArray(settings.allowedRoots)) {
     badConfig('allowedRoots phải là mảng chuỗi đường dẫn')
   }
   if (!Number.isFinite(settings.timeoutMs) || settings.timeoutMs <= 0) {
@@ -52,17 +60,21 @@ function normalizeConfig(config) {
   return settings
 }
 
-function describeFailure({ code, stderr, timedOut, aborted, truncated }) {
-  if (aborted) return 'Lần chạy đã bị huỷ; tiến trình core đã được dừng.'
-  if (timedOut) return 'Core vượt quá thời gian cho phép và đã bị dừng.'
-  const tail = stderr.trim().split('\n').slice(-4).join(' ').slice(0, 600)
-  const suffix = truncated ? ' (log bị cắt bớt)' : ''
-  return `Core kết thúc với mã ${code}: ${tail || 'không có thông tin lỗi'}${suffix}`
+/** A cancellation that the runtime recognises as a cancellation, not a failure. */
+function abortError(reason) {
+  const error = new Error(reason instanceof Error ? reason.message : 'tool call aborted')
+  error.name = 'AbortError'
+  return error
+}
+
+function failure(kind, run) {
+  const tail = run.stderr.trim().split('\n').slice(-3).join(' ').slice(0, 500)
+  return new InputError(kind, `${kind}: ${tail || 'không có thông tin lỗi'}`,
+    'Xem log của core; chạy lại CLI với --json để lấy mã lỗi chi tiết.')
 }
 
 function parseCoreResult(result) {
-  const raw = result.stdout.trim()
-  const line = raw.split('\n').filter(Boolean).pop() ?? ''
+  const line = result.stdout.trim().split('\n').filter(Boolean).pop() ?? ''
   try {
     return JSON.parse(line)
   } catch {
@@ -74,11 +86,14 @@ const TEXT = (value) => [{ type: 'text', text: value }]
 
 /**
  * @param {object} ctx - Cordis context with the `tools` service injected.
- * @param {object} [config] - profile patch config.
+ * @param {object} [config] - profile patch config (`allowedRoots` required to use the tool).
  */
 export function apply(ctx, config = {}) {
   const settings = normalizeConfig(config)
-  const { root: coreRoot, script } = resolveCoreRoot(settings.coreRoot)
+  const core = resolveCoreRoot({
+    coreRoot: settings.coreRoot,
+    packageRoot: PACKAGE_ROOT,
+  })
   const inFlight = new Set()
 
   ctx.effect(() => () => {
@@ -96,15 +111,16 @@ export function apply(ctx, config = {}) {
     name: TOOL_NAME,
     description:
       'Phân tích một repository trên máy và dựng sơ đồ quy trình dạng HTML mở offline, '
-      + 'kèm dữ liệu có cấu trúc và bản giải thích. Chỉ đọc source, không gọi network, '
-      + 'không chạy code của repository, không sửa file nguồn. '
+      + 'kèm dữ liệu có cấu trúc và bản giải thích. Chỉ đọc source trong allowedRoots, '
+      + 'không gọi network, không chạy code của repository, không sửa file nguồn. '
+      + 'Artifact chỉ ghi vào <repo>/artifacts/flows/<slug>/. '
       + 'Trả đường dẫn tới flow.json, flow.html, overview.md và số bước theo mức tin cậy.',
     parameters: {
       type: 'object',
       properties: {
         repository_path: {
           type: 'string',
-          description: 'Đường dẫn tuyệt đối tới thư mục repository cần phân tích.',
+          description: 'Đường dẫn tuyệt đối tới thư mục repository, phải nằm trong allowedRoots.',
         },
         flow_request: {
           type: 'string',
@@ -113,8 +129,8 @@ export function apply(ctx, config = {}) {
         },
         output_directory: {
           type: 'string',
-          description: 'Thư mục chứa artifact, phải nằm trong repository đã duyệt. '
-            + 'Mặc định: <repo>/artifacts/flows.',
+          description: 'Chỉ chấp nhận "artifacts/flows" (hoặc đường dẫn tuyệt đối tương ứng). '
+            + 'Mặc định chính là thư mục đó.',
         },
         slug: {
           type: 'string',
@@ -132,6 +148,8 @@ export function apply(ctx, config = {}) {
           flow_id: { type: 'string' },
           slug: { type: 'string' },
           repository: { type: 'string' },
+          repository_name: { type: 'string' },
+          artifacts_dir: { type: 'string' },
           artifacts: {
             type: 'object',
             properties: {
@@ -155,6 +173,7 @@ export function apply(ctx, config = {}) {
             additionalProperties: false,
           },
           files_scanned: { type: 'integer' },
+          related_count: { type: 'integer' },
           source_version: {
             type: 'object',
             properties: {
@@ -169,8 +188,9 @@ export function apply(ctx, config = {}) {
           warnings: { type: 'array', items: { type: 'string' } },
           limits: { type: 'array', items: { type: 'string' } },
         },
-        required: ['status', 'flow_id', 'slug', 'repository', 'artifacts', 'counts',
-          'files_scanned', 'source_version', 'warnings', 'limits'],
+        required: ['status', 'flow_id', 'slug', 'repository', 'repository_name',
+          'artifacts_dir', 'artifacts', 'counts', 'files_scanned', 'related_count',
+          'source_version', 'warnings', 'limits'],
         additionalProperties: false,
       },
       render(_args, value) {
@@ -178,7 +198,7 @@ export function apply(ctx, config = {}) {
           `Đã dựng sơ đồ: ${value.flow_id}`,
           `Bước: ${value.counts.verified} verified · ${value.counts.partial} partial · `
             + `${value.counts.inferred} inferred · ${value.counts.unknown} unknown`,
-          `File đã đọc: ${value.files_scanned}`,
+          `File khớp từ khoá nhưng ngoài luồng: ${value.related_count}`,
           `Mở sơ đồ: ${value.artifacts.flow_html}`,
           `Dữ liệu: ${value.artifacts.flow_json}`,
           `Giải thích: ${value.artifacts.overview}`,
@@ -200,26 +220,22 @@ export function apply(ctx, config = {}) {
       const outputDirectory = resolveArtifactRoot(repository.root, args.output_directory)
       const request = typeof args.flow_request === 'string' ? args.flow_request.trim() : ''
       if (request === '') {
-        throw new InputError(
-          'Thiếu flow_request.',
-          'Mô tả flow cần phân tích, ví dụ: "từ lúc người dùng nhấn xuất báo cáo đến khi nhận file".',
-        )
+        throw new InputError('flow_request_missing', 'Thiếu flow_request.',
+          'Mô tả flow cần phân tích, ví dụ: "từ lúc người dùng nhấn xuất báo cáo đến khi nhận file".')
       }
+      if (exec?.signal?.aborted) throw abortError(exec.signal.reason)
 
       const controller = new AbortController()
-      const forwardAbort = () => controller.abort()
-      if (exec?.signal) {
-        if (exec.signal.aborted) controller.abort()
-        else exec.signal.addEventListener('abort', forwardAbort, { once: true })
-      }
+      const forwardAbort = () => controller.abort(exec.signal.reason)
+      if (exec?.signal) exec.signal.addEventListener('abort', forwardAbort, { once: true })
       inFlight.add(controller)
 
       let run
       try {
         run = await runCore({
           pythonPath: settings.pythonPath,
-          coreRoot,
-          script,
+          coreRoot: core.root,
+          script: core.script,
           repository: repository.root,
           request,
           outputDirectory,
@@ -233,19 +249,23 @@ export function apply(ctx, config = {}) {
         if (exec?.signal) exec.signal.removeEventListener('abort', forwardAbort)
       }
 
+      // Cancellation keeps its own identity: the runtime maps an Error named
+      // `AbortError` to code ABORTED, so never dress it as a business failure.
+      if (run.aborted) throw abortError(exec?.signal?.reason)
+      if (run.timedOut) {
+        throw new InputError('core_timeout',
+          `Core vượt quá ${settings.timeoutMs} ms và đã bị dừng.`,
+          'Tăng config.timeoutMs hoặc phân tích một luồng hẹp hơn.')
+      }
+
       const payload = parseCoreResult(run)
       if (payload === null) {
-        throw new Error(describeFailure(run))
+        throw failure(run.code === null ? 'core_spawn_failed' : 'core_failed', run)
       }
       if (payload.status === 'error') {
-        throw new InputError(
-          `[${payload.code}] ${payload.message}`,
-          payload.hint,
-        )
+        throw new InputError(payload.code, payload.message, payload.hint)
       }
-      if (run.code !== 0 && payload.status !== 'ok') {
-        throw new Error(describeFailure(run))
-      }
+      if (run.code !== 0) throw failure('core_failed', run)
 
       const source = payload.source ?? {}
       return {
@@ -253,6 +273,8 @@ export function apply(ctx, config = {}) {
         flow_id: payload.flow_id,
         slug: payload.slug,
         repository: payload.repository,
+        repository_name: payload.repository_name ?? path.basename(payload.repository ?? ''),
+        artifacts_dir: payload.artifacts_dir,
         artifacts: {
           flow_json: payload.paths.flow_json,
           flow_html: payload.paths.flow_html,
@@ -266,6 +288,7 @@ export function apply(ctx, config = {}) {
           unknown: payload.counts?.unknown ?? 0,
         },
         files_scanned: payload.files_scanned ?? 0,
+        related_count: Array.isArray(payload.related) ? payload.related.length : 0,
         source_version: {
           commit: source.commit ?? '',
           branch: source.branch ?? '',

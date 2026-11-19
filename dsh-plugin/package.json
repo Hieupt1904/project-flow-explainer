@@ -1,16 +1,27 @@
 {
   "name": "dsh-project-flow-explainer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "DSH adapter: expose the Project Flow Explainer core (scripts/build_flow.py) as one DSH tool.",
+  "description": "DSH adapter: expose the Project Flow Explainer core (scripts/build_flow.py + template) as one DSH tool. Ships the core under vendor/core so a packed install works without the checkout.",
   "license": "MIT",
+  "main": "./index.js",
   "exports": {
     ".": "./index.js",
     "./package.json": "./package.json"
   },
+  "files": [
+    "index.js",
+    "lib/",
+    "cordis.patch.yml",
+    "README.md",
+    "vendor/core/scripts/build_flow.py",
+    "vendor/core/scripts/render_flow.py",
+    "vendor/core/assets/workflow_template.html"
+  ],
   "engines": {
-    "node": ">=20"
+    "node": ">=20",
+    "dsh": "0.2.2-rc.2"
   },
   "dsh": {
     "bundle": {
@@ -18,6 +29,7 @@
     }
   },
   "scripts": {
-    "test": "node --test tests/plugin.test.mjs"
+    "test": "node --test tests/plugin.test.mjs",
+    "pack:bundle": "node scripts/pack.mjs"
   }
 }

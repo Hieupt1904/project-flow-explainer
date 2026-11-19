@@ -1,8 +1,9 @@
 # DSH_IMPLEMENTATION_PLAN — Hybrid Project Flow Explainer × DeepSeek Harness
 
-Trạng thái: **core + adapter + QA xong; bước cài vào `pfe-test` chờ phê duyệt** (chi tiết: [FINAL_REPORT.md](FINAL_REPORT.md)).
+Trạng thái sau pass review: **7/8 task review DONE; TASK 4 (smoke DSH thật) BLOCKED chờ phê duyệt cài**
+(chi tiết: [FINAL_REPORT.md](FINAL_REPORT.md)).
 
-Cập nhật: 2026-11-19T17:05+07:00 · nhánh `main` @ `7ab202a` + thay đổi chưa commit.
+Cập nhật: 2026-11-19 · commit code của pass review: `PENDING-CODE-SHA` · nhánh `main`.
 
 ---
 
@@ -75,8 +76,22 @@ Sự cố đã sửa trong vòng lặp (mỗi lỗi một lần sửa, không t�
 
 ---
 
-## 5. Việc còn lại
+## 5. Pass review — trạng thái theo task
 
-1. **Chờ duyệt**: cài bundle vào `pfe-test` → chạy smoke 12 bước (mục 8 của FINAL_REPORT).
-2. Panel Harness: giữ `BLOCKED_UI_API_UNVERIFIED`, chỉ mở lại khi có `cordis_inspect_query`.
-3. Backlog: xem [IMPROVEMENT_PLAN.md](IMPROVEMENT_PLAN.md).
+| Task | Nội dung | Trạng thái | Bằng chứng |
+|---|---|---|---|
+| TASK 1 | allowedRoots deny-by-default | DONE | `lib/paths.js`, 5 test Node |
+| TASK 2 | Artifact chỉ trong `artifacts/flows` | DONE | `validate_out_dir`, 7 test |
+| TASK 3 | Bundle cài độc lập (`pack.mjs`, vendor core) | DONE | `pack.test.mjs` |
+| TASK 4 | Smoke trong DSH thật | **BLOCKED** | chờ duyệt lệnh cài (FINAL_REPORT §6) |
+| TASK 5 | abort vs timeout vs failure | DONE | `abortError()`, test `AbortError`/`core_timeout` |
+| TASK 6 | Graph theo bằng chứng, decoy không bị nối | DONE | `routes/preview.js` trong `related` |
+| TASK 7 | Dọn artifact, provenance | DONE | `check_repo_policy.py` OK |
+| TASK 8 | CI + regression | DONE (local) | `.github/workflows/ci.yml` |
+
+## 6. Việc còn lại
+
+1. **Chờ duyệt**: cài bundle vào `pfe-test` → chạy 10 bước smoke (FINAL_REPORT §6).
+2. Panel Harness: giữ `BLOCKED_UI_API_UNVERIFIED`.
+3. CI trên GitHub: sẽ chạy ở lần push tới; lệnh tương đương đã pass local.
+4. Backlog: xem [IMPROVEMENT_PLAN.md](IMPROVEMENT_PLAN.md).

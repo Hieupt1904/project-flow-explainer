@@ -1,133 +1,141 @@
-# FINAL_REPORT — Hybrid Project Flow Explainer × DSH (MVP)
+# FINAL_REPORT — Hybrid Project Flow Explainer × DSH
 
-Trạng thái: **PARTIALLY_COMPLETED** — core, adapter, test và QA HTML xong; **chưa cài** bundle vào profile `pfe-test` vì đang chờ phê duyệt thao tác cài (mục 8).
+Trạng thái pass review: **PARTIALLY_COMPLETED**.
+Lý do duy nhất: **TASK 4 (smoke trong DSH thật) đang BLOCKED** vì bước cài bundle vào profile
+`pfe-test` cần phê duyệt. Mọi blocker khác của pass review đã sửa và có test chứng minh.
 
-Ngày: 2026-11-19 · Repo: `/home/hieupt/Documents/Agent-skills-main/project-flow-explainer` · nhánh `main` @ `7ab202a` + thay đổi chưa commit.
+| Mục | Giá trị |
+|---|---|
+| Commit code + test của pass review | `PENDING-CODE-SHA` |
+| Commit báo cáo | commit kế tiếp (chỉ sửa tài liệu) |
+| DSH đã kiểm chứng | `0.2.2-rc.2`, profile `web` (chỉ đọc, không cài gì) |
+| Python / Node | 3.12.3 / v24.22.3 (và ma trận Node 20 trong CI) |
 
-## 1. Kiến trúc đã chọn
+## 1. Kết quả theo task review
 
-Hybrid, đúng như đã chốt: `core (Python) ← adapter (JS) ← DSH`. Chi tiết và bất biến: [ARCHITECTURE_DECISION.md](ARCHITECTURE_DECISION.md).
+| Task | Nội dung | Trạng thái | Bằng chứng |
+|---|---|---|---|
+| TASK 1 | Siết `allowedRoots` (deny-by-default) | **DONE** | `dsh-plugin/lib/paths.js` (`resolveAllowedRoots`, `resolveRepository`); 5 test Node: thiếu root, root rỗng, ngoài root, symlink escape, relative path |
+| TASK 2 | Artifact chỉ trong `<repo>/artifacts/flows` | **DONE** | `resolveArtifactRoot` + `validate_out_dir`; 5 test Python + 2 test Node cho `.`, `src`, repo root, `../outside`, symlink; test "không ghi trước khi containment check" |
+| TASK 3 | Bundle cài độc lập | **DONE** | `dsh-plugin/scripts/pack.mjs` copy core vào `vendor/core` lúc pack; `pack.test.mjs` extract tarball vào thư mục không có checkout, resolve core nguồn `vendor`, chạy end-to-end ra 4 file |
+| TASK 4 | Smoke trong DSH thật | **BLOCKED** | Chưa cài; lệnh + phạm vi + rollback đã chuẩn bị ở mục 6, chờ duyệt |
+| TASK 5 | Semantics abort | **DONE** | Adapter ném `Error{name:'AbortError'}`; runtime map thành `code: ABORTED` (`dsh-tools/src/pipeline.ts:700-707,770-780`); test phân biệt abort / `core_timeout` / `core_failed` |
+| TASK 6 | Độ chính xác graph | **DONE** | Builder tách 3 tầng bằng chứng; chỉ nối theo route/import/call; fixture decoy `routes/preview.js` nằm trong `related`, không thành node; `overview.md` có cột "Bằng chứng thành viên" |
+| TASK 7 | Dọn artifact & provenance | **DONE** | Xoá `artifacts/qa/**` lồng nhau; sample regenerate từ HEAD; artifact không còn absolute path; `scripts/check_repo_policy.py` chặn `/home/`, `\Users\`, `artifacts/…/artifacts`, secret-shape |
+| TASK 8 | CI + regression | **DONE (local), CHƯA CHẠY trên GitHub** | `.github/workflows/ci.yml`: 3 job (python 3.12, node 20+24, manifest); mọi lệnh trong CI đã chạy pass ở máy |
+
+Chi tiết test: [TEST_REPORT.md](TEST_REPORT.md) · UI: [UI_VERIFICATION_REPORT.md](UI_VERIFICATION_REPORT.md) ·
+quyết định kiến trúc: [ARCHITECTURE_DECISION.md](ARCHITECTURE_DECISION.md).
+
+## 2. Thay đổi chính của pass review
+
+### Policy đọc (TASK 1)
 
 ```text
-tool project_flow_explain
-  → dsh-plugin/index.js  (validate path, allowedRoots, artifact containment)
-  → spawn python3 scripts/build_flow.py --repo R --request Q --json
-  → core: graph có bằng chứng → render_flow.validate/assign_positions/render_json
-  → artifacts/flows/<slug>/{flow.json, flow.html, overview.md, run.json}
-  → tool result: status + đường dẫn + counts + source_version + limits/warnings
+allowedRoots thiếu/rỗng        → InputError('allowed_roots_unconfigured')   [fail closed]
+path ngoài allowedRoots        → InputError('repository_outside_allowed_roots')
+symlink trỏ ra ngoài root      → realpath rồi mới kiểm tra → bị từ chối
 ```
 
-## 2. Thay đổi trong repo
+`cordis.patch.yml` **không** mang sẵn `allowedRoots`: cài xong mà chưa cấu hình thì tool từ chối
+mọi lần gọi, kèm hint cấu hình. Đây là lựa chọn deny-by-default thay vì "cho phép tất cả".
 
-| File | Loại | Nội dung |
+### Policy ghi (TASK 2)
+
+```text
+<repo>/artifacts/flows/<slug>/     ✅
+<repo> (root), src, docs, tmp, ../outside, symlink artifacts → artifacts_symlink_escape / invalid_artifact_root ❌
+```
+
+Kiểm tra chạy **trước** khi `mkdir`; test `test_no_write_before_containment_check` khẳng định
+`artifacts/` không được tạo khi input sai. CLI luôn trả JSON `{status:"error", code, message, hint}`
+và không để traceback rơi ra ngoài (`report_error`, exit 3 cho `internal_error`).
+
+### Đóng gói (TASK 3)
+
+`node dsh-plugin/scripts/pack.mjs` → `dist/dsh-project-flow-explainer-0.2.0.tgz` (35 613 byte, 8 file),
+bên trong có `vendor/core/scripts/{build_flow.py,render_flow.py}` và `vendor/core/assets/workflow_template.html`.
+Thứ tự dò core: `config.coreRoot` → `PFE_CORE_ROOT` → `vendor/core` → thư mục cha (chỉ để dev).
+
+### Bằng chứng của graph (TASK 6)
+
+| Khái niệm | Trước | Sau |
 |---|---|---|
-| `scripts/build_flow.py` | mới (core) | Analyzer: quét source, khớp facet theo yêu cầu tiếng Việt, dựng graph có `source_refs` path+line, gọi renderer, ghi 4 file. 0 dependency, không network. |
-| `dsh-plugin/index.js` | mới (adapter) | Tool `project_flow_explain`, schema input/output, gọi core, map kết quả, `ctx.effect` dọn run đang chạy. |
-| `dsh-plugin/lib/paths.js` | mới | `resolveRepository`, `resolveArtifactRoot`, `resolveCoreRoot`, `isInside` — realpath + containment. |
-| `dsh-plugin/lib/core-runner.js` | mới | `spawn` argv array, `shell:false`, env tối thiểu, cap output, kill theo `signal`/timeout. |
-| `dsh-plugin/package.json`, `cordis.patch.yml` | mới | Bundle manifest theo format runtime (`dsh.bundle.patch`), 1 row insert. |
-| `dsh-plugin/tests/plugin.test.mjs` | mới | 11 test, fake Context có kiểm tra trùng tên tool. |
-| `tests/test_build_flow.py` | mới | 16 test cho analyzer + chính sách bảo mật. |
-| `tests/fixtures/shop-app/` | mới | Fixture Express + job Python + `.env` (không commit) để test. |
-| `assets/workflow_template.html` | sửa | `initialView()` fit cả chiều ngang (UI-001). Không đổi schema/HTML API. |
-| `README.md`, `SKILL.md` | sửa | Thêm CLI `build_flow.py`, phần adapter DSH, chính sách dữ liệu. |
+| location evidence | `path` + `start_line` | giữ nguyên |
+| flow membership | suy ra từ thứ tự điểm số | chỉ `route` / `import` / `call`; cạnh mang `evidence` + ghi chú |
+| file chỉ khớp keyword | bị nối vào chuỗi | đưa vào `meta.related`, không thành node |
+| độ tin cậy | `verified` cho mọi bước | `verified` = vị trí thật **và** có cạnh chứng minh; còn lại `partial`/`inferred` |
 
-Không sửa: `scripts/render_flow.py`, `references/*` (thêm link ở SKILL.md), `tests/test_render_flow.py`, DSH core.
+Fixture phản chứng: `tests/fixtures/shop-app/routes/preview.js` có route `/api/legacy/preview` trả CSV,
+không được `server.js` import → test `test_keyword_only_file_is_not_chained_into_the_flow` khẳng định
+nó nằm trong `related` và không xuất hiện trong `nodes`. `jobs/export_worker.py` (Python worker) cũng vậy.
 
-## 3. Baseline so với hiện tại
+## 3. Kết quả kiểm chứng
 
-| Hạng mục | Baseline (trước) | Hiện tại |
-|---|---|---|
-| `python -m unittest discover -s tests` | 6 test OK | **22 test OK** |
-| Renderer sample | 32 437 byte, 8 node | không đổi |
-| Sinh `flow.json` từ repo | không có | 8 node / 5 file (fixture), 7 node (self-repo) |
-| Adapter test | không có | **11 pass** |
-| QA HTML 3 viewport | chưa có | pass, 0 console error, 0 request ngoài |
+```text
+python3 -m unittest discover -s tests -v      → 32 test OK
+node --test dsh-plugin/tests/plugin.test.mjs  → 16 pass, 0 fail
+node --test dsh-plugin/tests/pack.test.mjs    →  2 pass, 0 fail
+python3 scripts/check_repo_policy.py          → OK: 30 file, không absolute path / nested artifacts / secret
+python3 -m compileall -q scripts tests        → OK
+node dsh-plugin/scripts/pack.mjs              → tarball 8 file, có vendor/core
+```
 
-## 4. API DSH đã dùng và bằng chứng xác minh
+UI (7 ảnh, 3 viewport × 3 sample): 0 console error, 0 request ngoài `file://`, 0 tràn ngang,
+0 card chồng; zoom khởi đầu 102% / 94% / 55%.
 
-| API | Cách xác minh |
-|---|---|
-| `ctx.tools.register(definition)` nhận object có `output.schema` + `output.render`, trả disposer theo lifecycle | `dsh-tools/src/index.ts:128-153` |
-| Trùng tên tool bị chặn | `dsh-tools/src/index.ts:69-70` |
-| `defineTool` là helper, không bắt buộc | `dsh-tools/src/schema.ts:483-580` |
-| Plugin shape `export const name/inject` + `apply(ctx, config)` | `dsh-tool-cordis/src/index.ts:9-21`, `dsh-action-cards/src/index.ts:161-196` |
-| `ctx.effect(fn)` — body chạy ngay, trả disposer | `cordis/src/fiber.ts:421-424` |
-| `exec.signal` là `AbortSignal` bắt buộc | `dsh-tools/src/contracts.ts:201-202` |
-| `timeoutMs` phải dương hữu hạn | `dsh-tools/src/schema.ts:576` |
-| Bundle `dsh.bundle.patch` + row `- insert: [{id, name, config}]` | `dsh-acp-app/package.json`, `dsh-experimental-session-titles-bundle/cordis.patch.yml` |
-| Profile gắn bundle qua `dependencies: link:` + `dsh.profile.bundles` | `~/.dsh/profiles/web/package.json` (`@local/mcp-web-api`) |
-| Không resolve được `@deepseek-ai/*` từ profile | `createRequire('/home/hieupt/.dsh/profiles/web/package.json').resolve(...)` → `MODULE_NOT_FOUND` |
-
-Tool đã đăng ký (trong test): **`project_flow_explain`**. Bundle manifest: `dsh-plugin/package.json` → `dsh-plugin/cordis.patch.yml`.
-
-## 5. Kết quả kiểm chứng
-
-Chi tiết: [TEST_REPORT.md](TEST_REPORT.md), [UI_VERIFICATION_REPORT.md](UI_VERIFICATION_REPORT.md).
-
-- **Core**: 22 test PASS; gồm chặn traversal, chặn ghi đè slug, symlink escape, secret không rò, source không bị sửa, artifact không bị phân tích lại, không bịa flow khi không có bằng chứng.
-- **Adapter**: 11 test PASS; gồm equivalence (adapter vs core trực tiếp cho cùng graph), abort, unload/reload không đăng ký trùng.
-- **UI**: 8 tổ hợp case × viewport PASS; sửa 1 lỗi layout thật (UI-001), 1 trade-off được ghi nhận (UI-002).
-- **Chưa chạy**: cài vào profile và gọi tool từ DSH thật → xem mục 8.
-
-## 6. Cách dùng
-
-### CLI (không cần DSH)
+## 4. Cách dùng
 
 ```bash
-python3 scripts/build_flow.py \
-  --repo /duong/dan/repo \
-  --request "Giải thích từ lúc người dùng nhấn xuất báo cáo đến khi nhận được file" \
-  --json
+# CLI (không cần DSH, không cần cấu hình root)
+python3 scripts/build_flow.py --repo /duong/dan/repo \
+  --request "Giải thích từ lúc người dùng nhấn xuất báo cáo đến khi nhận được file" --json
+# → /duong/dan/repo/artifacts/flows/<slug>/{flow.json,flow.html,overview.md,run.json}
 ```
 
-Kết quả trong `<repo>/artifacts/flows/<slug>/`: `flow.json`, `flow.html`, `overview.md`, `run.json`. Mở `flow.html` bằng trình duyệt, không cần mạng.
+Trong DSH, sau khi cài (xem mục 6), tool `project_flow_explain` yêu cầu profile khai báo
+`allowedRoots`:
 
-### Qua DSH (sau khi cài)
-
-```text
-project_flow_explain(
-  repository_path = "/duong/dan/repo",
-  flow_request    = "mô tả flow bằng tiếng Việt",
-  output_directory= "artifacts/flows",   # tùy chọn, phải nằm trong repo
-  slug            = "tuy-chon"
-)
+```yaml
+config:
+  allowedRoots: ['/duong/dan/workspace']
 ```
 
-## 7. Phần còn thiếu / giới hạn
+## 5. Còn lại / giới hạn
 
 | Mục | Trạng thái |
 |---|---|
-| Cài bundle vào `pfe-test` và gọi tool thật | **CHƯA CHẠY** — chờ duyệt (mục 8) |
-| Panel UI trong Harness | `BLOCKED_UI_API_UNVERIFIED`, ngoài MVP |
-| Hỗ trợ GitHub URL | backlog |
-| Phân tích sâu call-graph đa ngôn ngữ | heuristic hiện tại: route/symbol/facet; ghi rõ `partial`/`inferred` |
-| "Toàn cảnh" 34% với flow dài | trade-off, đã ghi UI-002 |
+| Smoke trong DSH thật (cài `pfe-test`, gọi tool, unload/reload, remove) | **BLOCKED** — chờ duyệt |
+| Panel UI trong Harness | `BLOCKED_UI_API_UNVERIFIED` (ngoài phạm vi, không đổi) |
+| GitHub Actions thực chạy | Chưa push lần nào sau khi thêm `ci.yml`; lệnh tương đương đã pass local |
+| Call graph đa ngôn ngữ đầy đủ | Chưa có; đã ghi rõ trong `limits` của mọi kết quả |
+| "Toàn cảnh" 34% với flow dài | Trade-off đã ghi (UI-002) |
 
-## 8. Yêu cầu phê duyệt bước cài (chưa thực hiện)
+## 6. Yêu cầu phê duyệt TASK 4 (chưa chạy)
 
-1. **Lệnh và thư mục chạy**: `dsh plugin --profile pfe-test add /home/hieupt/Documents/Agent-skills-main/project-flow-explainer/dsh-plugin` (chạy từ `$HOME`).
-2. **Package/bundle**: `dsh-project-flow-explainer@0.1.0`, cài vào profile **`pfe-test`** (profile mới, không đụng `web`).
-3. **File/dependency thay đổi**: tạo `~/.dsh/profiles/pfe-test/package.json` + `cordis.patch.yml` + `node_modules`; thêm 1 dòng `dependencies` dạng `link:` và 1 tên trong `dsh.profile.bundles`.
-4. **Cần mạng**: có — lần tạo profile mới cần `pnpm install` các bundle nền của template; bản thân plugin không có dependency ngoài.
-5. **Install/lifecycle script**: không có `postinstall` trong package của chúng ta; chỉ pnpm thực hiện bước cài chuẩn. Nếu pnpm báo script của bên thứ ba, sẽ dừng và báo lại.
-6. **Gỡ / khôi phục**: `dsh plugin --profile pfe-test remove dsh-project-flow-explainer`, hoặc xoá `~/.dsh/profiles/pfe-test`. Profile `web` không bị chạm tới nên rủi ro ảnh hưởng bằng 0.
+1. **Lệnh**: `dsh plugin --profile pfe-test add <repo>/dist/dsh-project-flow-explainer-0.2.0.tgz`
+2. **Package/profile**: `dsh-project-flow-explainer@0.2.0` → profile `pfe-test` (mới; **không** đụng `web`).
+3. **File thay đổi**: tạo `~/.dsh/profiles/pfe-test/{package.json,cordis.patch.yml,node_modules,…}`; thêm 1 dependency + 1 tên trong `dsh.profile.bundles`; thêm row config `allowedRoots` cho bundle này.
+4. **Mạng**: có — lần tạo profile cần `pnpm install` bundle nền của template. Tarball tự nó không có dependency.
+5. **Install script**: tarball của mình không có `postinstall`; pnpm chỉ chạy bước cài chuẩn của nó.
+6. **Rollback**: `dsh plugin --profile pfe-test remove dsh-project-flow-explainer` hoặc `rm -rf ~/.dsh/profiles/pfe-test`. Profile `web` không bị chạm.
 
-Sau khi được duyệt, các bước chạy thử: `dsh --profile pfe-test --dump-config | grep project-flow` → boot profile → gọi tool với fixture → kiểm 3 file → tắt/bật lại plugin → xác nhận tool biến mất/xuất hiện lại, không còn process treo.
+Sau khi duyệt, chuỗi kiểm chứng sẽ chạy đúng 10 bước đã nêu trong đề bài (dump-config → boot →
+tool xuất hiện → gọi fixture → kiểm 4 file → không có secret → unload/reload → remove).
 
-## 9. Bảng task
+## 7. Bảng task gốc
 
-| ID | Task | Trạng thái | Bằng chứng |
-|---|---|---|---|
-| HYB-00 | Preflight runtime | DONE | `artifacts/logs/20261119-1628-HYB-00-preflight.log` |
-| HYB-01 | Baseline core | DONE | log HYB-01, `artifacts/baseline/example_workflow.html` |
-| HYB-02 | Architecture decision | DONE | `ARCHITECTURE_DECISION.md` |
-| HYB-03 | Adapter skeleton | DONE | `dsh-plugin/` |
-| HYB-04 | Core runner | DONE | `dsh-plugin/lib/core-runner.js` + test abort/timeout |
-| HYB-05 | Tool registration | DONE (in-process) | `plugin.test.mjs` mount + execute |
-| HYB-06 | Security boundary | DONE | 8 test path/secret + `test_source_files_are_untouched` |
-| HYB-07 | Bundle packaging | DONE (chưa cài) | `package.json`, `cordis.patch.yml` |
-| HYB-08 | Smoke trong DSH thật | **BLOCKED** | chờ duyệt cài |
-| HYB-09 | Harness UI | BLOCKED_UI_API_UNVERIFIED | ngoài MVP |
-| HYB-10 | Visual QA | DONE | `UI_VERIFICATION_REPORT.md` + 15 ảnh |
-| HYB-11 | Tài liệu + bằng chứng | DONE | bộ 6 báo cáo + `artifacts/` |
+| ID | Task | Trạng thái |
+|---|---|---|
+| HYB-00 | Preflight runtime | DONE |
+| HYB-01 | Baseline core | DONE |
+| HYB-02 | Architecture decision | DONE (đã cập nhật cho pass review) |
+| HYB-03 | Adapter skeleton | DONE |
+| HYB-04 | Core runner | DONE (abort/timeout phân biệt) |
+| HYB-05 | Tool registration | DONE (in-process) |
+| HYB-06 | Security boundary | DONE (allowedRoots + artifact root) |
+| HYB-07 | Bundle packaging | DONE (pack + cài độc lập) |
+| HYB-08 | Smoke trong DSH | **BLOCKED** |
+| HYB-09 | Harness UI | BLOCKED_UI_API_UNVERIFIED |
+| HYB-10 | Visual QA | DONE (regenerate từ HEAD) |
+| HYB-11 | Tài liệu + bằng chứng | DONE |

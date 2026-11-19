@@ -48,7 +48,19 @@ không phụ thuộc DSH, xoá thư mục plugin thì CLI Python vẫn chạy ng
 
 ```bash
 dsh plugin --profile pfe-test add /duong/dan/toi/project-flow-explainer/dsh-plugin
+# hoặc từ tarball độc lập:
+node dsh-plugin/scripts/pack.mjs
+dsh plugin --profile pfe-test add /duong/dan/toi/project-flow-explainer/dist/dsh-project-flow-explainer-0.2.0.tgz
 ```
+
+Plugin **deny-by-default**: phải khai báo `allowedRoots` trong profile patch thì tool mới đọc repo.
+
+```yaml
+config:
+  allowedRoots: ['/duong/dan/workspace']
+```
+
+Artifact luôn ghi vào `<repo>/artifacts/flows/<slug>/`; không cấu hình được ra ngoài.
 
 Trạng thái kiểm chứng, quyết định kiến trúc và giới hạn còn lại: [FINAL_REPORT.md](FINAL_REPORT.md),
 [ARCHITECTURE_DECISION.md](ARCHITECTURE_DECISION.md), [TEST_REPORT.md](TEST_REPORT.md),

@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
-"""Build a flow graph from a repository plus a natural-language flow request.
+"""Build an evidence-backed flow graph from a repository and a flow request.
 
 Produces three files from ONE analysis result, so they cannot disagree:
   flow.json   machine-readable graph, validated by render_flow.validate
   flow.html   self-contained offline diagram rendered from that same graph
-  overview.md Vietnamese explanation of the same graph
+  overview.md Vietnamese explanation, including the evidence level per step
 
-Read-only with respect to the analysed repository: this script only reads
-source files under the approved root and only writes inside
-``<root>/artifacts/flows/<slug>/``. It never uses the network, never executes
-repository code, and never copies matched source text into its output.
+Read-only with respect to the analysed repository. Artifacts go to exactly
+``<repo>/artifacts/flows/<slug>/`` — nowhere else, ever. The script never uses
+the network, never executes repository code and never copies matched source
+text into its output; it records file, line and symbol only.
+
+Evidence model (see AGENTS-style rule in references/flow-schema.md):
+  location evidence   the symbol/route really exists at path:line
+  membership evidence the step is reachable from the entry through a route
+                      body, an import edge or a call edge — keyword matches are
+                      NOT membership evidence
+  inferred role       what the step does for the flow, when only structure says so
 
 Usage:
   python build_flow.py --repo /path/to/repo --request "giải thích luồng xuất báo cáo"
@@ -33,11 +40,12 @@ if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 import render_flow  # noqa: E402  (sibling module, same directory)
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 MAX_FILE_BYTES = 256 * 1024
 MAX_FILES_SCANNED = 20000
 MAX_STEPS = 12
 SLUG_MAX = 48
+ARTIFACT_SUBDIR = ("artifacts", "flows")
 
 EXCLUDED_DIRS = {
     ".git", ".hg", ".svn", "node_modules", "vendor", "bower_components",
@@ -48,9 +56,9 @@ EXCLUDED_DIRS = {
 }
 
 EXCLUDED_NAME_PATTERNS = [
-    r"^\.env(\..*)?$", r"\.env$", r"^\.env",
-    r"(?i)credentials?", r"(?i)secrets?", r"(?i)\.pem$", r"(?i)\.key$", r"(?i)\.p12$",
-    r"(?i)\.pfx$", r"(?i)^id_(rsa|dsa|ecdsa|ed25519)", r"(?i)\.keystore$",
+    r"^\.env(\..*)?$", r"\.env$", r"(?i)credentials?", r"(?i)secrets?",
+    r"(?i)\.pem$", r"(?i)\.key$", r"(?i)\.p12$", r"(?i)\.pfx$",
+    r"(?i)^id_(rsa|dsa|ecdsa|ed25519)", r"(?i)\.keystore$",
     r"(?i)\.dump$", r"(?i)\.sql\.gz$", r"(?i)\.bak$", r"(?i)\.log$",
     r"(?i)\.min\.js$", r"(?i)\.map$", r"(?i)package-lock\.json$", r"(?i)pnpm-lock\.yaml$",
     r"(?i)yarn\.lock$", r"(?i)\.csv$", r"(?i)\.xlsx$", r"(?i)\.pdf$",
@@ -66,12 +74,11 @@ SOURCE_SUFFIXES = {
 
 SECRET_LINE = re.compile(
     r"(?i)(api[_-]?key|secret|passwd|password|token|private[_-]?key|access[_-]?key)"
-    r"\s*[:=]\s*['\"]?[A-Za-z0-9/+_\-]{8,}"
-)
+    r"\s*[:=]\s*['\"]?[A-Za-z0-9/+_\-]{8,}")
 
-# Facets turn a Vietnamese/English sentence into code-search terms.
-# `code` patterns are language-agnostic on purpose: the builder must work on
-# repos it has never seen, and a wrong guess is downgraded by confidence.
+# Facets turn a Vietnamese/English sentence into code-search terms. They are
+# only used to rank candidates and to read a route body; they never decide by
+# themselves that a file belongs to the flow.
 FACETS = [
     {
         "id": "export",
@@ -137,13 +144,14 @@ FACETS = [
     },
 ]
 
-# Generic entry markers: every web/CLI flow starts at one of these.
+ROUTE_PATTERNS = [
+    re.compile(r"(?i)\b(?:app|router|server|api)\s*\.\s*(get|post|put|patch|delete)\s*\(\s*['\"]([^'\"]+)"),
+    re.compile(r"@\w*(?:app|router|blueprint)\w*\.(?:route|get|post|put|delete)\s*\(\s*['\"]([^'\"]+)"),
+    re.compile(r"(?i)@(?:Get|Post|Put|Delete|Request)Mapping\s*\(\s*(?:value\s*=\s*)?['\"]([^'\"]+)"),
+    re.compile(r"(?i)Route::(?:get|post|put|delete)\s*\(\s*['\"]([^'\"]+)"),
+]
+
 ENTRY_PATTERNS = [
-    (r"(?i)\b(?:app|router|server|api)\s*\.\s*(get|post|put|patch|delete)\s*\(\s*['\"]([^'\"]+)",
-     "route"),
-    (r"@\w*(?:app|router|blueprint)\w*\.(?:route|get|post|put|delete)\s*\(\s*['\"]([^'\"]+)", "route"),
-    (r"(?i)@(?:Get|Post|Put|Delete|Request)Mapping\s*\(\s*(?:value\s*=\s*)?['\"]([^'\"]+)", "route"),
-    (r"(?i)Route::(?:get|post|put|delete)\s*\(\s*['\"]([^'\"]+)", "route"),
     (r"(?i)def\s+(main)\s*\(", "entry"),
     (r"(?i)function\s+(main)\s*\(", "entry"),
 ]
@@ -164,8 +172,6 @@ ERROR_MARKERS = [
     (re.compile(r"^\s*except\b", re.M), "except"),
     (re.compile(r"(?i)\bcatch\s*\(", re.M), "catch"),
     (re.compile(r"(?i)\brescue\b", re.M), "rescue"),
-    (re.compile(r"(?i)\bthrow\s+", re.M), "throw"),
-    (re.compile(r"(?i)\braise\s+", re.M), "raise"),
 ]
 
 RESPONSE_PATTERNS = [
@@ -175,9 +181,26 @@ RESPONSE_PATTERNS = [
     re.compile(r"(?i)\bresponse\.(json|send)\b"),
 ]
 
+IMPORT_PATTERNS = [
+    re.compile(r"""(?i)(?:require|from)\s*\(?\s*['"](\.[^'"]+)['"]"""),
+    re.compile(r"""(?i)^\s*from\s+(\.[\w.]*)\s+import\b""", re.M),
+    re.compile(r"""(?i)^\s*import\s+([\w.]+)\b""", re.M),
+    re.compile(r"""(?i)^\s*from\s+([\w.]+)\s+import\b""", re.M),
+]
+
+PREFERRED_SYMBOL = re.compile(
+    r"(?i)^(main|run|apply|execute|handler|handle|export|process|start|generate|build_flow|build)$")
+
+EVIDENCE_MEMBERSHIP = {
+    "entry": "điểm vào do yêu cầu + khai báo route xác định",
+    "import": "file trước import trực tiếp file này",
+    "call": "hàm của file này được file trước gọi theo tên",
+    "route_body": "cùng file với khai báo route",
+}
+
 
 class BuildError(Exception):
-    """Raised for a request the builder refuses to analyse."""
+    """A request the builder refuses to analyse, with a stable code."""
 
     def __init__(self, code, message, hint=""):
         super().__init__(message)
@@ -185,6 +208,10 @@ class BuildError(Exception):
         self.message = message
         self.hint = hint
 
+
+# --------------------------------------------------------------------------
+# text helpers
+# --------------------------------------------------------------------------
 
 def strip_diacritics(text):
     decomposed = unicodedata.normalize("NFD", text)
@@ -203,26 +230,97 @@ def is_excluded_name(name):
     return any(re.search(pattern, name) for pattern in EXCLUDED_NAME_PATTERNS)
 
 
-def resolve_within(root, candidate):
-    """Return the real path when it stays inside root, else raise BuildError."""
-    real_root = os.path.realpath(str(root))
-    real = os.path.realpath(str(candidate))
-    if real == real_root or real.startswith(real_root + os.sep):
-        return Path(real)
-    raise BuildError(
-        "path_outside_root",
-        f"Đường dẫn nằm ngoài phạm vi cho phép: {candidate}",
-        f"Chỉ chấp nhận đường dẫn bên trong {real_root}",
-    )
+# --------------------------------------------------------------------------
+# path policy: repository root and the single artifact root
+# --------------------------------------------------------------------------
 
+def real_dir(path, code, label):
+    try:
+        resolved = Path(os.path.realpath(str(path)))
+    except OSError as error:
+        raise BuildError(code, f"Không đọc được {label}: {path}", str(error))
+    if not resolved.exists():
+        raise BuildError(code, f"Không thấy {label}: {resolved}")
+    if not resolved.is_dir():
+        raise BuildError(code, f"{label} không phải thư mục: {resolved}")
+    return resolved
+
+
+def is_inside(root, target):
+    root = str(root)
+    target = str(target)
+    return target == root or target.startswith(root + os.sep)
+
+
+def artifact_root_for(root):
+    """Return <root>/artifacts/flows and refuse a symlink pointing outside."""
+    real_root = Path(os.path.realpath(str(root)))
+    candidate = real_root.joinpath(*ARTIFACT_SUBDIR)
+    # Walk the existing prefix: a symlinked `artifacts` or `flows` that escapes
+    # the repository must be refused before anything is created.
+    probe = real_root
+    for part in ARTIFACT_SUBDIR:
+        probe = probe / part
+        if probe.is_symlink():
+            target = Path(os.path.realpath(str(probe)))
+            if not is_inside(real_root, target):
+                raise BuildError(
+                    "artifact_symlink_escape",
+                    f"Thư mục artifact là symlink ra ngoài repository: {probe} → {target}",
+                    f"Chỉ cho phép artifact dưới {real_root.joinpath(*ARTIFACT_SUBDIR)}",
+                )
+    resolved = Path(os.path.realpath(str(candidate))) if candidate.exists() else candidate
+    if not is_inside(real_root, resolved):
+        raise BuildError(
+            "invalid_artifact_root",
+            f"Artifact root phải nằm trong repository: {resolved}",
+            f"Dùng đúng {real_root.joinpath(*ARTIFACT_SUBDIR)}",
+        )
+    return candidate
+
+
+def validate_out_dir(root, out_dir):
+    """The only accepted artifact root is <repo>/artifacts/flows."""
+    expected = artifact_root_for(root)
+    if out_dir is None:
+        return expected
+    raw = Path(out_dir).expanduser()
+    candidate = raw if raw.is_absolute() else Path(root) / raw
+    resolved = Path(os.path.realpath(str(candidate)))
+    expected_real = Path(os.path.realpath(str(expected)))
+    if resolved != expected_real:
+        raise BuildError(
+            "invalid_artifact_root",
+            f"output directory không hợp lệ: {out_dir}",
+            f"Chỉ chấp nhận {expected} (artifact không được ghi vào repo root, src, docs, tmp hay ngoài repo).",
+        )
+    if expected.is_symlink():
+        raise BuildError("artifact_symlink_escape", f"Artifact root là symlink: {expected}")
+    return expected
+
+
+def safe_slug(slug):
+    if slug is None:
+        return None
+    cleaned = re.sub(r"[^A-Za-z0-9._-]+", "-", str(slug)).strip("-")
+    if not cleaned or cleaned in {".", ".."} or cleaned != str(slug).strip():
+        raise BuildError(
+            "invalid_slug",
+            f"slug không hợp lệ: {slug!r}",
+            "slug chỉ nhận chữ, số, dấu chấm, gạch dưới, gạch ngang.",
+        )
+    return cleaned[:SLUG_MAX]
+
+
+# --------------------------------------------------------------------------
+# scanning
+# --------------------------------------------------------------------------
 
 def git_state(root):
     def run(*args):
         try:
-            out = subprocess.run(
-                ["git", "-C", str(root), *args],
-                capture_output=True, text=True, timeout=10, check=False,
-            )
+            out = subprocess.run(["git", "-C", str(root), *args],
+                                 capture_output=True, text=True, timeout=10, check=False)
             return out.stdout.strip() if out.returncode == 0 else ""
         except (OSError, subprocess.SubprocessError):
             return ""
@@ -238,44 +336,40 @@ def git_state(root):
     }
 
 
-def collect_files(root, excluded_hits):
+def collect_files(root, excluded):
     files = []
+    root = Path(root)
     for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
         dirnames[:] = sorted(d for d in dirnames if d not in EXCLUDED_DIRS)
         for name in sorted(filenames):
             path = Path(dirpath) / name
             rel = path.relative_to(root).as_posix()
             if any(part in EXCLUDED_DIRS for part in Path(rel).parts):
-                excluded_hits["directory"] += 1
+                excluded["directory"] += 1
                 continue
-            # Example and fixture apps declare their own routes; analysing them
-            # instead of the real implementation is a false positive.
             if TEST_DIR_PATTERN.search(rel):
-                excluded_hits["test_dir"] += 1
+                excluded["test_dir"] += 1
                 continue
             if is_excluded_name(name):
-                excluded_hits["sensitive_name"] += 1
+                excluded["sensitive_name"] += 1
                 continue
             if path.suffix.lower() not in SOURCE_SUFFIXES:
-                excluded_hits["suffix"] += 1
+                excluded["suffix"] += 1
                 continue
-            try:
-                real = resolve_within(root, path)
-            except BuildError:
-                excluded_hits["symlink_escape"] += 1
+            real = Path(os.path.realpath(str(path)))
+            if not is_inside(root, real):
+                excluded["symlink_escape"] += 1
                 continue
             try:
                 if real.stat().st_size > MAX_FILE_BYTES:
-                    excluded_hits["too_large"] += 1
+                    excluded["too_large"] += 1
                     continue
             except OSError:
-                excluded_hits["unreadable"] += 1
+                excluded["unreadable"] += 1
                 continue
             files.append(real)
             if len(files) >= MAX_FILES_SCANNED:
-                break
-        if len(files) >= MAX_FILES_SCANNED:
-            break
+                return files
     return files
 
 
@@ -286,54 +380,7 @@ def read_text(path):
         return None
     if b"\x00" in raw[:4096]:
         return None
-    try:
-        return raw.decode("utf-8", errors="replace")
-    except Exception:  # pragma: no cover - defensive
-        return None
-
-
-def match_facets(request_norm):
-    active = []
-    for facet in FACETS:
-        hits = [kw for kw in facet["keywords"] if kw in request_norm]
-        if hits:
-            active.append((facet, hits))
-    if not active:
-        active.append(({
-            "id": "generic",
-            "label": "luồng xử lý chung",
-            "keywords": [],
-            "code": [r"(?i)\bhandler\b", r"(?i)\bservice\b", r"(?i)\bcontroller\b"],
-            "path": [r"(?i)src", r"(?i)app", r"(?i)services?"],
-        }, []))
-    return active
-
-
-def score_file(text, rel, active_facets):
-    score = 0
-    matched_terms = []
-    for facet, _hits in active_facets:
-        for pattern in facet["code"]:
-            found = len(re.findall(pattern, text))
-            if found:
-                score += min(found, 6) * 2
-                matched_terms.append(f"code:{facet['id']}")
-        for pattern in facet["path"]:
-            if re.search(pattern, rel):
-                score += 3
-                matched_terms.append(f"path:{facet['id']}")
-    for pattern, kind in ENTRY_PATTERNS:
-        if re.search(pattern, text):
-            score += 10 if kind == "route" else 4
-            matched_terms.append(kind)
-    if re.search(r"(?i)\bservice\b|\bservice\.js|\bservices/", rel):
-        score += 2
-    # Test fixtures and samples declare routes too; without this penalty an
-    # example app outranks the real implementation when analysing a repo that
-    # ships its own fixtures.
-    if re.search(r"(?i)(^|/)(tests?|specs?|__tests__|fixtures?|samples?|examples?|demo)(/|$)", rel):
-        score -= 12
-    return score, sorted(set(matched_terms))
+    return raw.decode("utf-8", errors="replace")
 
 
 def find_symbols(text):
@@ -351,20 +398,27 @@ def find_symbols(text):
     return symbols
 
 
-PREFERRED_SYMBOL = re.compile(
-    r"(?i)^(main|run|apply|execute|handler|handle|export|process|start|generate|build_flow|build)$")
-
-
-def pick_symbol(symbols):
-    """Prefer an entry-looking function over a class or helper declared first."""
+def pick_symbol(symbols, after_line=0):
     if not symbols:
         return None
-    callables = [item for item in symbols if item.get("kind") != "class"]
-    pool = callables or symbols
-    preferred = [item for item in pool if PREFERRED_SYMBOL.match(item["name"])]
-    if preferred:
-        return preferred[0]
-    return pool[0]
+    later = [item for item in symbols if item["line"] >= after_line] or symbols
+    callables = [item for item in later if item.get("kind") != "class"] or later
+    preferred = [item for item in callables if PREFERRED_SYMBOL.match(item["name"])]
+    return (preferred or callables)[0]
+
+
+def find_routes(text):
+    routes = []
+    for number, line in enumerate(text.splitlines(), start=1):
+        for regex in ROUTE_PATTERNS:
+            hit = regex.search(line)
+            if hit:
+                groups = hit.groups()
+                label = groups[-1]
+                method = groups[0] if len(groups) > 1 else ""
+                routes.append({"line": number, "label": label, "method": method})
+                break
+    return routes
 
 
 def find_entries(text):
@@ -373,20 +427,44 @@ def find_entries(text):
         for pattern, kind in ENTRY_PATTERNS:
             hit = re.search(pattern, line)
             if hit:
-                label = hit.group(hit.lastindex) if hit.lastindex else ""
-                entries.append({"line": number, "kind": kind, "label": label})
+                entries.append({"line": number, "kind": kind, "label": hit.group(1)})
     return entries
 
 
-def find_first(text, patterns):
-    for pattern in patterns:
-        if isinstance(pattern, tuple):
-            pattern = pattern[0]
-        hit = pattern.search(text) if hasattr(pattern, "search") else re.search(pattern, text)
-        if hit:
-            line = text.count("\n", 0, hit.start()) + 1
-            return line
-    return None
+def find_imports(text, rel, known):
+    """Resolve import specifiers to repository-relative source paths."""
+    targets = []
+    directory = Path(rel).parent
+    for regex in IMPORT_PATTERNS:
+        for hit in regex.finditer(text):
+            spec = hit.group(1)
+            if not re.match(r"^\.", spec) and "/" not in spec:
+                spec = spec.replace(".", "/")
+            base = (directory / spec).as_posix()
+            parts = []
+            for part in base.split("/"):
+                if part in ("", "."):
+                    continue
+                if part == "..":
+                    if parts:
+                        parts.pop()
+                    continue
+                parts.append(part)
+            stem = "/".join(parts)
+            for suffix in ("", ".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx", ".vue",
+                           ".py", ".php", ".rb"):
+                for candidate in (f"{stem}{suffix}", f"{stem}/index{suffix}", f"{stem}/__init__.py"):
+                    if candidate in known and candidate != rel:
+                        targets.append(candidate)
+    return sorted(set(targets))
+
+
+def response_lines(text):
+    lines = set()
+    for pattern in RESPONSE_PATTERNS:
+        for hit in pattern.finditer(text):
+            lines.add(text.count("\n", 0, hit.start()) + 1)
+    return sorted(lines)
 
 
 def has_error_handling(text):
@@ -397,287 +475,320 @@ def has_error_handling(text):
     return None
 
 
-def response_lines(text):
-    """Every line holding a response call, in file order."""
-    lines = set()
-    for pattern in RESPONSE_PATTERNS:
-        for hit in pattern.finditer(text):
-            lines.add(text.count("\n", 0, hit.start()) + 1)
-    return sorted(lines)
+def match_facets(request_norm):
+    active = [(facet, [kw for kw in facet["keywords"] if kw in request_norm])
+              for facet in FACETS]
+    active = [(facet, hits) for facet, hits in active if hits]
+    if not active:
+        active.append(({
+            "id": "generic",
+            "label": "luồng xử lý chung",
+            "keywords": [],
+            "code": [r"(?i)\bhandler\b", r"(?i)\bservice\b", r"(?i)\bcontroller\b"],
+            "path": [r"(?i)src", r"(?i)app", r"(?i)services?"],
+        }, []))
+    return active
 
 
-def route_body_score(text_lines, start_line, end_line, route_label, active_facets):
-    """Score one handler body plus its route label against the requested facets."""
-    body = "\n".join(text_lines[start_line - 1: end_line])
+def score_window(window, active_facets):
     score = 0
     for facet, _hits in active_facets:
         for pattern in facet["code"]:
-            score += 2 * len(re.findall(pattern, body))
-        for pattern in facet["path"]:
-            if re.search(pattern, route_label or ""):
-                score += 6
+            score += 2 * len(re.findall(pattern, window))
     return score
 
 
-def redacted_summary(symbol, role, rel, line):
-    """Describe a step without ever quoting source text."""
-    if symbol:
-        return f"{role} — hàm/khối `{symbol}` trong `{rel}` (dòng {line})."
-    return f"{role} — trong `{rel}` (dòng {line})."
+def route_body(text_lines, routes, index):
+    start = routes[index]["line"]
+    end = routes[index + 1]["line"] - 1 if index + 1 < len(routes) else len(text_lines)
+    return "\n".join(text_lines[start - 1:end])
 
 
-def build_graph(root, request, files, git, limits, excluded):
+# --------------------------------------------------------------------------
+# graph
+# --------------------------------------------------------------------------
+
+def build_graph(root, request, inventory, git, limits, excluded):
     request_norm = normalize_text(request)
     active = match_facets(request_norm)
+    known = {item["rel"] for item in inventory}
 
-    candidates = []
-    for path in files:
-        text = read_text(path)
-        if text is None:
-            continue
-        # Count secret-shaped lines so the report can state what was present
-        # without ever copying the value.
-        excluded["secret_lines"] += len(SECRET_LINE.findall(text))
-        rel = path.relative_to(root).as_posix()
-        score, terms = score_file(text, rel, active)
-        if score <= 0:
-            continue
-        entries = find_entries(text)
-        symbols = find_symbols(text)
-        candidates.append({
-            "rel": rel,
-            "score": score,
-            "terms": terms,
-            "entries": entries,
-            "symbols": symbols,
-            "error_line": has_error_handling(text),
-            "response_lines": response_lines(text),
-            "lines": text.splitlines(),
-        })
-    candidates.sort(key=lambda item: (-item["score"], item["rel"]))
-    selected = candidates[:MAX_STEPS]
+    for item in inventory:
+        excluded["secret_lines"] += len(SECRET_LINE.findall(item["text"]))
+        item["imports"] = find_imports(item["text"], item["rel"], known)
+
+    # Rank only to choose the entry; ranking never puts a file into the flow.
+    def rank(item):
+        lines = item["text"].splitlines()
+        best = 0
+        best_route = None
+        for index, route in enumerate(item["routes"]):
+            body = route_body(lines, item["routes"], index)
+            score = score_window(body, active)
+            for facet, _hits in active:
+                for pattern in facet["path"]:
+                    if re.search(pattern, route["label"] or ""):
+                        score += 6
+            if score > best:
+                best = score
+                best_route = route
+        return (best, len(item["symbols"]), item["rel"]), best_route
+
+    ranked = []
+    for item in inventory:
+        score, route = rank(item)
+        if score[0] > 0 or item["routes"] or item["entries"]:
+            ranked.append((score, route, item))
+    ranked.sort(key=lambda row: (-row[0][0], -row[0][1], row[0][2]))
 
     facet_labels = ", ".join(facet["label"] for facet, _ in active)
     nodes = []
     edges = []
     warnings = []
+    related = []
 
     def add_node(node_id, title, node_type, summary, confidence, refs, **extra):
-        node = {
-            "id": node_id,
-            "title": title,
-            "type": node_type,
-            "summary": summary,
-            "confidence": confidence,
-            "source_refs": refs,
-        }
+        node = {"id": node_id, "title": title, "type": node_type, "summary": summary,
+                "confidence": confidence, "source_refs": refs}
         node.update(extra)
         nodes.append(node)
 
-    def add_edge(source, target, label, kind):
-        edges.append({"from": source, "to": target, "label": label, "kind": kind})
-
     def ref(rel, line, symbol=None):
-        """Source ref; omit keys the schema would reject when empty."""
         item = {"path": rel, "start_line": int(line)}
         name = (symbol or "").strip()
         if name:
             item["symbol"] = name
         return item
 
-    add_node(
-        "start", "Bắt đầu từ yêu cầu", "start",
-        f"Người dùng yêu cầu phân tích luồng: “{request.strip()}”. "
-        f"Nhóm chủ đề nhận diện được: {facet_labels}.",
-        "partial", [],
-        details="Điểm vào của sơ đồ do yêu cầu quyết định, không phải một dòng code cụ thể.",
-        technical="entry=request",
-    )
+    def add_edge(source, target, label, kind, evidence, technical):
+        edges.append({"from": source, "to": target, "label": label, "kind": kind,
+                      "technical": technical, "evidence": evidence})
 
-    if not selected:
-        add_node(
-            "no-evidence", "Không tìm thấy mã nguồn liên quan", "error",
-            "Không file nào trong phạm vi đọc khớp với từ khoá của yêu cầu. "
-            "Sơ đồ dừng ở đây thay vì mô tả một luồng không có bằng chứng.",
-            "unknown", [],
-            details="Cần mô tả flow cụ thể hơn, hoặc repository chưa chứa phần xử lý tương ứng.",
-        )
-        add_edge("start", "no-evidence", "không khớp mã nguồn", "error")
-        limits.append("Không tìm được bằng chứng nào cho yêu cầu này; kết quả chỉ ghi nhận giới hạn.")
-    else:
-        # The entry is the first candidate that declares a route; a file that
-        # only matches keyword patterns is a service, not a starting point.
-        routes = []
-        for item in selected:
-            declared = sorted(
-                (entry for entry in item["entries"] if entry["kind"] == "route"),
-                key=lambda entry: entry["line"],
-            )
-            boundaries = [entry["line"] for entry in declared] + [len(item["lines"]) + 1]
-            for position, route in enumerate(declared):
-                body_end = boundaries[position + 1] - 1
-                score = route_body_score(
-                    item["lines"], route["line"], body_end, route["label"], active)
-                routes.append((score, item, route))
-        if routes:
-            # A file can hold several endpoints; pick the one whose handler body
-            # matches the request, not merely the first route in the file.
-            routes.sort(key=lambda row: (-row[0], row[1]["rel"], row[2]["line"]))
-            _score, entry_item, entry_route = routes[0]
-        else:
-            entry_item = next((item for item in selected if item["entries"]), selected[0])
-            entry_route = None
-        ordered = [entry_item] + [item for item in selected if item is not entry_item]
-        entry_symbol = pick_symbol(entry_item["symbols"])
-        entry_line = (entry_route or {}).get("line") or (entry_symbol or {}).get("line") or 1
-        entry_label = (entry_route or {}).get("label") or (entry_symbol or {}).get("name") or ""
+    add_node("start", "Bắt đầu từ yêu cầu", "start",
+             f"Yêu cầu: “{request.strip()}”. Nhóm chủ đề: {facet_labels}.",
+             "partial", [],
+             details="Điểm vào của sơ đồ do yêu cầu quyết định, không phải một dòng code cụ thể.",
+             technical="entry=request")
 
-        if entry_route:
-            title = f"Nhận yêu cầu {entry_label}"
-            role = "Điểm vào HTTP"
-        elif entry_symbol:
-            title = f"Bắt đầu tại {entry_label}"
-            role = "Điểm vào"
-        else:
-            title = f"Bắt đầu trong {entry_item['rel']}"
-            role = "Điểm vào"
+    if not ranked:
+        add_node("no-evidence", "Không tìm thấy mã nguồn liên quan", "error",
+                 "Không file nào trong phạm vi đọc khớp với yêu cầu. Sơ đồ dừng ở đây "
+                 "thay vì mô tả một luồng không có bằng chứng.",
+                 "unknown", [],
+                 details="Cần mô tả flow cụ thể hơn, hoặc repository chưa chứa phần xử lý tương ứng.")
+        add_edge("start", "no-evidence", "không khớp mã nguồn", "error", "none", "no-match")
+        limits.append("Không tìm được bằng chứng nào cho yêu cầu này.")
+        return _finish(nodes, edges, limits, warnings, related, active, request, git)
 
-        add_node(
-            "step-1", title, "action",
-            redacted_summary(entry_label or None, role, entry_item["rel"], entry_line),
-            "verified",
-            [ref(entry_item["rel"], entry_line, entry_label)],
-            details=f"Khớp chủ đề: {', '.join(entry_item['terms']) or 'điểm vào chung'}.",
-            technical=entry_item["rel"],
-            actor="Hệ thống",
-        )
-        add_edge("start", "step-1", "bắt đầu xử lý", "success")
-
-        previous = "step-1"
-        error_inserted = False
-        for index, item in enumerate(ordered[1:], start=2):
-            symbol = pick_symbol(item["symbols"]) or {}
-            symbol_name = symbol.get("name") or ""
-            line = (item["entries"][0]["line"] if item["entries"] else None) or \
-                   symbol.get("line") or 1
-            node_id = f"step-{index}"
-            if symbol_name:
-                title = f"Xử lý tại {symbol_name}"
-            else:
-                title = f"Bước trong {item['rel']}"
-            add_node(
-                node_id, title, "action",
-                redacted_summary(symbol_name or None, "Bước xử lý", item["rel"], line),
-                "verified",
-                [ref(item["rel"], line, symbol_name)],
-                details=f"Khớp chủ đề: {', '.join(item['terms']) or 'liên quan yêu cầu'}.",
-                technical=item["rel"],
-                actor="Hệ thống",
-            )
-            if item["error_line"] and not error_inserted:
-                add_node(
-                    "decision-error", "Có lỗi trong bước này?", "decision",
-                    "Bước xử lý có nhánh bắt lỗi; sơ đồ tách nhánh thành công và thất bại.",
-                    "verified",
-                    [ref(item["rel"], item["error_line"])],
-                    details="Nhánh lỗi được suy ra từ việc xuất hiện xử lý ngoại lệ trong file.",
-                )
-                add_node(
-                    "error-branch", "Trả lỗi cho người gọi", "error",
-                    "Lỗi được bắt và trả về cho lớp gọi thay vì kết thúc im lặng.",
-                    "partial",
-                    [ref(item["rel"], item["error_line"])],
-                    details="Chưa xác minh nội dung thông báo lỗi và mã lỗi cụ thể.",
-                )
-                add_edge(previous, "decision-error", "vào bước xử lý", "normal")
-                add_edge("decision-error", "error-branch", "có lỗi", "error")
-                add_edge("decision-error", node_id, "không lỗi", "success")
-                error_inserted = True
-                previous = node_id
-                continue
-            add_edge(previous, node_id, "tiếp tục", "normal")
-            previous = node_id
-
-        response_pick = None
-        for item in ordered:
-            after = [line for line in item["response_lines"] if line >= (entry_line if item is entry_item else 1)]
-            if after:
-                response_pick = (item, after[0])
+    # Entry: a route body that matches the request; otherwise a file that
+    # declares an entry point. Keyword match alone is never enough.
+    entry = None
+    for score, route, item in ranked:
+        if route is not None and score[0] > 0:
+            entry = (item, route, "route")
+            break
+    if entry is None:
+        for score, route, item in ranked:
+            if item["entries"]:
+                entry = (item, item["entries"][0], "entry")
                 break
-        if response_pick:
-            response_item, response_line = response_pick
-            add_node(
-                "end", "Trả kết quả", "end",
-                f"Kết quả được trả về từ `{response_item['rel']}`.",
-                "verified", [ref(response_item["rel"], response_line)],
-                details="Điểm kết thúc xác định theo lời gọi trả kết quả trong code.",
-            )
-        else:
-            add_node(
-                "end", "Kết thúc xử lý", "end",
-                "Không tìm thấy lời gọi trả kết quả rõ ràng; điểm kết thúc được suy ra từ bước cuối.",
-                "inferred", [],
-                details="Chưa xác minh được nơi trả kết quả cho người dùng.",
-            )
-            limits.append("Không tìm thấy điểm trả kết quả rõ ràng; node kết thúc là suy luận.")
-        add_edge(previous, "end", "hoàn tất", "success")
+    if entry is None:
+        limits.append(
+            "Không xác định được điểm vào: không có route/handler nào khớp yêu cầu, nên không "
+            "dựng chuỗi bước từ điểm số keyword (như vậy là bịa quan hệ).")
+        add_node("no-entry", "Không xác định được điểm vào", "error",
+                 "Có file khớp từ khoá nhưng không có route/handler để bắt đầu luồng. "
+                 "Sơ đồ không nối các file đó thành một chuỗi giả.",
+                 "unknown", [],
+                 details="Cần chỉ rõ endpoint hoặc hàm bắt đầu luồng.")
+        add_edge("start", "no-entry", "không có điểm vào", "error", "none", "no-entry")
+        related = [{"path": score[2], "reason": "khớp từ khoá, không có liên kết tới điểm vào"}
+                   for score, _route, _item in ranked[:5]]
+        return _finish(nodes, edges, limits, warnings, related, active, request, git)
 
-        if len(candidates) > len(selected):
-            warnings.append(
-                f"Còn {len(candidates) - len(selected)} file khớp chủ đề nhưng vượt giới hạn "
-                f"{MAX_STEPS} bước; sơ đồ chỉ phản ánh phần đã chọn."
-            )
-        if not entry_route:
-            limits.append(
-                "Không thấy khai báo route/handler cho yêu cầu này; điểm vào là hàm đầu tiên khớp chủ đề."
-            )
+    entry_item, entry_route, entry_kind = entry
+    entry_lines = entry_item["text"].splitlines()
+    entry_symbol = pick_symbol(entry_item["symbols"], after_line=(
+        entry_route["line"] if entry_kind == "route" else 0))
+    entry_line = entry_route["line"]
+    entry_label = entry_route.get("label") or (entry_symbol or {}).get("name") or ""
 
-    # "Luồng: luồng thanh toán" reads badly; drop a leading flow word.
-    title_topic = re.sub(
-        r"(?i)^\s*(?:luồng|luong|quy trình|quy trinh|flow)\s*[:\-–]?\s*", "", request.strip())
+    add_node("step-1", f"Nhận yêu cầu {entry_label}" if entry_kind == "route"
+             else f"Bắt đầu tại {entry_label}", "action",
+             f"{'Điểm vào HTTP' if entry_kind == 'route' else 'Điểm vào'} — "
+             f"`{entry_item['rel']}` (dòng {entry_line}).",
+             "verified",
+             [ref(entry_item["rel"], entry_line, entry_label)],
+             details=f"Bằng chứng thành viên: {EVIDENCE_MEMBERSHIP['entry']}.",
+             technical=entry_item["rel"], actor="Hệ thống")
+    add_edge("start", "step-1", "bắt đầu xử lý", "success", "entry",
+             f"route khai báo tại {entry_item['rel']}:{entry_line}")
+
+    # Walk structural edges only: import, then call-by-name. Keyword matches
+    # never add a node; they only appear under `related`.
+    by_rel = {item["rel"]: item for item in inventory}
+    visited = {entry_item["rel"]}
+    flow_steps = [(entry_item, entry_line, entry_label)]
+    queue = [entry_item]
+    while queue:
+        current = queue.pop(0)
+        for target_rel in current["imports"]:
+            if target_rel in visited or target_rel not in by_rel:
+                continue
+            target = by_rel[target_rel]
+            visited.add(target_rel)
+            symbol = pick_symbol(target["symbols"])
+            flow_steps.append((target, (symbol or {}).get("line") or 1,
+                               (symbol or {}).get("name") or ""))
+            queue.append(target)
+            if len(flow_steps) >= MAX_STEPS:
+                break
+        if len(flow_steps) >= MAX_STEPS:
+            break
+
+    counter = 1
+    previous_item, previous_id = flow_steps[0][0], "step-1"
+    branch_done = False
+    edge_evidence_seen = set()
+
+    def emit_branch(source_id, source_item, next_id, next_label):
+        """Insert decision + error nodes between source and the next step."""
+        suffix = re.sub(r"[^A-Za-z0-9_-]+", "-", source_item["rel"])[:60]
+        decision_id = f"decision-{suffix}"
+        error_id = f"error-{suffix}"
+        line = source_item["error_line"]
+        add_node(decision_id, "Có lỗi trong bước này?", "decision",
+                 "Bước xử lý có nhánh bắt lỗi; sơ đồ tách nhánh thành công và thất bại.",
+                 "partial", [ref(source_item["rel"], line)],
+                 details="Nhánh lỗi suy ra từ việc có xử lý ngoại lệ; mã lỗi chưa xác minh.")
+        add_node(error_id, "Trả lỗi cho người gọi", "error",
+                 "Lỗi được bắt và trả về lớp gọi thay vì kết thúc im lặng.",
+                 "partial", [ref(source_item["rel"], line)],
+                 details="Chưa xác minh nội dung thông báo và mã lỗi.")
+        add_edge(source_id, decision_id, "vào bước xử lý", "normal", "import",
+                 f"cùng bước `{source_item['rel']}`")
+        add_edge(decision_id, next_id, next_label, "success", "structure",
+                 "đường đi tiếp khi không lỗi")
+        add_edge(decision_id, error_id, "có lỗi", "error", "structure",
+                 "khối xử lý ngoại lệ trong file")
+
+    for item, line, symbol_name in flow_steps[1:]:
+        counter += 1
+        node_id = f"step-{counter}"
+        add_node(node_id, f"Xử lý tại {symbol_name}" if symbol_name else
+                 f"Bước trong {item['rel']}", "action",
+                 f"Bước xử lý — `{item['rel']}` (dòng {line}).",
+                 "verified", [ref(item["rel"], line, symbol_name)],
+                 details=f"Bằng chứng thành viên: import từ `{previous_item['rel']}`.",
+                 technical=item["rel"], actor="Hệ thống")
+        add_edge(previous_id, node_id, "gọi tiếp", "normal", "import",
+                 f"`{previous_item['rel']}` import `{item['rel']}`")
+        edge_evidence_seen.add("import")
+        if previous_item["error_line"] and not branch_done:
+            emit_branch(previous_id, previous_item, node_id, "không lỗi")
+            branch_done = True
+        previous_item, previous_id = item, node_id
+
+    if len(visited) >= MAX_STEPS:
+        warnings.append(f"Luồng có từ {MAX_STEPS} bước trở lên; sơ đồ đã cắt bớt.")
+
+    if len(visited) == 1:
+        limits.append(
+            "Không có cạnh import/gọi hàm nào từ điểm vào: chưa có call graph thật, "
+            "nên sơ đồ chỉ có bước mở đầu thay vì nối các file khớp từ khoá.")
+
+    # Keyword matches outside the reachable set are reported, never chained.
+    for item in inventory:
+        if item["rel"] in visited:
+            continue
+        keyword = 0
+        for facet, _hits in active:
+            for pattern in facet["code"]:
+                keyword += len(re.findall(pattern, item["text"]))
+            for pattern in facet["path"]:
+                if re.search(pattern, item["rel"]):
+                    keyword += 3
+        if keyword > 0:
+            related.append({
+                "path": item["rel"],
+                "reason": "khớp từ khoá nhưng không nối được tới điểm vào bằng import/gọi hàm",
+            })
+    related.sort(key=lambda entry: entry["path"])
+
+    # Response node: first response call at/after the entry line, in flow order.
+    response_pick = None
+    for index, (item, line, _symbol) in enumerate(flow_steps):
+        candidates = [candidate for candidate in item["response_lines"]
+                      if candidate >= (line if index == 0 else 1)]
+        if candidates:
+            response_pick = (item, candidates[0])
+            break
+    if response_pick:
+        response_item, response_line = response_pick
+        add_node("end", "Trả kết quả", "end",
+                 f"Kết quả được trả về từ `{response_item['rel']}`.",
+                 "verified", [ref(response_item["rel"], response_line)],
+                 details="Điểm kết thúc xác định theo lời gọi trả kết quả trong code.")
+    else:
+        add_node("end", "Kết thúc xử lý", "end",
+                 "Không tìm thấy lời gọi trả kết quả rõ ràng; điểm kết thúc suy ra từ bước cuối.",
+                 "inferred", [], details="Chưa xác minh nơi trả kết quả cho người dùng.")
+        limits.append("Không tìm thấy điểm trả kết quả rõ ràng; node kết thúc là suy luận.")
+    add_edge(previous_id, "end", "hoàn tất", "success",
+             "call" if edge_evidence_seen else "entry",
+             "bước cuối của luồng" if counter > 1 else "điểm vào trả kết quả")
+    if previous_item["error_line"] and not branch_done:
+        emit_branch(previous_id, previous_item, "end", "không lỗi")
+        branch_done = True
+
+    if not edge_evidence_seen:
+        limits.append("Chưa có call graph thật: chỉ xác minh được file và dòng của từng bước.")
+
+    return _finish(nodes, edges, limits, warnings, related, active, request, git)
+
+
+def _finish(nodes, edges, limits, warnings, related, active, request, git):
+    title_topic = re.sub(r"(?i)^\s*(?:luồng|luong|quy trình|quy trinh|flow)\s*[:\-–]?\s*",
+                         "", request.strip())
     title_topic = (title_topic or request.strip())[:120]
-
     graph = {
         "flow_id": "",
         "title": f"Luồng: {title_topic}",
         "description": (
-            f"Sơ đồ dựng từ phân tích tĩnh repository {root.name or str(root)}, "
-            f"theo yêu cầu: {request.strip()}. Mọi bước đều trỏ tới file và dòng thật; "
-            f"phần chưa chứng minh được đánh dấu tin cậy thấp."
-        ),
+            f"Sơ đồ dựng từ phân tích tĩnh theo yêu cầu: {request.strip()}. "
+            "Mỗi bước trỏ tới file và dòng thật; bước chỉ khớp từ khoá được tách riêng "
+            "thay vì nối vào luồng."),
         "audience": "Người không đọc code, BA, kiểm thử",
-        "scope": f"Đọc source trong {root} · {facet_labels}",
+        "scope": f"Đọc source trong repository · {', '.join(f['label'] for f, _ in active)}",
         "entry_node": "start",
         "nodes": nodes,
         "edges": edges,
         "assumptions": limits + warnings,
-        "notes": (
-            "Phân tích tĩnh, không chạy code của repository, không dùng network. "
-            "Bước đánh dấu verified trỏ tới đúng file và dòng khai báo; "
-            "bước partial/inferred là suy luận từ cấu trúc code."
-        ),
+        "notes": ("Phân tích tĩnh, không chạy code của repository, không dùng network. "
+                  "`verified` = vị trí có thật + có bằng chứng thành viên (route/import/call). "
+                  "`partial`/`inferred` = suy luận từ cấu trúc. Không chép nội dung source."),
         "meta": {
             "schema_version": SCHEMA_VERSION,
             "generated_at": utc_now(),
             "source": git,
             "request": request.strip(),
             "facets": [facet["id"] for facet, _ in active],
-            "files_scanned": len(files),
+            "related": related,
         },
     }
     return graph, warnings
 
 
-def make_slug(request, root, git, taken):
-    base = strip_diacritics(request).lower()
-    base = re.sub(r"[^a-z0-9]+", "-", base).strip("-")
+# --------------------------------------------------------------------------
+# output
+# --------------------------------------------------------------------------
+
+def make_slug(request, git, taken):
+    base = re.sub(r"[^a-z0-9]+", "-", strip_diacritics(request).lower()).strip("-")
     words = [word for word in base.split("-") if word][:6]
-    digest = hashlib.sha1(
-        f"{root}|{request}|{git.get('commit')}".encode("utf-8")
-    ).hexdigest()[:6]
-    slug = "-".join(words + [digest])[:SLUG_MAX].strip("-")
-    candidate = slug
-    counter = 2
+    digest = hashlib.sha1(f"{request}|{git.get('commit')}".encode("utf-8")).hexdigest()[:6]
+    slug = "-".join(words + [digest])[:SLUG_MAX].strip("-") or "flow"
+    candidate, counter = slug, 2
     while candidate in taken:
         suffix = f"-{counter}"
         candidate = (slug[: SLUG_MAX - len(suffix)] + suffix).strip("-")
@@ -687,30 +798,36 @@ def make_slug(request, root, git, taken):
     return candidate
 
 
-def render_overview(graph, root, request, excluded, limits, warnings, artifacts):
+def render_overview(graph, repo_name, request, excluded, limits, warnings, related):
     rows = []
     for index, node in enumerate(graph["nodes"], start=1):
-        ref = (node.get("source_refs") or [{}])[0]
-        evidence = "—"
-        if ref.get("path"):
-            evidence = f"`{ref['path']}`"
-            if ref.get("start_line"):
-                evidence += f":{ref['start_line']}"
-        rows.append(
-            f"| {index} | {node['title']} | {node['type']} | {node['confidence']} | {evidence} |"
-        )
+        refs = node.get("source_refs") or []
+        location = "—"
+        if refs:
+            location = f"`{refs[0]['path']}`"
+            if refs[0].get("start_line"):
+                location += f":{refs[0]['start_line']}"
+        membership = next(
+            (edge["evidence"] for edge in graph["edges"] if edge["to"] == node["id"]), "—")
+        rows.append(f"| {index} | {node['title']} | {node['type']} | {location} | "
+                    f"{membership} | {node['confidence']} |")
 
-    excluded_lines = "\n".join(
-        f"- {key}: {value}" for key, value in sorted(excluded.items()) if value
-    ) or "- Không có mục nào bị loại."
-
+    edge_rows = [
+        f"| {edge['from']} → {edge['to']} | `{edge['label']}` | {edge['kind']} | "
+        f"{edge.get('evidence', '—')} | {edge.get('technical', '—')} |"
+        for edge in graph["edges"]
+    ]
+    related_rows = [f"- `{item['path']}` — {item['reason']}" for item in related] or \
+                   ["- Không có file nào bị loại khỏi luồng."]
+    excluded_lines = "\n".join(f"- {key}: {value}" for key, value in sorted(excluded.items()) if value) \
+        or "- Không có mục nào bị loại."
     limits_lines = "\n".join(f"- {item}" for item in limits) or "- Không có giới hạn bổ sung."
     warnings_lines = "\n".join(f"- {item}" for item in warnings) or "- Không có cảnh báo."
     source = graph["meta"]["source"]
 
     return f"""# {graph['title']}
 
-Sinh tự động: {graph['meta']['generated_at']} · công cụ: `scripts/build_flow.py` (schema {SCHEMA_VERSION}).
+Sinh tự động: {graph['meta']['generated_at']} · `scripts/build_flow.py` (schema {SCHEMA_VERSION}).
 
 ## Yêu cầu
 
@@ -720,27 +837,30 @@ Sinh tự động: {graph['meta']['generated_at']} · công cụ: `scripts/build
 
 | Mục | Giá trị |
 |---|---|
-| Đường dẫn | `{root}` |
+| Tên | `{repo_name}` |
 | Nhánh | `{source.get('branch') or 'không có git'}` |
 | Commit | `{source.get('commit') or 'không có git'}` |
 | Thay đổi chưa commit | {'có — ' + str(source.get('dirty_files')) + ' file' if source.get('dirty') else 'không'} |
-| File đã đọc | {graph['meta']['files_scanned']} |
+
+Đường dẫn tuyệt đối không được ghi vào artifact để tránh lộ cấu trúc máy cá nhân.
 
 ## Luồng xử lý
 
 {graph['description']}
 
-| # | Bước | Loại | Tin cậy | Bằng chứng |
-|---|---|---|---|---|
+| # | Bước | Loại | Vị trí | Bằng chứng thành viên | Tin cậy |
+|---|---|---|---|---|---|
 {chr(10).join(rows)}
 
 ## Quan hệ giữa các bước
 
-{chr(10).join(f"- {edge['from']} → {edge['to']} · `{edge['label']}` · {edge['kind']}" for edge in graph['edges'])}
+| Cạnh | Nhãn | Loại | Bằng chứng | Ghi chú |
+|---|---|---|---|---|
+{chr(10).join(edge_rows)}
 
-## Thành phần chính
+## File khớp từ khoá nhưng KHÔNG thuộc luồng
 
-{chr(10).join(f"- `{node.get('technical') or (node.get('source_refs') or [{}])[0].get('path') or '—'}` — {node['title']}" for node in graph['nodes'] if node.get('technical') or node.get('source_refs'))}
+{chr(10).join(related_rows)}
 
 ## Giới hạn và phần chưa xác minh
 
@@ -750,11 +870,11 @@ Sinh tự động: {graph['meta']['generated_at']} · công cụ: `scripts/build
 
 ## Phạm vi đọc và loại trừ
 
-Chỉ đọc file source trong root ở trên. Các mục sau bị loại khỏi phân tích:
+Chỉ đọc file source trong repository. Các mục sau bị loại:
 
 {excluded_lines}
 
-Tool không gọi network, không chạy code của repository, không sửa file nguồn. Nội dung source không được chép vào báo cáo này; chỉ tên file, số dòng và tên hàm/khối.
+Không gọi network, không chạy code của repository, không sửa file nguồn, không chép nội dung source.
 
 ## Tệp sinh ra
 
@@ -764,7 +884,7 @@ Tool không gọi network, không chạy code của repository, không sửa fil
 """
 
 
-def write_outputs(graph, artifacts_dir, root, request, excluded, limits, warnings):
+def write_outputs(graph, artifacts_dir, repo_name, request, excluded, limits, warnings, related):
     flow_json = artifacts_dir / "flow.json"
     flow_html = artifacts_dir / "flow.html"
     overview_md = artifacts_dir / "overview.md"
@@ -775,102 +895,128 @@ def write_outputs(graph, artifacts_dir, root, request, excluded, limits, warning
     flow_json.write_text(json.dumps(graph, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     flow_html.write_text(render_flow.render_json(graph), encoding="utf-8")
     overview_md.write_text(
-        render_overview(graph, root, request, excluded, limits, warnings, artifacts_dir),
-        encoding="utf-8",
-    )
+        render_overview(graph, repo_name, request, excluded, limits, warnings, related),
+        encoding="utf-8")
     counts = {"verified": 0, "partial": 0, "inferred": 0, "unknown": 0}
     for node in graph["nodes"]:
         counts[node["confidence"]] = counts.get(node["confidence"], 0) + 1
     run_json.write_text(json.dumps({
         "status": "ok",
+        "schema_version": SCHEMA_VERSION,
         "flow_id": graph["flow_id"],
         "generated_at": graph["meta"]["generated_at"],
-        "repository": str(root),
+        "repository_name": repo_name,
         "request": request,
         "source": graph["meta"]["source"],
         "counts": counts,
         "limits": limits,
         "warnings": warnings,
+        "related": related,
         "excluded": excluded,
         "files": [flow_json.name, flow_html.name, overview_md.name, run_json.name],
     }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return {"counts": counts, "paths": {
-        "flow_json": flow_json,
-        "flow_html": flow_html,
-        "overview": overview_md,
-        "run": run_json,
-    }}
+        "flow_json": flow_json, "flow_html": flow_html,
+        "overview": overview_md, "run": run_json}}
 
 
 def run(repo, request, out_dir=None, slug=None):
     request = (request or "").strip()
     if not request:
-        raise BuildError(
-            "missing_flow_request",
-            "Thiếu mô tả flow cần phân tích.",
-            'Ví dụ: --request "Giải thích từ lúc người dùng nhấn xuất báo cáo đến khi nhận được file"',
-        )
+        raise BuildError("missing_flow_request", "Thiếu mô tả flow cần phân tích.",
+                         'Ví dụ: --request "Giải thích từ lúc người dùng nhấn xuất báo cáo"')
     root = Path(repo).expanduser()
     if not root.exists():
         raise BuildError("repository_not_found", f"Không thấy repository: {root}",
                          "Kiểm tra lại đường dẫn tuyệt đối tới thư mục repository.")
-    if not root.is_dir():
-        raise BuildError("repository_not_directory", f"Đường dẫn không phải thư mục: {root}")
+    root = real_dir(root, "repository_unreadable", "repository")
     if not os.access(root, os.R_OK | os.X_OK):
-        raise BuildError("repository_unreadable", f"Không có quyền đọc thư mục: {root}")
-    root = Path(os.path.realpath(str(root)))
+        raise BuildError("repository_unreadable", f"Không có quyền đọc: {root}")
 
-    target_out = Path(out_dir).expanduser() if out_dir else root / "artifacts" / "flows"
-    if not target_out.is_absolute():
-        target_out = root / target_out
-    artifacts_root = resolve_within(root, target_out)
+    artifacts_root = validate_out_dir(root, out_dir)
+    slug = safe_slug(slug)
 
-    excluded = {"directory": 0, "sensitive_name": 0, "suffix": 0,
-                "symlink_escape": 0, "too_large": 0, "unreadable": 0,
-                "test_dir": 0, "secret_lines": 0}
+    excluded = {"directory": 0, "test_dir": 0, "sensitive_name": 0, "suffix": 0,
+                "symlink_escape": 0, "too_large": 0, "unreadable": 0, "secret_lines": 0}
     files = collect_files(root, excluded)
     git = git_state(root)
     limits = [
-        "Phân tích tĩnh trên source; hành vi runtime, dữ liệu thật và cấu hình môi trường chưa được kiểm chứng.",
-        "Không chép nội dung source vào kết quả; chỉ ghi tên file, số dòng và tên hàm/khối.",
-        "Chỉ đọc file source trong repository; file cấu hình bí mật, dump, log và thư mục phụ thuộc bị loại trừ.",
-        "Thư mục test/fixture/example/sample/demo bị bỏ qua để không phân tích nhầm ứng dụng mẫu.",
+        "Phân tích tĩnh trên source; hành vi runtime và dữ liệu thật chưa được kiểm chứng.",
+        "Chỉ đọc source trong repository; file bí mật, dump, log và thư mục phụ thuộc bị loại.",
+        "Thư mục test/fixture/example/sample/demo bị bỏ qua.",
+        "Chưa có call graph đầy đủ: quan hệ bước dựa trên route, import và lời gọi theo tên.",
     ]
-    graph, warnings = build_graph(root, request, files, git, limits, excluded)
+    inventory = []
+    for path in files:
+        text = read_text(path)
+        if text is None:
+            continue
+        rel = path.relative_to(root).as_posix()
+        inventory.append({
+            "rel": rel, "text": text, "lines": text.splitlines(),
+            "symbols": find_symbols(text), "routes": find_routes(text),
+            "entries": find_entries(text), "error_line": has_error_handling(text),
+            "response_lines": response_lines(text),
+        })
 
-    artifacts_root.mkdir(parents=True, exist_ok=True)
-    taken = {entry.name for entry in artifacts_root.iterdir() if entry.is_dir()}
-    slug = slug or make_slug(request, root, git, taken)
+    graph, warnings = build_graph(root, request, inventory, git, limits, excluded)
+    related = graph["meta"].get("related", [])
+
+    taken = {entry.name for entry in artifacts_root.iterdir() if entry.is_dir()} \
+        if artifacts_root.exists() else set()
+    slug = slug or make_slug(request, git, taken)
     if slug in taken:
-        raise BuildError(
-            "artifact_exists",
-            f"Thư mục artifact đã tồn tại: {artifacts_root / slug}",
-            "Bỏ --slug để tự sinh tên mới, hoặc chọn slug khác.",
-        )
-    slug = re.sub(r"[^A-Za-z0-9._-]+", "-", slug).strip("-")[:SLUG_MAX] or "flow"
-    artifacts_dir = resolve_within(root, artifacts_root / slug)
-    artifacts_dir.mkdir(parents=True, exist_ok=False)
+        raise BuildError("artifact_exists", f"Thư mục artifact đã tồn tại: {slug}",
+                         "Bỏ --slug để tự sinh tên mới, hoặc chọn slug khác.")
+    artifacts_dir = artifacts_root / slug
+    if artifacts_dir.exists():
+        raise BuildError("artifact_exists", f"Đường dẫn artifact đã tồn tại: {artifacts_dir}")
+    artifacts_root.mkdir(parents=True, exist_ok=True)
+    try:
+        artifacts_dir.mkdir(parents=False, exist_ok=False)
+    except FileExistsError as error:  # concurrent run
+        raise BuildError("artifact_exists", f"Thư mục artifact vừa được tạo: {slug}") from error
+    except OSError as error:
+        raise BuildError("artifact_write_failed", f"Không tạo được thư mục artifact: {error}")
 
     graph["flow_id"] = slug
     try:
-        result = write_outputs(graph, artifacts_dir, root, request, excluded, limits, warnings)
+        result = write_outputs(graph, artifacts_dir, root.name, request, excluded,
+                               limits, warnings, related)
     except render_flow.FlowError as error:
         raise BuildError("invalid_graph", f"Sơ đồ sinh ra không hợp lệ: {error}") from error
+    except OSError as error:
+        raise BuildError("artifact_write_failed", f"Không ghi được artifact: {error}")
 
     return {
         "status": "ok",
+        "schema_version": SCHEMA_VERSION,
         "slug": slug,
         "flow_id": graph["flow_id"],
         "repository": str(root),
+        "repository_name": root.name,
         "artifacts_dir": str(artifacts_dir),
         "paths": {key: str(value) for key, value in result["paths"].items()},
         "counts": result["counts"],
         "limits": limits,
         "warnings": warnings,
+        "related": related,
         "excluded": excluded,
         "source": git,
         "files_scanned": len(files),
     }
+
+
+def report_error(error, as_json):
+    """Structured error on stdout (--json) and stderr; stable exit code."""
+    payload = {"status": "error", "code": error.code,
+               "message": error.message, "hint": error.hint}
+    if as_json:
+        print(json.dumps(payload, ensure_ascii=False))
+    print(f"ERROR [{error.code}]: {error.message}", file=sys.stderr)
+    if error.hint:
+        print(f"Gợi ý: {error.hint}", file=sys.stderr)
+    return 3 if error.code == "internal_error" else 2
 
 
 def main(argv=None):
@@ -879,7 +1025,7 @@ def main(argv=None):
     parser.add_argument("--repo", required=True, type=Path, help="Đường dẫn repository cần phân tích")
     parser.add_argument("--request", required=True, help="Mô tả flow bằng tiếng Việt thông thường")
     parser.add_argument("--out-dir", type=Path, default=None,
-                        help="Thư mục gốc chứa artifact (mặc định <repo>/artifacts/flows)")
+                        help="Chỉ chấp nhận <repo>/artifacts/flows")
     parser.add_argument("--slug", default=None, help="Tên thư mục artifact; bỏ trống để tự sinh")
     parser.add_argument("--json", action="store_true", dest="as_json",
                         help="In một object JSON kết quả ra stdout")
@@ -887,14 +1033,13 @@ def main(argv=None):
     try:
         result = run(args.repo, args.request, args.out_dir, args.slug)
     except BuildError as error:
-        payload = {"status": "error", "code": error.code, "message": error.message,
-                   "hint": error.hint}
-        if args.as_json:
-            print(json.dumps(payload, ensure_ascii=False))
-        print(f"ERROR [{error.code}]: {error.message}", file=sys.stderr)
-        if error.hint:
-            print(f"Gợi ý: {error.hint}", file=sys.stderr)
-        return 2
+        return report_error(error, args.as_json)
+    except Exception as error:  # noqa: BLE001 - CLI contract: never leak a traceback
+        return report_error(BuildError(
+            "internal_error",
+            f"Lỗi nội bộ khi phân tích: {type(error).__name__}: {error}",
+            "Đây là lỗi của tool, không phải của repository; chạy lại với --json để lấy mã lỗi.",
+        ), args.as_json)
     if args.as_json:
         print(json.dumps(result, ensure_ascii=False))
     else:

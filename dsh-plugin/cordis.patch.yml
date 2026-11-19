@@ -1,15 +1,26 @@
 # DSH bundle layer: mount the Project Flow Explainer adapter.
 #
-# One row inserts the plugin package. The plugin is dependency-free: it never
-# imports @deepseek-ai/* (the profile cannot resolve those), it only uses the
-# Context object DSH hands to `apply(ctx)`.
+# The plugin is dependency-free: it never imports @deepseek-ai/* (a profile
+# cannot resolve those), it only uses the Context object DSH hands to
+# `apply(ctx, config)`.
 #
-# Config keys (all optional):
-#   pythonPath    interpreter used to call the core CLI   (default: python3)
-#   coreRoot      repository root holding scripts/         (default: parent of this package)
-#   allowedRoots  absolute roots the tool may analyse; empty = accept any readable path
-#   timeoutMs     per-call budget in milliseconds          (default: 180000)
-#   maxOutputBytes cap for core stdout/stderr capture      (default: 1048576)
+# POLICY — deny-by-default: this row ships WITHOUT `allowedRoots`, so every
+# tool call fails with `allowed_roots_unconfigured` until a profile supplies
+# real roots. Uncomment and edit the block below in the profile that should use
+# the tool (never edit ~/.dsh/profiles/web for this):
+#
+#   - insert:
+#       - id: project-flow-explainer
+#         name: dsh-project-flow-explainer
+#         config:
+#           allowedRoots:
+#             - /home/ban/workspace
+#           pythonPath: python3
+#           timeoutMs: 180000
+#
+# Config keys: allowedRoots (required to use the tool), pythonPath, coreRoot,
+# timeoutMs, maxOutputBytes. Artifacts are always written to
+# <repo>/artifacts/flows/<slug>/ — not configurable.
 - insert:
     - id: project-flow-explainer
       name: dsh-project-flow-explainer

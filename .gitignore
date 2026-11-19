@@ -12,6 +12,7 @@ venv/
 own_flow.html
 node_modules/
 dsh-plugin/node_modules/
+dist/
 
 # Editor / OS
 .vscode/

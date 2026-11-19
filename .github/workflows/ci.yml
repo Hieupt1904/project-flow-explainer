@@ -1,0 +1,74 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    name: core (python 3.12)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: py_compile
+        run: python -m compileall -q scripts tests
+      - name: unittest
+        run: python -m unittest discover -s tests -v
+      - name: repo policy (absolute paths, nested artifacts, secrets, manifest)
+        run: python scripts/check_repo_policy.py
+
+  adapter:
+    name: adapter (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: syntax check
+        run: |
+          node --check dsh-plugin/index.js
+          node --check dsh-plugin/lib/paths.js
+          node --check dsh-plugin/lib/core-runner.js
+      - name: adapter tests
+        run: node --test dsh-plugin/tests/plugin.test.mjs
+      - name: pack + independent install
+        run: node --test dsh-plugin/tests/pack.test.mjs
+
+  manifest:
+    name: bundle manifest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: required metadata
+        run: |
+          node -e '
+            const m = require("./dsh-plugin/package.json");
+            const need = ["name", "version", "type", "main", "exports", "files", "engines", "dsh"];
+            for (const key of need) if (!(key in m)) { console.error("missing", key); process.exit(1) }
+            if (m.engines.dsh !== "0.2.2-rc.2") { console.error("engines.dsh mismatch"); process.exit(1) }
+            if (!m.files.includes("vendor/core/scripts/build_flow.py")) { console.error("files missing core"); process.exit(1) }
+            if (!m.dsh.bundle.patch) { console.error("dsh.bundle.patch missing"); process.exit(1) }
+            console.log("manifest OK");
+          '
+      - name: patch file declares a single insert row
+        run: |
+          test "$(grep -c '^    - id: project-flow-explainer' dsh-plugin/cordis.patch.yml)" = "1"
+          test "$(grep -c '^    - id:' dsh-plugin/cordis.patch.yml)" = "1"
+      - name: pack dry run
+        run: node dsh-plugin/scripts/pack.mjs

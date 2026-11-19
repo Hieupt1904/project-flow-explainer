@@ -77,3 +77,14 @@ DSH tool result (chỉ metadata + đường dẫn)
 - Không network: adapter chỉ `spawn` python; core chỉ đọc file. Bằng chứng: `performance.getEntriesByType('resource')` ngoài `file://` = rỗng; test `test_html_is_self_contained`.
 - Không rò secret: test `test_secrets_never_reach_output` (Python) và `tool result never carries source secrets` (Node) chèn secret vào `.env` + `config.py` rồi khẳng định chuỗi secret không xuất hiện trong 4 file output và trong JSON tool result.
 - Không đưa source vào hội thoại model: `output.render` chỉ in đường dẫn + số đếm; `run.json`/`overview.md` chỉ chứa path, số dòng, tên hàm.
+
+## 6. Policy chốt trong pass review
+
+| Chủ đề | Quyết định | Hệ quả |
+|---|---|---|
+| Đọc | Deny-by-default: `allowedRoots` bắt buộc, so sánh sau `realpath` | Thiếu/rỗng → `allowed_roots_unconfigured`; ngoài root → `repository_outside_allowed_roots` |
+| Ghi | Chỉ `<repo>/artifacts/flows/<slug>/` | `invalid_artifact_root` / `artifact_symlink_escape`; kiểm tra trước mọi lệnh ghi |
+| Đóng gói | Core đi kèm bundle dưới `vendor/core` (sinh lúc `pack.mjs`) | Bản cài từ tarball không cần checkout; thứ tự dò: config → env → vendor → thư mục cha |
+| Huỷ | `Error{name:'AbortError'}` sau khi dừng child | Runtime map `code: ABORTED`; timeout có mã riêng `core_timeout` |
+| Bằng chứng | location / membership / role tách riêng | Cạnh mang `evidence`; file chỉ khớp keyword vào `meta.related`, không thành node |
+| Provenance | Artifact không chứa đường dẫn tuyệt đối | `repository_name` thay cho path; policy check chặn `/home/`, `\Users\`, nested artifacts |
