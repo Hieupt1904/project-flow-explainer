@@ -1,6 +1,6 @@
 # Luồng: Giải thích từ lúc người dùng chạy build_flow trên một repository đến khi nhận flow.json
 
-Sinh tự động: 2026-11-19T22:53:50+07:00 · `scripts/build_flow.py` (schema 2).
+Sinh tự động: 2026-11-19T23:43:33+07:00 · `scripts/build_flow.py` (schema 2).
 
 ## Yêu cầu
 
@@ -14,8 +14,8 @@ Sinh tự động: 2026-11-19T22:53:50+07:00 · `scripts/build_flow.py` (schema 
 | Nhánh | `không có git` |
 | Commit | `không có git` |
 | Thay đổi chưa commit | không |
-| File đã đọc | 25 |
-| Byte source đã đọc | 284000 |
+| File đã đọc | 28 |
+| Byte source đã đọc | 340864 |
 | Số ngân sách bị cắt | không |
 
 Đường dẫn tuyệt đối không được ghi vào artifact để tránh lộ cấu trúc máy cá nhân.
@@ -27,9 +27,9 @@ Sơ đồ dựng từ phân tích tĩnh theo yêu cầu: Giải thích từ lúc
 | # | Bước | Loại | Vị trí | Bằng chứng thành viên | Tin cậy |
 |---|---|---|---|---|---|
 | 1 | Bắt đầu từ yêu cầu | start | — | — | partial |
-| 2 | Bắt đầu tại main | action | `tools/pfe_cli.py`:180 | entry | verified |
+| 2 | Bắt đầu tại main | action | `tools/pfe_cli.py`:192 | entry | verified |
 | 3 | Module __init__ | action | `pfe/__init__.py`:1 | import | verified |
-| 4 | Xử lý tại as_dict | action | `pfe/index.py`:82 | import | verified |
+| 4 | Xử lý tại as_dict | action | `pfe/index.py`:87 | import | verified |
 | 5 | Xử lý tại as_dict | action | `pfe/policy.py`:34 | import | verified |
 | 6 | Xử lý tại run | action | `scripts/build_flow.py`:92 | import | verified |
 | 7 | Xử lý tại strip_diacritics | action | `pfe/text.py`:11 | import | verified |
@@ -44,11 +44,11 @@ Sơ đồ dựng từ phân tích tĩnh theo yêu cầu: Giải thích từ lúc
 
 | Cạnh | Nhãn | Loại | Bằng chứng | Ghi chú |
 |---|---|---|---|---|
-| start → step-1 | bắt đầu xử lý | success | entry | route khai báo tại tools/pfe_cli.py:180 |
-| step-1 → step-2 | dùng module | success | import | tools/pfe_cli.py import pfe/__init__.py · dòng import 70 |
-| step-2 → step-3 | dùng module | success | import | tools/pfe_cli.py import pfe/index.py · dòng import 70 |
-| step-3 → step-4 | dùng module | success | import | tools/pfe_cli.py import pfe/policy.py · dòng import 33 |
-| step-4 → step-5 | dùng module | success | import | tools/pfe_cli.py import scripts/build_flow.py (qua sys.path) · dòng import 63 |
+| start → step-1 | bắt đầu xử lý | success | entry | route khai báo tại tools/pfe_cli.py:192 |
+| step-1 → step-2 | dùng module | success | import | tools/pfe_cli.py import pfe/__init__.py · dòng import 82 |
+| step-2 → step-3 | dùng module | success | import | tools/pfe_cli.py import pfe/index.py · dòng import 82 |
+| step-3 → step-4 | dùng module | success | import | tools/pfe_cli.py import pfe/policy.py · dòng import 37 |
+| step-4 → step-5 | dùng module | success | import | tools/pfe_cli.py import scripts/build_flow.py (qua sys.path) · dòng import 68 |
 | step-5 → decision-scripts-build_flow-py | vào bước xử lý | normal | structure | cùng bước `scripts/build_flow.py`, khối try tại dòng 153 |
 | decision-scripts-build_flow-py → error-scripts-build_flow-py | có lỗi | error | structure | khối xử lý ngoại lệ trong file |
 | decision-scripts-build_flow-py → step-6 | dùng module | success | import | scripts/build_flow.py import pfe/text.py · dòng import 44 · qua nhánh không lỗi |
@@ -85,8 +85,8 @@ Sơ đồ dựng từ phân tích tĩnh theo yêu cầu: Giải thích từ lúc
 Chỉ đọc file source trong repository. Các mục sau bị loại:
 
 - secret_lines: 1
-- suffix: 23
-- test_dir: 21
+- suffix: 25
+- test_dir: 30
 
 Không gọi network, không chạy code của repository, không sửa file nguồn, không chép nội dung source.
 

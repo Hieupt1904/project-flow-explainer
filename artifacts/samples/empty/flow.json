@@ -46,7 +46,7 @@
   "notes": "Phân tích tĩnh, không chạy code của repository, không dùng network. verified = vị trí có thật + có bằng chứng thành viên (route/import). partial/inferred = suy luận từ cấu trúc. Không chép nội dung source.",
   "meta": {
     "schema_version": 2,
-    "generated_at": "2026-11-19T22:53:50+07:00",
+    "generated_at": "2026-11-19T23:43:33+07:00",
     "source": {
       "commit": null,
       "branch": null,

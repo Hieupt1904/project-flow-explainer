@@ -22,12 +22,12 @@
       "id": "step-1",
       "title": "Bắt đầu tại main",
       "type": "action",
-      "summary": "Điểm vào — `tools/pfe_cli.py` (dòng 180).",
+      "summary": "Điểm vào — `tools/pfe_cli.py` (dòng 192).",
       "confidence": "verified",
       "source_refs": [
         {
           "path": "tools/pfe_cli.py",
-          "start_line": 180,
+          "start_line": 192,
           "symbol": "main"
         }
       ],
@@ -59,12 +59,12 @@
       "id": "step-3",
       "title": "Xử lý tại as_dict",
       "type": "action",
-      "summary": "Bước xử lý — `pfe/index.py` (dòng 82).",
+      "summary": "Bước xử lý — `pfe/index.py` (dòng 87).",
       "confidence": "verified",
       "source_refs": [
         {
           "path": "pfe/index.py",
-          "start_line": 82,
+          "start_line": 87,
           "symbol": "as_dict"
         }
       ],
@@ -232,7 +232,7 @@
       "to": "step-1",
       "label": "bắt đầu xử lý",
       "kind": "success",
-      "technical": "route khai báo tại tools/pfe_cli.py:180",
+      "technical": "route khai báo tại tools/pfe_cli.py:192",
       "evidence": "entry"
     },
     {
@@ -240,7 +240,7 @@
       "to": "step-2",
       "label": "dùng module",
       "kind": "success",
-      "technical": "tools/pfe_cli.py import pfe/__init__.py · dòng import 70",
+      "technical": "tools/pfe_cli.py import pfe/__init__.py · dòng import 82",
       "evidence": "import"
     },
     {
@@ -248,7 +248,7 @@
       "to": "step-3",
       "label": "dùng module",
       "kind": "success",
-      "technical": "tools/pfe_cli.py import pfe/index.py · dòng import 70",
+      "technical": "tools/pfe_cli.py import pfe/index.py · dòng import 82",
       "evidence": "import"
     },
     {
@@ -256,7 +256,7 @@
       "to": "step-4",
       "label": "dùng module",
       "kind": "success",
-      "technical": "tools/pfe_cli.py import pfe/policy.py · dòng import 33",
+      "technical": "tools/pfe_cli.py import pfe/policy.py · dòng import 37",
       "evidence": "import"
     },
     {
@@ -264,7 +264,7 @@
       "to": "step-5",
       "label": "dùng module",
       "kind": "success",
-      "technical": "tools/pfe_cli.py import scripts/build_flow.py (qua sys.path) · dòng import 63",
+      "technical": "tools/pfe_cli.py import scripts/build_flow.py (qua sys.path) · dòng import 68",
       "evidence": "import"
     },
     {
@@ -331,7 +331,7 @@
   "notes": "Phân tích tĩnh, không chạy code của repository, không dùng network. verified = vị trí có thật + có bằng chứng thành viên (route/import). partial/inferred = suy luận từ cấu trúc. Không chép nội dung source.",
   "meta": {
     "schema_version": 2,
-    "generated_at": "2026-11-19T22:53:50+07:00",
+    "generated_at": "2026-11-19T23:43:33+07:00",
     "source": {
       "commit": null,
       "branch": null,
@@ -388,7 +388,7 @@
       "runtime_verified": false,
       "note": "Không có cạnh nào mang evidence=call: projection này không có call-site parser cho flow. verified mô tả xác minh tĩnh vị trí và quan hệ, không phải đã chạy code."
     },
-    "files_scanned": 25,
-    "scan_bytes": 284000
+    "files_scanned": 28,
+    "scan_bytes": 340864
   }
 }

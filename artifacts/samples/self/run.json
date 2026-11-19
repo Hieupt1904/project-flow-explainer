@@ -2,7 +2,7 @@
   "status": "ok",
   "schema_version": 2,
   "flow_id": "giai-thich-tu-luc-nguoi-dung-bc6f77",
-  "generated_at": "2026-11-19T22:53:50+07:00",
+  "generated_at": "2026-11-19T23:43:33+07:00",
   "repository_name": "project-flow-explainer",
   "request": "Giải thích từ lúc người dùng chạy build_flow trên một repository đến khi nhận flow.json",
   "source": {
@@ -47,9 +47,9 @@
   ],
   "excluded": {
     "directory": 0,
-    "test_dir": 21,
+    "test_dir": 30,
     "sensitive_name": 0,
-    "suffix": 23,
+    "suffix": 25,
     "symlink_escape": 0,
     "symlink_sensitive": 0,
     "too_large": 0,
@@ -58,8 +58,8 @@
     "budget_files": 0,
     "budget_bytes": 0
   },
-  "files_scanned": 25,
-  "scan_bytes": 284000,
+  "files_scanned": 28,
+  "scan_bytes": 340864,
   "budget_notes": [],
   "evidence_model": {
     "membership": {

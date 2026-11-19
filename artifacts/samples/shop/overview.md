@@ -1,6 +1,6 @@
 # Luồng: Giải thích từ lúc người dùng nhấn xuất báo cáo đến khi nhận được file
 
-Sinh tự động: 2026-11-19T22:53:50+07:00 · `scripts/build_flow.py` (schema 2).
+Sinh tự động: 2026-11-19T23:43:33+07:00 · `scripts/build_flow.py` (schema 2).
 
 ## Yêu cầu
 
@@ -67,6 +67,7 @@ Sơ đồ dựng từ phân tích tĩnh theo yêu cầu: Giải thích từ lúc
 Chỉ đọc file source trong repository. Các mục sau bị loại:
 
 - sensitive_name: 1
+- test_dir: 1
 
 Không gọi network, không chạy code của repository, không sửa file nguồn, không chép nội dung source.
 

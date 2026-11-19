@@ -1,6 +1,6 @@
 # Luồng: thanh toán thẻ tín dụng quốc tế
 
-Sinh tự động: 2026-11-19T22:53:50+07:00 · `scripts/build_flow.py` (schema 2).
+Sinh tự động: 2026-11-19T23:43:33+07:00 · `scripts/build_flow.py` (schema 2).
 
 ## Yêu cầu
 

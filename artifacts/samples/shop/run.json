@@ -2,7 +2,7 @@
   "status": "ok",
   "schema_version": 2,
   "flow_id": "giai-thich-tu-luc-nguoi-dung-04f9c7",
-  "generated_at": "2026-11-19T22:53:50+07:00",
+  "generated_at": "2026-11-19T23:43:33+07:00",
   "repository_name": "shop-app",
   "request": "Giải thích từ lúc người dùng nhấn xuất báo cáo đến khi nhận được file",
   "source": {
@@ -34,7 +34,7 @@
   ],
   "excluded": {
     "directory": 0,
-    "test_dir": 0,
+    "test_dir": 1,
     "sensitive_name": 1,
     "suffix": 0,
     "symlink_escape": 0,
