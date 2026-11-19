@@ -22,7 +22,7 @@ Cả 8 task review đều DONE và có bằng chứng; panel UI trong Harness v�
 | TASK 5 | Semantics abort | **DONE** | Adapter ném `Error{name:'AbortError'}`; runtime map thành `code: ABORTED` (`dsh-tools/src/pipeline.ts:700-707,770-780`); test phân biệt abort / `core_timeout` / `core_failed` |
 | TASK 6 | Độ chính xác graph | **DONE** | Builder tách 3 tầng bằng chứng; chỉ nối theo route/import/call; fixture decoy `routes/preview.js` nằm trong `related`, không thành node; `overview.md` có cột "Bằng chứng thành viên" |
 | TASK 7 | Dọn artifact & provenance | **DONE** | Xoá `artifacts/qa/**` lồng nhau; sample regenerate từ HEAD; artifact không còn absolute path; `scripts/check_repo_policy.py` chặn `/home/`, `\Users\`, `artifacts/…/artifacts`, secret-shape |
-| TASK 8 | CI + regression | **DONE** | `.github/workflows/ci.yml`; GitHub Actions run `44505483840`: 4/4 job success (core py3.12 · adapter node 20 · adapter node 24 · bundle manifest), log core xác nhận `Ran 32 tests … OK` |
+| TASK 8 | CI + regression | **DONE** | `.github/workflows/ci.yml`; GitHub Actions run `44505483840`: 4/4 job success (core py3.12 · adapter node 20 · adapter node 24 · bundle manifest), log core xác nhận `Ran 35 tests … OK` |
 
 Chi tiết test: [TEST_REPORT.md](TEST_REPORT.md) · UI: [UI_VERIFICATION_REPORT.md](UI_VERIFICATION_REPORT.md) ·
 quyết định kiến trúc: [ARCHITECTURE_DECISION.md](ARCHITECTURE_DECISION.md).

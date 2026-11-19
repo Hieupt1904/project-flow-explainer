@@ -13,7 +13,7 @@ Trạng thái: **toàn bộ test tự động PASS**. Chỉ TASK 4 (smoke trong 
 | `node --test dsh-plugin/tests/pack.test.mjs` | **2 pass / 0 fail** |
 | `python3 -m compileall -q scripts tests` | OK (không output) |
 | `python3 scripts/check_repo_policy.py` | `OK: 30 file … không absolute path, nested artifacts hay secret` |
-| GitHub Actions run `44505483840` | 4/4 job success; log core: `Ran 32 tests in 0.198s … OK`, policy OK |
+| GitHub Actions run `44505483840` | 4/4 job success; log core: `Ran 35 tests in 0.198s … OK`, policy OK |
 | `node dsh-plugin/scripts/pack.mjs` | tarball 35 613 byte, 8 file, có `vendor/core/**` |
 | `python3 scripts/render_flow.py assets/example_workflow.json --check-only` | `OK: 8 nodes, 8 edges, entry=welcome` |
 

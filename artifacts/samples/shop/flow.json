@@ -109,7 +109,7 @@
     },
     {
       "id": "step-4",
-      "title": "Bước trong db/connection.js",
+      "title": "Module connection",
       "type": "action",
       "summary": "Bước xử lý — `db/connection.js` (dòng 1).",
       "confidence": "verified",
@@ -154,7 +154,7 @@
     {
       "from": "step-1",
       "to": "step-2",
-      "label": "gọi tiếp",
+      "label": "dùng module",
       "kind": "normal",
       "technical": "`server.js` import `services/report_service.js`",
       "evidence": "import"
@@ -186,7 +186,7 @@
     {
       "from": "step-2",
       "to": "step-3",
-      "label": "gọi tiếp",
+      "label": "dùng module",
       "kind": "normal",
       "technical": "`services/report_service.js` import `db/report_repo.js`",
       "evidence": "import"
@@ -194,7 +194,7 @@
     {
       "from": "step-3",
       "to": "step-4",
-      "label": "gọi tiếp",
+      "label": "dùng module",
       "kind": "normal",
       "technical": "`db/report_repo.js` import `db/connection.js`",
       "evidence": "import"
@@ -212,12 +212,13 @@
     "Phân tích tĩnh trên source; hành vi runtime và dữ liệu thật chưa được kiểm chứng.",
     "Chỉ đọc source trong repository; file bí mật, dump, log và thư mục phụ thuộc bị loại.",
     "Thư mục test/fixture/example/sample/demo bị bỏ qua.",
-    "Chưa có call graph đầy đủ: quan hệ bước dựa trên route, import và lời gọi theo tên."
+    "Chưa có call graph đầy đủ: quan hệ bước dựa trên route, import và lời gọi theo tên.",
+    "Thứ tự bước phản ánh quan hệ import/gọi hàm, không phải thứ tự thực thi tại runtime."
   ],
   "notes": "Phân tích tĩnh, không chạy code của repository, không dùng network. `verified` = vị trí có thật + có bằng chứng thành viên (route/import/call). `partial`/`inferred` = suy luận từ cấu trúc. Không chép nội dung source.",
   "meta": {
     "schema_version": 2,
-    "generated_at": "2026-11-19T17:22:01+07:00",
+    "generated_at": "2026-11-19T21:45:42+07:00",
     "source": {
       "commit": null,
       "branch": null,

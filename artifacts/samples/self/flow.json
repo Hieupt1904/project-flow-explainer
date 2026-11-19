@@ -22,12 +22,12 @@
       "id": "step-1",
       "title": "Bắt đầu tại main",
       "type": "action",
-      "summary": "Điểm vào — `scripts/build_flow.py` (dòng 1022).",
+      "summary": "Điểm vào — `scripts/build_flow.py` (dòng 1063).",
       "confidence": "verified",
       "source_refs": [
         {
           "path": "scripts/build_flow.py",
-          "start_line": 1022,
+          "start_line": 1063,
           "symbol": "main"
         }
       ],
@@ -106,15 +106,15 @@
       "to": "step-1",
       "label": "bắt đầu xử lý",
       "kind": "success",
-      "technical": "route khai báo tại scripts/build_flow.py:1022",
+      "technical": "route khai báo tại scripts/build_flow.py:1063",
       "evidence": "entry"
     },
     {
       "from": "step-1",
       "to": "step-2",
-      "label": "gọi tiếp",
+      "label": "dùng module",
       "kind": "normal",
-      "technical": "`scripts/build_flow.py` import `scripts/render_flow.py`",
+      "technical": "`scripts/build_flow.py` import `scripts/render_flow.py` (qua sys.path)",
       "evidence": "import"
     },
     {
@@ -155,12 +155,13 @@
     "Chỉ đọc source trong repository; file bí mật, dump, log và thư mục phụ thuộc bị loại.",
     "Thư mục test/fixture/example/sample/demo bị bỏ qua.",
     "Chưa có call graph đầy đủ: quan hệ bước dựa trên route, import và lời gọi theo tên.",
+    "Thứ tự bước phản ánh quan hệ import/gọi hàm, không phải thứ tự thực thi tại runtime.",
     "Không tìm thấy điểm trả kết quả rõ ràng; node kết thúc là suy luận."
   ],
   "notes": "Phân tích tĩnh, không chạy code của repository, không dùng network. `verified` = vị trí có thật + có bằng chứng thành viên (route/import/call). `partial`/`inferred` = suy luận từ cấu trúc. Không chép nội dung source.",
   "meta": {
     "schema_version": 2,
-    "generated_at": "2026-11-19T17:22:01+07:00",
+    "generated_at": "2026-11-19T21:45:42+07:00",
     "source": {
       "commit": null,
       "branch": null,

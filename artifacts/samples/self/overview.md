@@ -1,6 +1,6 @@
 # Luồng: phân tích repository và sinh sơ đồ HTML
 
-Sinh tự động: 2026-11-19T17:22:01+07:00 · `scripts/build_flow.py` (schema 2).
+Sinh tự động: 2026-11-19T21:45:42+07:00 · `scripts/build_flow.py` (schema 2).
 
 ## Yêu cầu
 
@@ -24,7 +24,7 @@ Sơ đồ dựng từ phân tích tĩnh theo yêu cầu: luồng phân tích rep
 | # | Bước | Loại | Vị trí | Bằng chứng thành viên | Tin cậy |
 |---|---|---|---|---|---|
 | 1 | Bắt đầu từ yêu cầu | start | — | — | partial |
-| 2 | Bắt đầu tại main | action | `scripts/build_flow.py`:1022 | entry | verified |
+| 2 | Bắt đầu tại main | action | `scripts/build_flow.py`:1063 | entry | verified |
 | 3 | Xử lý tại main | action | `scripts/render_flow.py`:201 | import | verified |
 | 4 | Có lỗi trong bước này? | decision | `scripts/build_flow.py`:238 | import | partial |
 | 5 | Trả lỗi cho người gọi | error | `scripts/build_flow.py`:238 | structure | partial |
@@ -34,8 +34,8 @@ Sơ đồ dựng từ phân tích tĩnh theo yêu cầu: luồng phân tích rep
 
 | Cạnh | Nhãn | Loại | Bằng chứng | Ghi chú |
 |---|---|---|---|---|
-| start → step-1 | `bắt đầu xử lý` | success | entry | route khai báo tại scripts/build_flow.py:1022 |
-| step-1 → step-2 | `gọi tiếp` | normal | import | `scripts/build_flow.py` import `scripts/render_flow.py` |
+| start → step-1 | `bắt đầu xử lý` | success | entry | route khai báo tại scripts/build_flow.py:1063 |
+| step-1 → step-2 | `dùng module` | normal | import | `scripts/build_flow.py` import `scripts/render_flow.py` (qua sys.path) |
 | step-1 → decision-scripts-build_flow-py | `vào bước xử lý` | normal | import | cùng bước `scripts/build_flow.py` |
 | decision-scripts-build_flow-py → step-2 | `không lỗi` | success | structure | đường đi tiếp khi không lỗi |
 | decision-scripts-build_flow-py → error-scripts-build_flow-py | `có lỗi` | error | structure | khối xử lý ngoại lệ trong file |
@@ -51,6 +51,7 @@ Sơ đồ dựng từ phân tích tĩnh theo yêu cầu: luồng phân tích rep
 - Chỉ đọc source trong repository; file bí mật, dump, log và thư mục phụ thuộc bị loại.
 - Thư mục test/fixture/example/sample/demo bị bỏ qua.
 - Chưa có call graph đầy đủ: quan hệ bước dựa trên route, import và lời gọi theo tên.
+- Thứ tự bước phản ánh quan hệ import/gọi hàm, không phải thứ tự thực thi tại runtime.
 - Không tìm thấy điểm trả kết quả rõ ràng; node kết thúc là suy luận.
 
 - Không có cảnh báo.

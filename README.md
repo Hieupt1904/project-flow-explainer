@@ -50,7 +50,7 @@ không phụ thuộc DSH, xoá thư mục plugin thì CLI Python vẫn chạy ng
 dsh plugin --profile pfe-test add /duong/dan/toi/project-flow-explainer/dsh-plugin
 # hoặc từ tarball độc lập:
 node dsh-plugin/scripts/pack.mjs
-dsh plugin --profile pfe-test add /duong/dan/toi/project-flow-explainer/dist/dsh-project-flow-explainer-0.2.1.tgz
+dsh plugin --profile pfe-test add /duong/dan/toi/project-flow-explainer/dist/dsh-project-flow-explainer-0.2.2.tgz
 ```
 
 Plugin **deny-by-default**: phải khai báo `allowedRoots` trong profile patch thì tool mới đọc repo.

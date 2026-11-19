@@ -10,7 +10,7 @@ Mọi con số dưới đây đều có log/ảnh tương ứng trong `artifacts
 | Release | `v0.2.1` — asset `dsh-project-flow-explainer-0.2.1.tgz` (37 589 byte, sha256 `733148d4…10e84`) |
 | DSH đã kiểm chứng | `0.2.2-rc.2` |
 | Python / Node | 3.12.3 / v24.22.3 (CI thêm Node 20) |
-| Trạng thái tự test | **PASS** — 33 unittest, 16 adapter, 2 pack, policy OK, DSH smoke OK, UI 7/7 tổ hợp sạch |
+| Trạng thái tự test | **PASS** — 35 unittest, 16 adapter, 2 pack, policy OK, DSH smoke OK, UI 7/7 tổ hợp sạch |
 
 ## 1. Kiến trúc trong 5 dòng
 
@@ -62,7 +62,7 @@ dsh --profile pfe-test --dump-config | grep -A6 project-flow-explainer
 
 | # | Hạng mục | Kết quả | Bằng chứng |
 |---|---|---|---|
-| 1 | Python unittest | **33 OK** | `*-self-test.log` §1 |
+| 1 | Python unittest | **35 OK** | `*-self-test.log` §1 |
 | 2 | compileall | OK | §2 |
 | 3 | Adapter (Node) | **16 pass** | §3 |
 | 4 | Pack + cài độc lập | **2 pass** (tarball 9 file) | §4, §6 |
@@ -86,6 +86,34 @@ artifacts/baseline/               HTML renderer gốc
 Báo cáo chi tiết: [TEST_REPORT.md](TEST_REPORT.md) · [UI_VERIFICATION_REPORT.md](UI_VERIFICATION_REPORT.md) ·
 [FINAL_REPORT.md](FINAL_REPORT.md) · [DSH_IMPLEMENTATION_PLAN.md](DSH_IMPLEMENTATION_PLAN.md) ·
 [IMPROVEMENT_PLAN.md](IMPROVEMENT_PLAN.md).
+
+## 4b. Chạy trên dự án thật (TienAnAuto)
+
+Repo: `~/Documents/Tudonghoa/TienAnAuto` (Python desktop, 17 file source, git `3e852be`).
+
+```bash
+python3 scripts/build_flow.py --repo ~/Documents/Tudonghoa/TienAnAuto \
+  --request "Giải thích từ lúc người dùng bấm CẬP NHẬT DỮ LIỆU đến khi có file Excel quyết toán tiền ăn" --json
+```
+
+Kết quả: `10 verified / 3 partial / 1 inferred`, 14 node, artifact trong repo đó
+(`artifacts/flows/<slug>/`), UI sạch (0 nhãn đè card, 0 tràn ngang).
+
+Hai lỗi thật do lần chạy này phát hiện và đã sửa:
+
+| Lỗi | Triệu chứng | Sửa |
+|---|---|---|
+| Import kiểu `sys.path` không resolve | `src/app/main.py` viết `import _api` (file nằm ở `src/_api.py`); resolver chỉ tìm `_api.py` ở root → chuỗi chỉ còn 1 bước, 0 import edge | `find_imports()` thêm style `flat-basename`: nếu basename khớp **duy nhất** một file trong repo thì nối, ghi rõ "(qua sys.path)"; nếu trùng tên thì **không đoán** |
+| Tên bước vô nghĩa | Hiện "Xử lý tại `__init__`" cho nhiều file | `pick_symbol()` bỏ dunder, ưu tiên hàm public; không có thì đặt "Module `<tên file>`" |
+
+Thêm 2 test khoá hành vi: `test_sys_path_flat_import_is_resolved_by_unique_basename`,
+`test_ambiguous_flat_import_is_not_guessed` (35 unittest tổng).
+
+Kết quả đúng đáng chú ý: `src/_xls.py` và `tools/verify_report.py` nằm ở `related` — đúng, vì app
+không import `_xls` (chỉ dùng `_xlsio`).
+
+Giới hạn đã ghi trong `limits`: thứ tự bước phản ánh quan hệ import, **không** phải thứ tự thực thi
+runtime — nhãn cạnh vì vậy đổi thành "dùng module" thay cho "gọi tiếp".
 
 ## 5. Những chỗ **chưa** làm được (đừng coi là đã xong)
 
@@ -121,7 +149,7 @@ dsh-plugin/index.js                tool project_flow_explain
 dsh-plugin/lib/paths.js            allowedRoots, artifact root, core resolution
 dsh-plugin/lib/core-runner.js      spawn argv, cap output, signal/timeout
 dsh-plugin/scripts/pack.mjs        stage + vendor/core + npm pack
-tests/                             33 unittest + fixture shop-app (có decoy routes/preview.js)
+tests/                             35 unittest + fixture shop-app (có decoy routes/preview.js)
 dsh-plugin/tests/                  16 adapter + 2 packaging
 .github/workflows/ci.yml           py3.12 + node 20/24 + manifest
 ```

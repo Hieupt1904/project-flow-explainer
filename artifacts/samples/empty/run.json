@@ -2,7 +2,7 @@
   "status": "ok",
   "schema_version": 2,
   "flow_id": "luong-thanh-toan-the-tin-dung-8ebc20",
-  "generated_at": "2026-11-19T17:22:01+07:00",
+  "generated_at": "2026-11-19T21:45:42+07:00",
   "repository_name": "empty-repo",
   "request": "luồng thanh toán thẻ tín dụng quốc tế",
   "source": {
@@ -22,6 +22,7 @@
     "Chỉ đọc source trong repository; file bí mật, dump, log và thư mục phụ thuộc bị loại.",
     "Thư mục test/fixture/example/sample/demo bị bỏ qua.",
     "Chưa có call graph đầy đủ: quan hệ bước dựa trên route, import và lời gọi theo tên.",
+    "Thứ tự bước phản ánh quan hệ import/gọi hàm, không phải thứ tự thực thi tại runtime.",
     "Không tìm được bằng chứng nào cho yêu cầu này."
   ],
   "warnings": [],

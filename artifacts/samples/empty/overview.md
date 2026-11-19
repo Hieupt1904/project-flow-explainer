@@ -1,6 +1,6 @@
 # Luồng: thanh toán thẻ tín dụng quốc tế
 
-Sinh tự động: 2026-11-19T17:22:01+07:00 · `scripts/build_flow.py` (schema 2).
+Sinh tự động: 2026-11-19T21:45:42+07:00 · `scripts/build_flow.py` (schema 2).
 
 ## Yêu cầu
 
@@ -42,6 +42,7 @@ Sơ đồ dựng từ phân tích tĩnh theo yêu cầu: luồng thanh toán th�
 - Chỉ đọc source trong repository; file bí mật, dump, log và thư mục phụ thuộc bị loại.
 - Thư mục test/fixture/example/sample/demo bị bỏ qua.
 - Chưa có call graph đầy đủ: quan hệ bước dựa trên route, import và lời gọi theo tên.
+- Thứ tự bước phản ánh quan hệ import/gọi hàm, không phải thứ tự thực thi tại runtime.
 - Không tìm được bằng chứng nào cho yêu cầu này.
 
 - Không có cảnh báo.

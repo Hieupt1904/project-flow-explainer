@@ -1,6 +1,6 @@
 # Luồng: Giải thích từ lúc người dùng nhấn xuất báo cáo đến khi nhận được file
 
-Sinh tự động: 2026-11-19T17:22:01+07:00 · `scripts/build_flow.py` (schema 2).
+Sinh tự động: 2026-11-19T21:45:42+07:00 · `scripts/build_flow.py` (schema 2).
 
 ## Yêu cầu
 
@@ -29,7 +29,7 @@ Sơ đồ dựng từ phân tích tĩnh theo yêu cầu: Giải thích từ lúc
 | 4 | Có lỗi trong bước này? | decision | `server.js`:8 | import | partial |
 | 5 | Trả lỗi cho người gọi | error | `server.js`:8 | structure | partial |
 | 6 | Xử lý tại loadReportRows | action | `db/report_repo.js`:4 | import | verified |
-| 7 | Bước trong db/connection.js | action | `db/connection.js`:1 | import | verified |
+| 7 | Module connection | action | `db/connection.js`:1 | import | verified |
 | 8 | Trả kết quả | end | `server.js`:18 | call | verified |
 
 ## Quan hệ giữa các bước
@@ -37,12 +37,12 @@ Sơ đồ dựng từ phân tích tĩnh theo yêu cầu: Giải thích từ lúc
 | Cạnh | Nhãn | Loại | Bằng chứng | Ghi chú |
 |---|---|---|---|---|
 | start → step-1 | `bắt đầu xử lý` | success | entry | route khai báo tại server.js:16 |
-| step-1 → step-2 | `gọi tiếp` | normal | import | `server.js` import `services/report_service.js` |
+| step-1 → step-2 | `dùng module` | normal | import | `server.js` import `services/report_service.js` |
 | step-1 → decision-server-js | `vào bước xử lý` | normal | import | cùng bước `server.js` |
 | decision-server-js → step-2 | `không lỗi` | success | structure | đường đi tiếp khi không lỗi |
 | decision-server-js → error-server-js | `có lỗi` | error | structure | khối xử lý ngoại lệ trong file |
-| step-2 → step-3 | `gọi tiếp` | normal | import | `services/report_service.js` import `db/report_repo.js` |
-| step-3 → step-4 | `gọi tiếp` | normal | import | `db/report_repo.js` import `db/connection.js` |
+| step-2 → step-3 | `dùng module` | normal | import | `services/report_service.js` import `db/report_repo.js` |
+| step-3 → step-4 | `dùng module` | normal | import | `db/report_repo.js` import `db/connection.js` |
 | step-4 → end | `hoàn tất` | success | call | bước cuối của luồng |
 
 ## File khớp từ khoá nhưng KHÔNG thuộc luồng
@@ -56,6 +56,7 @@ Sơ đồ dựng từ phân tích tĩnh theo yêu cầu: Giải thích từ lúc
 - Chỉ đọc source trong repository; file bí mật, dump, log và thư mục phụ thuộc bị loại.
 - Thư mục test/fixture/example/sample/demo bị bỏ qua.
 - Chưa có call graph đầy đủ: quan hệ bước dựa trên route, import và lời gọi theo tên.
+- Thứ tự bước phản ánh quan hệ import/gọi hàm, không phải thứ tự thực thi tại runtime.
 
 - Không có cảnh báo.
 

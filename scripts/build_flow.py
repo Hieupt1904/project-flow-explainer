@@ -403,8 +403,10 @@ def pick_symbol(symbols, after_line=0):
         return None
     later = [item for item in symbols if item["line"] >= after_line] or symbols
     callables = [item for item in later if item.get("kind") != "class"] or later
-    preferred = [item for item in callables if PREFERRED_SYMBOL.match(item["name"])]
-    return (preferred or callables)[0]
+    public = [item for item in callables if not item["name"].startswith("_")]
+    named = public or [item for item in callables if not item["name"].startswith("__")] or callables
+    preferred = [item for item in named if PREFERRED_SYMBOL.match(item["name"])]
+    return (preferred or named)[0]
 
 
 def find_routes(text):
@@ -432,31 +434,66 @@ def find_entries(text):
 
 
 def find_imports(text, rel, known):
-    """Resolve import specifiers to repository-relative source paths."""
+    """Resolve import specifiers to repository-relative source paths.
+
+    Three shapes are supported: relative specs (``./x``, ``../x``), dotted
+    absolute specs (``src._api``), and flat specs that only work because the
+    entry file extends ``sys.path`` (``import _api``). The last one is matched
+    by unique basename; an ambiguous basename is left unresolved rather than
+    guessed.
+    """
     targets = []
     directory = Path(rel).parent
+
+    def resolve_relative(spec):
+        base = (directory / spec).as_posix()
+        parts = []
+        for part in base.split("/"):
+            if part in ("", "."):
+                continue
+            if part == "..":
+                if parts:
+                    parts.pop()
+                continue
+            parts.append(part)
+        return "/".join(parts)
+
+    def candidates_for(stem):
+        for suffix in ("", ".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx", ".vue",
+                       ".py", ".php", ".rb"):
+            for candidate in (f"{stem}{suffix}", f"{stem}/index{suffix}", f"{stem}/__init__.py"):
+                if candidate in known and candidate != rel:
+                    yield candidate
+
     for regex in IMPORT_PATTERNS:
         for hit in regex.finditer(text):
             spec = hit.group(1)
-            if not re.match(r"^\.", spec) and "/" not in spec:
-                spec = spec.replace(".", "/")
-            base = (directory / spec).as_posix()
-            parts = []
-            for part in base.split("/"):
-                if part in ("", "."):
-                    continue
-                if part == "..":
-                    if parts:
-                        parts.pop()
-                    continue
-                parts.append(part)
-            stem = "/".join(parts)
-            for suffix in ("", ".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx", ".vue",
-                           ".py", ".php", ".rb"):
-                for candidate in (f"{stem}{suffix}", f"{stem}/index{suffix}", f"{stem}/__init__.py"):
-                    if candidate in known and candidate != rel:
-                        targets.append(candidate)
-    return sorted(set(targets))
+            if re.match(r"^\.", spec):
+                stem = resolve_relative(spec)
+                style = "relative"
+            elif "/" in spec:
+                stem = spec.lstrip("/")
+                style = "relative"
+            elif "." in spec:
+                stem = spec.replace(".", "/")
+                style = "dotted"
+            else:
+                stem = spec
+                style = "flat"
+            found = list(candidates_for(stem))
+            if not found and style == "flat":
+                # sys.path-style import: match by unique basename anywhere.
+                matches = sorted(path for path in known
+                                 if Path(path).stem == spec and path != rel)
+                if len(matches) == 1:
+                    found = matches
+                    style = "flat-basename"
+            for target in found:
+                targets.append({"path": target, "style": style})
+    deduped = {}
+    for item in targets:
+        deduped.setdefault((item["path"], item["style"]), item)
+    return [deduped[key] for key in sorted(deduped)]
 
 
 def response_lines(text):
@@ -632,7 +669,8 @@ def build_graph(root, request, inventory, git, limits, excluded):
     queue = [entry_item]
     while queue:
         current = queue.pop(0)
-        for target_rel in current["imports"]:
+        for edge in current["imports"]:
+            target_rel = edge["path"]
             if target_rel in visited or target_rel not in by_rel:
                 continue
             target = by_rel[target_rel]
@@ -675,14 +713,16 @@ def build_graph(root, request, inventory, git, limits, excluded):
     for item, line, symbol_name in flow_steps[1:]:
         counter += 1
         node_id = f"step-{counter}"
-        add_node(node_id, f"Xử lý tại {symbol_name}" if symbol_name else
-                 f"Bước trong {item['rel']}", "action",
+        module = Path(item["rel"]).stem
+        add_node(node_id, f"Xử lý tại {symbol_name}" if symbol_name else f"Module {module}",
+                 "action",
                  f"Bước xử lý — `{item['rel']}` (dòng {line}).",
                  "verified", [ref(item["rel"], line, symbol_name)],
                  details=f"Bằng chứng thành viên: import từ `{previous_item['rel']}`.",
                  technical=item["rel"], actor="Hệ thống")
-        add_edge(previous_id, node_id, "gọi tiếp", "normal", "import",
-                 f"`{previous_item['rel']}` import `{item['rel']}`")
+        add_edge(previous_id, node_id, "dùng module", "normal", "import",
+                 f"`{previous_item['rel']}` import `{item['rel']}`"
+                 + (" (qua sys.path)" if edge["style"] == "flat-basename" else ""))
         edge_evidence_seen.add("import")
         if previous_item["error_line"] and not branch_done:
             emit_branch(previous_id, previous_item, node_id, "không lỗi")
@@ -945,6 +985,7 @@ def run(repo, request, out_dir=None, slug=None):
         "Chỉ đọc source trong repository; file bí mật, dump, log và thư mục phụ thuộc bị loại.",
         "Thư mục test/fixture/example/sample/demo bị bỏ qua.",
         "Chưa có call graph đầy đủ: quan hệ bước dựa trên route, import và lời gọi theo tên.",
+        "Thứ tự bước phản ánh quan hệ import/gọi hàm, không phải thứ tự thực thi tại runtime.",
     ]
     inventory = []
     for path in files:

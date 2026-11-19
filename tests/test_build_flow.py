@@ -168,6 +168,34 @@ class BuildFlowTests(unittest.TestCase):
         self.assertNotIn("step-2", ids)
         self.assertTrue(any("điểm vào" in item for item in result["limits"]))
 
+    def test_sys_path_flat_import_is_resolved_by_unique_basename(self):
+        repo = self.tmp / "flat-import-app"
+        (repo / "app").mkdir(parents=True)
+        (repo / "src").mkdir()
+        (repo / "app" / "main.py").write_text(
+            'import sys\nsys.path.insert(0, "src")\nimport helper\n\n'
+            'def main():\n    return helper.run()\n', encoding="utf-8")
+        (repo / "src" / "helper.py").write_text(
+            "def run():\n    return 1\n", encoding="utf-8")
+        result = build_flow.run(repo, "luồng chạy chính của ứng dụng")
+        graph = json.loads(Path(result["paths"]["flow_json"]).read_text(encoding="utf-8"))
+        self.assertIn("src/helper.py", node_paths(graph))
+        import_edges = [edge for edge in graph["edges"] if edge["evidence"] == "import"]
+        self.assertTrue(any("qua sys.path" in edge.get("technical", "") for edge in import_edges))
+
+    def test_ambiguous_flat_import_is_not_guessed(self):
+        repo = self.tmp / "ambiguous-app"
+        (repo / "a").mkdir(parents=True)
+        (repo / "b").mkdir()
+        (repo / "app.py").write_text(
+            "import shared\n\ndef main():\n    return shared.run()\n", encoding="utf-8")
+        (repo / "a" / "shared.py").write_text("def run():\n    return 1\n", encoding="utf-8")
+        (repo / "b" / "shared.py").write_text("def run():\n    return 2\n", encoding="utf-8")
+        result = build_flow.run(repo, "luồng chạy chính của ứng dụng")
+        graph = json.loads(Path(result["paths"]["flow_json"]).read_text(encoding="utf-8"))
+        self.assertNotIn("a/shared.py", node_paths(graph))
+        self.assertNotIn("b/shared.py", node_paths(graph))
+
     # --- policy: read-only source, no leaks -----------------------------
 
     def test_source_files_are_untouched(self):
