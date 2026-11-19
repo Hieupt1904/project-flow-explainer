@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Flow Explainer"
+  short_description: "Đọc project và tạo sơ đồ quy trình HTML dễ hiểu, có bằng chứng mã nguồn"
+  default_prompt: "Hãy phân tích luồng xử lý của tính năng chính trong project hiện tại và tạo một flow.html tương tác để người không biết lập trình vẫn hiểu."

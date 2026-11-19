@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Output sinh ra khi chạy thử (giữ assets/ và examples/ trong repo)
+flow.html
+own_flow.html
+flow.json
+overview.md
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Môi trường và bí mật
+.env
+.env.*
+*.pem
+*.key

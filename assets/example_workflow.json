@@ -1,0 +1,70 @@
+{
+  "flow_id": "demo-warranty-chatbot",
+  "title": "Hành trình chăm sóc và kích hoạt bảo hành",
+  "description": "Ví dụ minh họa giao diện như ảnh tham khảo: từ lời chào, người dùng chọn thông tin bảo hành, xem sản phẩm hoặc kích hoạt bảo hành. Các bước chưa phản ánh mã nguồn của bất kỳ project nào.",
+  "audience": "CSKH · Vận hành",
+  "scope": "Tin nhắn chào mừng → lựa chọn → kết quả",
+  "entry_node": "welcome",
+  "notes": "Đây chỉ là bản demo mô phỏng bố cục. Cần đọc code thật trước khi đưa vào nghiệp vụ sản xuất.",
+  "assumptions": ["Các bước chỉ có ý nghĩa minh họa UI, không chứng minh chatbot đã triển khai logic tương ứng."],
+  "nodes": [
+    {
+      "id": "welcome", "title": "Chào mừng khách hàng", "type": "start",
+      "summary": "Khách hàng nhận lời chào và chọn một trong các nhu cầu cần hỗ trợ.",
+      "details": "Đây là điểm bắt đầu. Một lời chào giới thiệu các lựa chọn chính, tương tự nút trung tâm trong ảnh tham khảo.",
+      "actor": "Khách hàng", "confidence": "illustrative", "x": 62, "y": 324
+    },
+    {
+      "id": "policy", "title": "Xem chính sách bảo hành", "type": "message",
+      "summary": "Chatbot hiển thị điều kiện, phạm vi và những trường hợp không được bảo hành.",
+      "details": "Người dùng chỉ xem thông tin. Sơ đồ không mặc định đã kiểm tra quyền bảo hành hoặc thông tin sản phẩm.",
+      "actor": "Chatbot", "confidence": "illustrative", "x": 436, "y": 76
+    },
+    {
+      "id": "other", "title": "Chuyển sang kịch bản tư vấn", "type": "external",
+      "summary": "Yêu cầu được chuyển đến một nhánh hội thoại khác để tiếp tục thu thập thông tin.",
+      "details": "Nhánh này biểu diễn lời gọi/điều hướng sang kịch bản khác như trong ảnh; chưa xác minh cụ thể cơ chế chuyển tiếp.",
+      "actor": "Chatbot", "confidence": "illustrative", "x": 436, "y": 319
+    },
+    {
+      "id": "product", "title": "Tham khảo sản phẩm", "type": "message",
+      "summary": "Khách hàng nhận thông tin và có thể tiếp tục tìm hiểu sản phẩm.",
+      "details": "Ví dụ về một lựa chọn ngoài nhánh đăng ký bảo hành. Không hàm ý có đơn hàng hoặc dữ liệu khách hàng được tạo.",
+      "actor": "Chatbot", "confidence": "illustrative", "x": 436, "y": 561
+    },
+    {
+      "id": "activate", "title": "Gửi thông tin kích hoạt", "type": "action",
+      "summary": "Khách hàng nhập thông tin cần thiết để yêu cầu kích hoạt bảo hành.",
+      "details": "Ví dụ mô phỏng biểu mẫu đăng ký. Với project thật, cần truy vết validator, API và dữ liệu được lưu trước khi đi đến bước kiểm tra.",
+      "actor": "Khách hàng", "confidence": "illustrative", "x": 810, "y": 407
+    },
+    {
+      "id": "check", "title": "Kiểm tra tính hợp lệ", "type": "decision",
+      "summary": "Hệ thống kiểm tra dữ liệu và quyết định tiếp tục hay yêu cầu nhập lại.",
+      "details": "Điểm rẽ nhánh có hai kết quả để minh họa cách hiển thị điều kiện. Không khẳng định tiêu chí xác thực thật.",
+      "actor": "Hệ thống", "confidence": "illustrative", "x": 1184, "y": 405
+    },
+    {
+      "id": "success", "title": "Thông báo kích hoạt thành công", "type": "end",
+      "summary": "Người dùng nhìn thấy trạng thái đăng ký thành công.",
+      "details": "Chỉ mô phỏng nhánh thành công; phải chứng minh bằng response và cập nhật trạng thái trong code thực tế.",
+      "actor": "Hệ thống", "confidence": "illustrative", "x": 1558, "y": 255
+    },
+    {
+      "id": "retry", "title": "Yêu cầu bổ sung thông tin", "type": "error",
+      "summary": "Khi thông tin chưa đạt yêu cầu, hệ thống giải thích và cho phép sửa.",
+      "details": "Trong hệ thống thực tế, cần xem rõ thông báo nào được trả về, có giữ dữ liệu cũ và retry bao nhiêu lần.",
+      "actor": "Hệ thống", "confidence": "illustrative", "x": 1558, "y": 550
+    }
+  ],
+  "edges": [
+    {"from": "welcome", "to": "policy", "label": "Chọn chính sách", "kind": "condition"},
+    {"from": "welcome", "to": "other", "label": "Cần tư vấn khác", "kind": "condition"},
+    {"from": "welcome", "to": "product", "label": "Xem sản phẩm", "kind": "condition"},
+    {"from": "welcome", "to": "activate", "label": "Kích hoạt bảo hành", "kind": "condition"},
+    {"from": "activate", "to": "check", "label": "Đã gửi biểu mẫu", "kind": "normal"},
+    {"from": "check", "to": "success", "label": "Dữ liệu hợp lệ", "kind": "success"},
+    {"from": "check", "to": "retry", "label": "Cần bổ sung", "kind": "error"},
+    {"from": "retry", "to": "activate", "label": "Người dùng sửa lại", "kind": "loop"}
+  ]
+}
