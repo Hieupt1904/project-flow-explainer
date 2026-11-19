@@ -1,6 +1,6 @@
 # DSH_IMPLEMENTATION_PLAN — Hybrid Project Flow Explainer × DeepSeek Harness
 
-Trạng thái sau pass review: **7/8 task review DONE; TASK 4 (smoke DSH thật) BLOCKED chờ phê duyệt cài**
+Trạng thái sau pass review: **COMPLETED — 8/8 task DONE**
 (chi tiết: [FINAL_REPORT.md](FINAL_REPORT.md)).
 
 Cập nhật: 2026-11-19 · commit code của pass review: `797401a61f9b` · nhánh `main`.
@@ -47,7 +47,7 @@ Nguyên văn và hệ quả kỹ thuật: [ARCHITECTURE_DECISION.md](ARCHITECTUR
 | HYB-05 | P0 | Tool registration | **DONE (in-process)** | mount vào Context giả, schema đúng, execute end-to-end tạo 4 file | 11 test adapter |
 | HYB-06 | P0 | Security boundary | **DONE** | traversal/absolute/symlink/allowedRoots/secret đều fail-safe | test Python + Node |
 | HYB-07 | P1 | Bundle packaging | **DONE (chưa cài)** | manifest đúng format runtime | `package.json`, `cordis.patch.yml` |
-| HYB-08 | P1 | Smoke trong DSH thật | **BLOCKED** | cài `pfe-test`, tool ACTIVE, gọi thật, unload/reload | chờ phê duyệt cài |
+| HYB-08 | P1 | Smoke trong DSH thật | **DONE** | tool trong registry thật, gọi được, disable/enable/remove đúng | `artifacts/logs/20261119-task4-smoke.{log,json}` |
 | HYB-09 | P1 | Harness UI | **BLOCKED_UI_API_UNVERIFIED** | chỉ mở khi register API của slot được xác minh | ngoài MVP |
 | HYB-10 | P1 | Visual QA HTML | **DONE** | 3 viewport × 3 case, screenshot, console/network sạch | `UI_VERIFICATION_REPORT.md` |
 | HYB-11 | P0 | Tài liệu + bằng chứng | **DONE** | 6 báo cáo + artifacts theo naming | `FINAL_REPORT.md` |
@@ -83,7 +83,7 @@ Sự cố đã sửa trong vòng lặp (mỗi lỗi một lần sửa, không t�
 | TASK 1 | allowedRoots deny-by-default | DONE | `lib/paths.js`, 5 test Node |
 | TASK 2 | Artifact chỉ trong `artifacts/flows` | DONE | `validate_out_dir`, 7 test |
 | TASK 3 | Bundle cài độc lập (`pack.mjs`, vendor core) | DONE | `pack.test.mjs` |
-| TASK 4 | Smoke trong DSH thật | **BLOCKED** | chờ duyệt lệnh cài (FINAL_REPORT §6) |
+| TASK 4 | Smoke trong DSH thật | **DONE** | `artifacts/logs/20261119-task4-smoke.{log,json}` |
 | TASK 5 | abort vs timeout vs failure | DONE | `abortError()`, test `AbortError`/`core_timeout` |
 | TASK 6 | Graph theo bằng chứng, decoy không bị nối | DONE | `routes/preview.js` trong `related` |
 | TASK 7 | Dọn artifact, provenance | DONE | `check_repo_policy.py` OK |

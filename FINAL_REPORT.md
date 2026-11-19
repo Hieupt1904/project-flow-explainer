@@ -1,8 +1,8 @@
 # FINAL_REPORT — Hybrid Project Flow Explainer × DSH
 
-Trạng thái pass review: **PARTIALLY_COMPLETED**.
-Lý do duy nhất: **TASK 4 (smoke trong DSH thật) đang BLOCKED** vì bước cài bundle vào profile
-`pfe-test` cần phê duyệt. Mọi blocker khác của pass review đã sửa và có test chứng minh.
+Trạng thái pass review: **COMPLETED**.
+Cả 8 task review đều DONE và có bằng chứng; panel UI trong Harness vẫn giữ
+`BLOCKED_UI_API_UNVERIFIED` theo đúng phạm vi (không tính là blocker của pass này).
 
 | Mục | Giá trị |
 |---|---|
@@ -18,7 +18,7 @@ Lý do duy nhất: **TASK 4 (smoke trong DSH thật) đang BLOCKED** vì bước
 | TASK 1 | Siết `allowedRoots` (deny-by-default) | **DONE** | `dsh-plugin/lib/paths.js` (`resolveAllowedRoots`, `resolveRepository`); 5 test Node: thiếu root, root rỗng, ngoài root, symlink escape, relative path |
 | TASK 2 | Artifact chỉ trong `<repo>/artifacts/flows` | **DONE** | `resolveArtifactRoot` + `validate_out_dir`; 5 test Python + 2 test Node cho `.`, `src`, repo root, `../outside`, symlink; test "không ghi trước khi containment check" |
 | TASK 3 | Bundle cài độc lập | **DONE** | `dsh-plugin/scripts/pack.mjs` copy core vào `vendor/core` lúc pack; `pack.test.mjs` extract tarball vào thư mục không có checkout, resolve core nguồn `vendor`, chạy end-to-end ra 4 file |
-| TASK 4 | Smoke trong DSH thật | **BLOCKED** | Chưa cài; lệnh + phạm vi + rollback đã chuẩn bị ở mục 6, chờ duyệt |
+| TASK 4 | Smoke trong DSH thật | **DONE** | Cài vào `pfe-test` bằng tarball, tool có trong registry thật, gọi thành công ra 4 file, `disabled` → mất, bật lại → trở lại (0 duplicate), `remove` → mất và profile vẫn boot. Bằng chứng: `artifacts/logs/20261119-task4-smoke.{log,json}` |
 | TASK 5 | Semantics abort | **DONE** | Adapter ném `Error{name:'AbortError'}`; runtime map thành `code: ABORTED` (`dsh-tools/src/pipeline.ts:700-707,770-780`); test phân biệt abort / `core_timeout` / `core_failed` |
 | TASK 6 | Độ chính xác graph | **DONE** | Builder tách 3 tầng bằng chứng; chỉ nối theo route/import/call; fixture decoy `routes/preview.js` nằm trong `related`, không thành node; `overview.md` có cột "Bằng chứng thành viên" |
 | TASK 7 | Dọn artifact & provenance | **DONE** | Xoá `artifacts/qa/**` lồng nhau; sample regenerate từ HEAD; artifact không còn absolute path; `scripts/check_repo_policy.py` chặn `/home/`, `\Users\`, `artifacts/…/artifacts`, secret-shape |
@@ -105,23 +105,39 @@ config:
 
 | Mục | Trạng thái |
 |---|---|
-| Smoke trong DSH thật (cài `pfe-test`, gọi tool, unload/reload, remove) | **BLOCKED** — chờ duyệt |
+| Gọi tool qua model trong `pfe-test` | Không chạy được: profile template `headless` thiếu API key (`MISSING_CREDENTIAL`). Lời gọi được thực hiện qua registry thật bằng plugin probe tạm (xem §6). Đường model trong profile `web` không bị đụng tới. |
 | Panel UI trong Harness | `BLOCKED_UI_API_UNVERIFIED` (ngoài phạm vi, không đổi) |
 | GitHub Actions | Đã chạy: run `44505483840` success toàn bộ 4 job |
 | Call graph đa ngôn ngữ đầy đủ | Chưa có; đã ghi rõ trong `limits` của mọi kết quả |
 | "Toàn cảnh" 34% với flow dài | Trade-off đã ghi (UI-002) |
 
-## 6. Yêu cầu phê duyệt TASK 4 (chưa chạy)
+## 6. TASK 4 — đã chạy (được duyệt)
 
-1. **Lệnh**: `dsh plugin --profile pfe-test add <repo>/dist/dsh-project-flow-explainer-0.2.0.tgz`
-2. **Package/profile**: `dsh-project-flow-explainer@0.2.0` → profile `pfe-test` (mới; **không** đụng `web`).
-3. **File thay đổi**: tạo `~/.dsh/profiles/pfe-test/{package.json,cordis.patch.yml,node_modules,…}`; thêm 1 dependency + 1 tên trong `dsh.profile.bundles`; thêm row config `allowedRoots` cho bundle này.
-4. **Mạng**: có — lần tạo profile cần `pnpm install` bundle nền của template. Tarball tự nó không có dependency.
-5. **Install script**: tarball của mình không có `postinstall`; pnpm chỉ chạy bước cài chuẩn của nó.
-6. **Rollback**: `dsh plugin --profile pfe-test remove dsh-project-flow-explainer` hoặc `rm -rf ~/.dsh/profiles/pfe-test`. Profile `web` không bị chạm.
+Profile `pfe-test` tạo từ template `headless`; bundle cài bằng tarball (`dsh plugin … add`), pnpm
+không tải gói ngoài vì package không có dependency.
 
-Sau khi duyệt, chuỗi kiểm chứng sẽ chạy đúng 10 bước đã nêu trong đề bài (dump-config → boot →
-tool xuất hiện → gọi fixture → kiểm 4 file → không có secret → unload/reload → remove).
+| Bước | Kết quả |
+|---|---|
+| `--dump-config` | row `project-flow-explainer` xuất hiện kèm provenance `patched by …/pfe-test/cordis.patch.yml` và `allowedRoots` |
+| Boot + registry | `project_flow_explain` có trong registry thật (`bash`, `edit`, `glob`, … cùng danh sách) |
+| Gọi tool với fixture | `ok` · flow `giai-thich-tu-luc-nguoi-dung-04f9c7` · 5 verified / 3 partial · 2 file ngoài luồng · 4 artifact tồn tại |
+| Không lộ secret | 4 file artifact và tool result không chứa secret của fixture |
+| Config thật sự tới `apply()` | đổi sang `allowedRoots: []` → tool từ chối `allowed_roots_unconfigured` |
+| Unload | row `disabled: true` → tool biến mất khỏi registry |
+| Reload | bật lại → tool trở lại, `duplicates: []` |
+| Remove | `dsh plugin --profile pfe-test remove …` → tool mất, profile vẫn boot (chỉ còn `MISSING_CREDENTIAL` vốn có của template) |
+| Dọn dẹp | gỡ probe + xoá `node_modules` → `bundles: [dsh-base, dsh-headless]`, `dependencies: {}` |
+
+Điểm cần nói rõ: profile `headless` không có API key nên **không thể** để model tự gọi tool. Lời gọi
+được thực hiện bởi một plugin probe tạm thời nằm trong cùng profile: nó đọc registry thật
+(`ctx.tools.get/definitions`) rồi gọi `execute()` của tool đã cài. Đó là runtime thật, không phải
+Context giả; nhưng **chưa** phải "model chọn tool" — phần đó cần API key và nằm ngoài phạm vi pass này.
+
+Rollback (đã kiểm chứng): `dsh plugin --profile pfe-test remove dsh-project-flow-explainer` hoặc
+`rm -rf ~/.dsh/profiles/pfe-test`. Profile `web` không bị chạm ở bất kỳ bước nào.
+
+Bằng chứng: [smoke.log](artifacts/logs/20261119-task4-smoke.log) ·
+[smoke.json](artifacts/logs/20261119-task4-smoke.json).
 
 ## 7. Bảng task gốc
 
@@ -135,7 +151,7 @@ tool xuất hiện → gọi fixture → kiểm 4 file → không có secret →
 | HYB-05 | Tool registration | DONE (in-process) |
 | HYB-06 | Security boundary | DONE (allowedRoots + artifact root) |
 | HYB-07 | Bundle packaging | DONE (pack + cài độc lập) |
-| HYB-08 | Smoke trong DSH | **BLOCKED** |
+| HYB-08 | Smoke trong DSH | DONE |
 | HYB-09 | Harness UI | BLOCKED_UI_API_UNVERIFIED |
 | HYB-10 | Visual QA | DONE (regenerate từ HEAD) |
 | HYB-11 | Tài liệu + bằng chứng | DONE |

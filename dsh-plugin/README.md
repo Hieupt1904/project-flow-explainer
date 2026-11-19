@@ -58,6 +58,23 @@ Tool **deny-by-default**. Không khai báo `allowedRoots` thì mọi lần gọi
 
 Không có cấu hình nào cho phép ghi artifact ra ngoài `<repo>/artifacts/flows` — đây là quy tắc cứng.
 
+## Ghi chú khi cài vào profile `headless`
+
+Template `headless` không có API key và yêu cầu preset permission tường minh. Trước khi boot, thêm
+vào patch layer của profile:
+
+```yaml
+- id: permission
+  config:
+    defaultPreset: workspace-write
+- id: project-flow-explainer
+  config:
+    allowedRoots: ['/duong/dan/workspace']
+```
+
+Nếu thiếu `defaultPreset`, DSH dừng với `permission: composed sandbox and approval defaults match no
+preset; configure defaultPreset explicitly`.
+
 ## Gỡ cài đặt
 
 ```bash

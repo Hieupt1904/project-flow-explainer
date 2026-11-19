@@ -97,12 +97,26 @@ Trạng thái: **toàn bộ test tự động PASS**. Chỉ TASK 4 (smoke trong 
 | `packed tarball carries the core and works without the checkout` | tarball có 8 entry gồm `vendor/core/**`; giải nén vào thư mục **không có repo xung quanh**; `resolveCoreRoot` trả `source: 'vendor'`; `apply` + `execute` tạo đủ 4 file | PASS |
 | `packed manifest keeps metadata and drops checkout-only scripts` | `main`, `exports`, `files`, `engines.dsh`, `dsh.bundle.patch` còn; `scripts` bị bỏ | PASS |
 
+## 4b. Smoke trong DSH thật (TASK 4, profile `pfe-test`)
+
+| Bước | Kết quả | Bằng chứng |
+|---|---|---|
+| Cài tarball vào `pfe-test` | OK, bundle tự vào `dsh.profile.bundles`, pnpm không tải gói ngoài | `artifacts/logs/20261119-task4-smoke.log` |
+| Composed config | row + `allowedRoots` + provenance patch layer | cùng file, mục 4 |
+| Tool trong registry thật | `project_flow_explain` hiện diện cùng `bash`/`edit`/`glob`/… | `01-call-ok` trong `task4-smoke.json` |
+| Gọi tool | `ok`, 5 verified / 3 partial, 2 ngoài luồng, 4 artifact | như trên |
+| Config tới `apply()` | `allowedRoots: []` → `allowed_roots_unconfigured` | `02-config-empty` |
+| Disable / enable | mất → trở lại, `duplicates: []` | `03-disabled`, `04-reenabled` |
+| Remove | tool mất, profile vẫn boot | `05-removed` |
+
+Giới hạn: profile `headless` không có API key nên lời gọi do plugin probe thực hiện qua registry thật,
+không qua model. Đường model trong profile `web` không bị đụng.
+
 ## 5. Chưa kiểm chứng
 
 | Hạng mục | Trạng thái | Lý do |
 |---|---|---|
-| Tool ACTIVE trong DSH thật | **CHƯA CHẠY** | TASK 4 chờ duyệt cài vào `pfe-test` |
-| Gọi tool từ agent DSH | **CHƯA CHẠY** | phụ thuộc bước trên |
+| Model tự chọn tool trong DSH | **CHƯA CHẠY** | profile `pfe-test` không có API key; gọi qua registry thật đã pass |
 | GitHub Actions | Đã chạy: run `44505483840` — core py3.12, adapter node 20/24, manifest: success |
 | Repo > 20 000 file | **CHƯA ĐO** | có giới hạn cứng, chưa benchmark |
 | Panel UI Harness | `BLOCKED_UI_API_UNVERIFIED` | ngoài phạm vi |
