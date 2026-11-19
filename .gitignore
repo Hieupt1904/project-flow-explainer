@@ -17,6 +17,11 @@ node_modules/
 dsh-plugin/node_modules/
 dist/
 
+# Thư viện tài liệu DSH đặt cạnh repo để tra cứu, không thuộc repo này
+# (5 MB tài liệu + zip phát hành riêng). Bỏ hai dòng này nếu muốn commit chúng.
+deepseek-docs-skills/
+deepseek-docs-skills.zip
+
 # Editor / OS
 .vscode/
 .idea/
