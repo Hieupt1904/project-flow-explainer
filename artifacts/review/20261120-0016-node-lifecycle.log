@@ -1,0 +1,22 @@
+$ node --test dsh-plugin/tests/lifecycle.test.mjs
+exit_code: 0
+duration_ms: 193.0
+
+--- stdout ---
+✔ mount registers exactly the seven tools once (2.988408ms)
+✔ dispose removes every tool and releases the names (1.523332ms)
+✔ remount after dispose restores seven tools without duplicates (0.624254ms)
+✔ mounting twice without dispose is rejected (no silent duplicate) (0.854107ms)
+✔ dispose cancels an in-flight run (107.761053ms)
+✔ no native Config export is claimed (BLOCKED_DSH_CONFIG_NATIVE) (0.246756ms)
+✔ invalid config fails before any tool is registered (0.214335ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 164.870243
+
+--- stderr ---

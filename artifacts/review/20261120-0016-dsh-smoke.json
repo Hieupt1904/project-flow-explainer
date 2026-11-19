@@ -19,11 +19,18 @@
     "abort_identity": true,
     "empty_roots_rejected": true,
     "timeout_code": true,
-    "disabled_hides_tools": true
+    "disabled_hides_tools": true,
+    "invalid_config_rejected": true
   },
-  "record": "20261120-000406-dsh-smoke.json",
+  "record": "20261120-0016-dsh-smoke.json",
   "blocked": {
     "model_driven": "not_verified: profile không có API key; probe gọi registry, không qua model",
     "panel_ui": "BLOCKED_UI_API_UNVERIFIED"
+  },
+  "settings_ui": {
+    "client_entry": "client.js",
+    "slot": "plugins.bundle.config",
+    "config_schema": "native schemastery",
+    "verified": "client tests + ValidationError boot check"
   }
 }
