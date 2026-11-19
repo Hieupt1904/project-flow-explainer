@@ -1,0 +1,455 @@
+{
+  "generated_at": "2026-11-19T23:54:16+07:00",
+  "label": "web-project",
+  "repository_id": "7ec2e02da7b6bac9",
+  "request": "Giải thích từ lúc người dùng mở trang trạng thái đến khi thấy dữ liệu publish schedule",
+  "privacy": {
+    "absolute_paths": "removed",
+    "relative_paths": "removed",
+    "repository_name": "removed",
+    "symbols_routes": "kept (evidence)",
+    "reason": "dự án riêng tư; chỉ giữ số liệu và định danh kỹ thuật"
+  },
+  "flow": {
+    "status": "ok",
+    "counts": {
+      "verified": 10,
+      "partial": 9,
+      "inferred": 1,
+      "unknown": 0
+    },
+    "files_scanned": 246,
+    "scan_bytes": 4533427,
+    "related_count": 109,
+    "warnings": [],
+    "limits_count": 4,
+    "artifact_contract": {
+      "public": [
+        "flow.json",
+        "flow.html",
+        "overview.md"
+      ],
+      "internal": [
+        "run.json"
+      ],
+      "run_json": "internal-provenance"
+    },
+    "duration_ms": 2682.8,
+    "exit_code": 0
+  },
+  "index_full": {
+    "status": "ok",
+    "mode": "full",
+    "files_indexed": 224,
+    "symbols_indexed": 1833,
+    "routes_indexed": 47,
+    "tests_indexed": 0,
+    "entities": 6205,
+    "facts": 6599,
+    "index_version": 2,
+    "duration_ms": 4226.45,
+    "wall_ms": 4281.7
+  },
+  "index_incremental": {
+    "mode": "incremental",
+    "files_parsed": 0,
+    "files_reused": 224,
+    "duration_ms": 1613.81,
+    "wall_ms": 1667.7,
+    "warnings": [
+      "Không đọc được file: scripts/push/pushmisadetail.py",
+      "Đã parse bù 1 file bị thiếu khỏi graph (cache thiếu/hỏng).",
+      "Bỏ qua file lớn hơn 256 KB: einvoice/misa_publish_scheduler.py",
+      "Bỏ qua file lớn hơn 256 KB: src/pushmisa.py"
+    ]
+  },
+  "entry_points": {
+    "kinds": {
+      "callback": 26,
+      "gui_event": 52,
+      "http_route": 47,
+      "main": 104,
+      "public_api": 12
+    },
+    "files_with_entry_point": 89,
+    "route_labels_sample": [
+      "/lark-callback",
+      "/lark-callback",
+      "/check-payment/{raw_id}",
+      "/",
+      "/api/status",
+      "/api/logs/workflow",
+      "/api/logs/einvoice",
+      "/api/log-content"
+    ]
+  },
+  "search": [
+    {
+      "query": "Giải thích từ lúc người dùng mở trang trạng thái đến khi thấy dữ liệu publish schedule",
+      "channels": [
+        "fts",
+        "graph"
+      ],
+      "stale": false,
+      "warnings": [
+        "Query dài: exact search cộng dồn theo từ khoá. Với câu mô tả nghiệp vụ, dùng project_flow_explain, hoặc rút query về symbol / route / 2-3 từ khoá.",
+        "vector: vector_index_absent — dùng FTS + graph"
+      ],
+      "top": [
+        {
+          "kind": "file",
+          "symbol": "app",
+          "start_line": 1,
+          "confidence": "observed",
+          "location_confidence": "",
+          "relevance_confidence": "",
+          "relation": [
+            "calls"
+          ],
+          "score": 0.95,
+          "why_matched": "quan hệ calls với services/dashboard/app.py#get_publish_schedule"
+        },
+        {
+          "kind": "route",
+          "symbol": "/data/publish-schedule",
+          "start_line": 1328,
+          "confidence": "observed",
+          "location_confidence": "",
+          "relevance_confidence": "",
+          "relation": [
+            "handles_route"
+          ],
+          "score": 0.8897,
+          "why_matched": "khớp chính xác từ khoá trong khai báo route; chỉ khớp từ khoá, không có quan hệ graph"
+        },
+        {
+          "kind": "function",
+          "symbol": "publish_schedule",
+          "start_line": 314,
+          "confidence": "observed",
+          "location_confidence": "",
+          "relevance_confidence": "",
+          "relation": [
+            "defines"
+          ],
+          "score": 0.75,
+          "why_matched": "khớp chính xác từ khoá trong tên hàm; chỉ khớp từ khoá, không có quan hệ graph"
+        },
+        {
+          "kind": "function",
+          "symbol": "get_publish_schedule",
+          "start_line": 171,
+          "confidence": "observed",
+          "location_confidence": "",
+          "relevance_confidence": "",
+          "relation": [
+            "defines"
+          ],
+          "score": 0.7465,
+          "why_matched": "khớp chính xác từ khoá trong tên hàm; chỉ khớp từ khoá, không có quan hệ graph"
+        },
+        {
+          "kind": "function",
+          "symbol": "build_publish_schedule",
+          "start_line": 317,
+          "confidence": "observed",
+          "location_confidence": "",
+          "relevance_confidence": "",
+          "relation": [
+            "defines"
+          ],
+          "score": 0.7397,
+          "why_matched": "khớp chính xác từ khoá trong tên hàm; chỉ khớp từ khoá, không có quan hệ graph"
+        }
+      ],
+      "wall_ms": 77.3
+    },
+    {
+      "query": "export",
+      "channels": [
+        "fts",
+        "graph"
+      ],
+      "stale": false,
+      "warnings": [
+        "vector: vector_index_absent — dùng FTS + graph"
+      ],
+      "top": [
+        {
+          "kind": "file",
+          "symbol": "xuatfileghep",
+          "start_line": 1,
+          "confidence": "observed",
+          "location_confidence": "",
+          "relevance_confidence": "",
+          "relation": [
+            "calls"
+          ],
+          "score": 0.95,
+          "why_matched": "quan hệ calls với scripts/dev/xuatfileghep.py#export_excel_files"
+        },
+        {
+          "kind": "file",
+          "symbol": "report_consumer_masked_unpublished",
+          "start_line": 1,
+          "confidence": "observed",
+          "location_confidence": "",
+          "relevance_confidence": "",
+          "relation": [
+            "calls"
+          ],
+          "score": 0.95,
+          "why_matched": "quan hệ calls với scripts/ops/report_consumer_masked_unpublished.py#export_csv"
+        },
+        {
+          "kind": "function",
+          "symbol": "export_excel_files",
+          "start_line": 13,
+          "confidence": "observed",
+          "location_confidence": "",
+          "relevance_confidence": "",
+          "relation": [
+            "defines"
+          ],
+          "score": 0.75,
+          "why_matched": "khớp chính xác từ khoá trong tên hàm; chỉ khớp từ khoá, không có quan hệ graph"
+        },
+        {
+          "kind": "function",
+          "symbol": "export_csv",
+          "start_line": 274,
+          "confidence": "observed",
+          "location_confidence": "",
+          "relevance_confidence": "",
+          "relation": [
+            "defines"
+          ],
+          "score": 0.7465,
+          "why_matched": "khớp chính xác từ khoá trong tên hàm; chỉ khớp từ khoá, không có quan hệ graph"
+        },
+        {
+          "kind": "file",
+          "symbol": "primitives",
+          "start_line": 1,
+          "confidence": "observed",
+          "location_confidence": "",
+          "relevance_confidence": "",
+          "relation": [
+            "calls",
+            "defines"
+          ],
+          "score": 0.344,
+          "why_matched": "khớp chính xác từ khoá trong đường dẫn file; chỉ khớp từ khoá, không có quan hệ graph"
+        }
+      ],
+      "wall_ms": 71.2
+    },
+    {
+      "query": "cập nhật dữ liệu",
+      "channels": [
+        "fts",
+        "graph"
+      ],
+      "stale": false,
+      "warnings": [
+        "vector: vector_index_absent — dùng FTS + graph"
+      ],
+      "top": [
+        {
+          "kind": "file",
+          "symbol": "lapchungtu_ui",
+          "start_line": 1,
+          "confidence": "observed",
+          "location_confidence": "",
+          "relevance_confidence": "",
+          "relation": [
+            "calls"
+          ],
+          "score": 0.95,
+          "why_matched": "quan hệ calls với utils/lapchungtu_ui.py#click_lay_du_lieu"
+        },
+        {
+          "kind": "function",
+          "symbol": "click_lay_du_lieu",
+          "start_line": 427,
+          "confidence": "observed",
+          "location_confidence": "",
+          "relevance_confidence": "",
+          "relation": [
+            "defines"
+          ],
+          "score": 0.75,
+          "why_matched": "khớp chính xác từ khoá trong tên hàm; chỉ khớp từ khoá, không có quan hệ graph"
+        },
+        {
+          "kind": "function",
+          "symbol": "_cancel_hard_cap",
+          "start_line": 446,
+          "confidence": "observed",
+          "location_confidence": "",
+          "relevance_confidence": "",
+          "relation": [
+            "defines"
+          ],
+          "score": 0.6965,
+          "why_matched": "khớp chính xác từ khoá trong tên hàm; chỉ khớp từ khoá, không có quan hệ graph"
+        },
+        {
+          "kind": "function",
+          "symbol": "_setup_hard_cap",
+          "start_line": 390,
+          "confidence": "observed",
+          "location_confidence": "",
+          "relevance_confidence": "",
+          "relation": [
+            "defines"
+          ],
+          "score": 0.6965,
+          "why_matched": "khớp chính xác từ khoá trong tên hàm; chỉ khớp từ khoá, không có quan hệ graph"
+        },
+        {
+          "kind": "function",
+          "symbol": "t",
+          "start_line": 997,
+          "confidence": "observed",
+          "location_confidence": "",
+          "relevance_confidence": "",
+          "relation": [
+            "defines"
+          ],
+          "score": 0.5937,
+          "why_matched": "khớp chính xác từ khoá trong tên hàm; chỉ khớp từ khoá, không có quan hệ graph"
+        }
+      ],
+      "wall_ms": 77.8
+    }
+  ],
+  "context_pack": {
+    "analysis_kind": "context_pack",
+    "intent": "flow",
+    "entry_point_kinds": {
+      "http_route": 8
+    },
+    "entry_points": 8,
+    "routes": [
+      "/data/publish-schedule",
+      "/",
+      "/api/status",
+      "/api/logs/workflow",
+      "/api/logs/einvoice"
+    ],
+    "likely_files": [
+      {
+        "path_kind": "route",
+        "symbol": "/data/publish-schedule",
+        "start_line": 1328,
+        "location_confidence": "observed",
+        "relevance_confidence": "observed"
+      },
+      {
+        "path_kind": "file",
+        "symbol": "app",
+        "start_line": 1,
+        "location_confidence": "observed",
+        "relevance_confidence": "observed"
+      },
+      {
+        "path_kind": "function",
+        "symbol": "publish_schedule",
+        "start_line": 314,
+        "location_confidence": "observed",
+        "relevance_confidence": "observed"
+      },
+      {
+        "path_kind": "function",
+        "symbol": "db_publish_schedule_summary",
+        "start_line": 739,
+        "location_confidence": "observed",
+        "relevance_confidence": "observed"
+      }
+    ],
+    "dependencies": [
+      {
+        "kind": "symbol",
+        "relation": "calls",
+        "has_line": true,
+        "confidence": "observed",
+        "why_included": "quan hệ calls với app tại dòng 174"
+      },
+      {
+        "kind": "symbol",
+        "relation": "calls",
+        "has_line": true,
+        "confidence": "observed",
+        "why_included": "quan hệ calls với app tại dòng 183"
+      },
+      {
+        "kind": "symbol",
+        "relation": "calls",
+        "has_line": true,
+        "confidence": "observed",
+        "why_included": "quan hệ calls với app tại dòng 184"
+      },
+      {
+        "kind": "symbol",
+        "relation": "calls",
+        "has_line": true,
+        "confidence": "observed",
+        "why_included": "quan hệ calls với app tại dòng 185"
+      },
+      {
+        "kind": "symbol",
+        "relation": "calls",
+        "has_line": true,
+        "confidence": "observed",
+        "why_included": "quan hệ calls với app tại dòng 322"
+      }
+    ],
+    "dependency_count": 24,
+    "external_dependencies": 6,
+    "related_tests": 0,
+    "limitations": [
+      "Phân tích tĩnh: chưa chạy code, chưa thực thi test.",
+      "Entry point chỉ lấy từ dòng đăng ký thật (route, add_parser, command=, bind, decorator task, __main__, __all__); không suy từ tên hàm.",
+      "Không có route HTTP nào trong câu hỏi; dự án desktop/CLI có thể có 0 http_route và điều đó là đúng."
+    ],
+    "snippets_included": false,
+    "stale": false
+  },
+  "impact": {
+    "risk_level": "low",
+    "risk_reasons": [
+      "không thấy route, flow hay phụ thuộc ngược trong index"
+    ],
+    "affected_routes": 0,
+    "affected_symbols": 0,
+    "related_tests": 0,
+    "downstream_modules": 0,
+    "suggested_verification": 1
+  },
+  "verify": {
+    "static_verdict": "pass",
+    "overall_verdict": "partial",
+    "gates": {
+      "static": "pass",
+      "ui": "blocked",
+      "runtime": "blocked"
+    },
+    "not_verified": [
+      "ui",
+      "runtime"
+    ],
+    "checks": {
+      "artifact_scope": "pass",
+      "flow_artifacts": "pass",
+      "graph_evidence": "pass",
+      "ui_self_contained": "pass",
+      "privacy": "pass",
+      "artifact_containment": "pass",
+      "test_mapping": "partial"
+    },
+    "ui_verified": false,
+    "runtime_verified": false
+  },
+  "status": "ok"
+}

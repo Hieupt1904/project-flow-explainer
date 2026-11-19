@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-11-19T23:07:14+07:00",
-  "label": "<real-project>",
+  "generated_at": "2026-11-19T23:54:28+07:00",
+  "label": "desktop-project",
   "repository_id": "32eb400b099a9c9b",
   "request": "Giải thích từ lúc người dùng bấm CẬP NHẬT DỮ LIỆU đến khi có file Excel quyết toán tiền ăn",
   "privacy": {
     "absolute_paths": "removed",
     "relative_paths": "removed",
     "repository_name": "removed",
-    "symbols": "kept (evidence)",
-    "reason": "dự án riêng tư; chỉ giữ số liệu và tên symbol"
+    "symbols_routes": "kept (evidence)",
+    "reason": "dự án riêng tư; chỉ giữ số liệu và định danh kỹ thuật"
   },
   "flow": {
     "status": "ok",
@@ -34,7 +34,7 @@
       ],
       "run_json": "internal-provenance"
     },
-    "duration_ms": 148.7,
+    "duration_ms": 153.9,
     "exit_code": 0
   },
   "index_full": {
@@ -46,15 +46,26 @@
     "tests_indexed": 10,
     "entities": 568,
     "facts": 575,
-    "duration_ms": 156.51,
-    "wall_ms": 216.9
+    "index_version": 2,
+    "duration_ms": 156.5,
+    "wall_ms": 205.1
   },
   "index_incremental": {
     "mode": "incremental",
     "files_parsed": 0,
     "files_reused": 26,
-    "duration_ms": 32.44,
-    "wall_ms": 88.7
+    "duration_ms": 28.73,
+    "wall_ms": 79.1,
+    "warnings": []
+  },
+  "entry_points": {
+    "kinds": {
+      "callback": 2,
+      "gui_event": 6,
+      "main": 28
+    },
+    "files_with_entry_point": 15,
+    "route_labels_sample": []
   },
   "search": [
     {
@@ -65,6 +76,7 @@
       ],
       "stale": false,
       "warnings": [
+        "Query dài: exact search cộng dồn theo từ khoá. Với câu mô tả nghiệp vụ, dùng project_flow_explain, hoặc rút query về symbol / route / 2-3 từ khoá.",
         "vector: vector_index_absent — dùng FTS + graph"
       ],
       "top": [
@@ -73,6 +85,8 @@
           "symbol": "main",
           "start_line": 1,
           "confidence": "observed",
+          "location_confidence": "",
+          "relevance_confidence": "",
           "relation": [
             "calls"
           ],
@@ -84,6 +98,8 @@
           "symbol": "user_data_dir",
           "start_line": 48,
           "confidence": "observed",
+          "location_confidence": "",
+          "relevance_confidence": "",
           "relation": [
             "defines"
           ],
@@ -95,6 +111,8 @@
           "symbol": "data_file",
           "start_line": 82,
           "confidence": "observed",
+          "location_confidence": "",
+          "relevance_confidence": "",
           "relation": [
             "defines"
           ],
@@ -106,6 +124,8 @@
           "symbol": "test_biff_strict",
           "start_line": 1,
           "confidence": "observed",
+          "location_confidence": "",
+          "relevance_confidence": "",
           "relation": [
             "calls",
             "contains",
@@ -120,6 +140,8 @@
           "symbol": "_xls",
           "start_line": 1,
           "confidence": "observed",
+          "location_confidence": "",
+          "relevance_confidence": "",
           "relation": [
             "calls"
           ],
@@ -127,76 +149,17 @@
           "why_matched": "khớp chính xác từ khoá trong đường dẫn file; chỉ khớp từ khoá, không có quan hệ graph"
         }
       ],
-      "wall_ms": 67.5
+      "wall_ms": 63.1
     },
     {
-      "query": "export excel",
-      "channels": [
-        "fts",
-        "graph"
-      ],
+      "query": "export",
+      "channels": [],
       "stale": false,
       "warnings": [
         "vector: vector_index_absent — dùng FTS + graph"
       ],
-      "top": [
-        {
-          "kind": "symbol",
-          "symbol": "read_ole_stream",
-          "start_line": 227,
-          "confidence": "observed",
-          "relation": [
-            "calls"
-          ],
-          "score": 0.95,
-          "why_matched": "quan hệ calls với src/_xls.py"
-        },
-        {
-          "kind": "symbol",
-          "symbol": "_records",
-          "start_line": 27,
-          "confidence": "observed",
-          "relation": [
-            "calls"
-          ],
-          "score": 0.95,
-          "why_matched": "quan hệ calls với src/_xls.py"
-        },
-        {
-          "kind": "symbol",
-          "symbol": "_Sst",
-          "start_line": 49,
-          "confidence": "observed",
-          "relation": [
-            "calls"
-          ],
-          "score": 0.95,
-          "why_matched": "quan hệ calls với src/_xls.py"
-        },
-        {
-          "kind": "symbol",
-          "symbol": "_rk",
-          "start_line": 36,
-          "confidence": "observed",
-          "relation": [
-            "calls"
-          ],
-          "score": 0.95,
-          "why_matched": "quan hệ calls với src/_xls.py"
-        },
-        {
-          "kind": "symbol",
-          "symbol": "sector",
-          "start_line": 250,
-          "confidence": "observed",
-          "relation": [
-            "calls"
-          ],
-          "score": 0.95,
-          "why_matched": "quan hệ calls với src/_xls.py"
-        }
-      ],
-      "wall_ms": 69.9
+      "top": [],
+      "wall_ms": 60.2
     },
     {
       "query": "cập nhật dữ liệu",
@@ -214,6 +177,8 @@
           "symbol": "caught-try",
           "start_line": 24,
           "confidence": "observed",
+          "location_confidence": "",
+          "relevance_confidence": "",
           "relation": [
             "catches"
           ],
@@ -225,6 +190,8 @@
           "symbol": "caught-except",
           "start_line": 27,
           "confidence": "observed",
+          "location_confidence": "",
+          "relevance_confidence": "",
           "relation": [
             "catches"
           ],
@@ -236,6 +203,8 @@
           "symbol": "rk_to_float",
           "start_line": 25,
           "confidence": "observed",
+          "location_confidence": "",
+          "relevance_confidence": "",
           "relation": [
             "calls"
           ],
@@ -247,6 +216,8 @@
           "symbol": "cells_by_row",
           "start_line": 38,
           "confidence": "observed",
+          "location_confidence": "",
+          "relevance_confidence": "",
           "relation": [
             "calls"
           ],
@@ -258,6 +229,8 @@
           "symbol": "check",
           "start_line": 66,
           "confidence": "observed",
+          "location_confidence": "",
+          "relevance_confidence": "",
           "relation": [
             "calls"
           ],
@@ -265,22 +238,101 @@
           "why_matched": "quan hệ calls với tests/test_coords.py"
         }
       ],
-      "wall_ms": 68.0
+      "wall_ms": 63.2
     }
   ],
   "context_pack": {
-    "entry_points": 0,
-    "likely_files": 6,
-    "impacted_symbols": [
-      "user_data_dir",
-      "data_file"
+    "analysis_kind": "context_pack",
+    "intent": "locate",
+    "entry_point_kinds": {
+      "main": 4
+    },
+    "entry_points": 4,
+    "routes": [],
+    "likely_files": [
+      {
+        "path_kind": "function",
+        "symbol": "write_xls",
+        "start_line": 667,
+        "location_confidence": "observed",
+        "relevance_confidence": "observed"
+      },
+      {
+        "path_kind": "function",
+        "symbol": "write_xls",
+        "start_line": 551,
+        "location_confidence": "observed",
+        "relevance_confidence": "observed"
+      },
+      {
+        "path_kind": "function",
+        "symbol": "write_ole_workbook",
+        "start_line": 23,
+        "location_confidence": "observed",
+        "relevance_confidence": "observed"
+      },
+      {
+        "path_kind": "file",
+        "symbol": "test_biff_strict",
+        "start_line": 1,
+        "location_confidence": "observed",
+        "relevance_confidence": "observed"
+      },
+      {
+        "path_kind": "file",
+        "symbol": "test_borders",
+        "start_line": 1,
+        "location_confidence": "observed",
+        "relevance_confidence": "observed"
+      }
     ],
+    "dependencies": [
+      {
+        "kind": "symbol",
+        "relation": "calls",
+        "has_line": true,
+        "confidence": "observed",
+        "why_included": "quan hệ calls với test_biff_strict tại dòng 56"
+      },
+      {
+        "kind": "symbol",
+        "relation": "calls",
+        "has_line": true,
+        "confidence": "observed",
+        "why_included": "quan hệ calls với test_biff_strict tại dòng 63"
+      },
+      {
+        "kind": "symbol",
+        "relation": "calls",
+        "has_line": true,
+        "confidence": "observed",
+        "why_included": "quan hệ calls với _xls tại dòng 126"
+      },
+      {
+        "kind": "symbol",
+        "relation": "calls",
+        "has_line": true,
+        "confidence": "observed",
+        "why_included": "quan hệ calls với _xls tại dòng 127"
+      },
+      {
+        "kind": "symbol",
+        "relation": "calls",
+        "has_line": true,
+        "confidence": "observed",
+        "why_included": "quan hệ calls với _xls tại dòng 138"
+      }
+    ],
+    "dependency_count": 24,
+    "external_dependencies": 2,
     "related_tests": 0,
-    "dependencies": 8,
+    "limitations": [
+      "Phân tích tĩnh: chưa chạy code, chưa thực thi test.",
+      "Entry point chỉ lấy từ dòng đăng ký thật (route, add_parser, command=, bind, decorator task, __main__, __all__); không suy từ tên hàm.",
+      "Không có route HTTP nào trong câu hỏi; dự án desktop/CLI có thể có 0 http_route và điều đó là đúng."
+    ],
     "snippets_included": false,
-    "warnings": [
-      "vector: vector_index_absent — dùng FTS + graph"
-    ]
+    "stale": false
   },
   "impact": {
     "risk_level": "medium",
@@ -294,7 +346,17 @@
     "suggested_verification": 1
   },
   "verify": {
-    "verdict": "pass",
+    "static_verdict": "pass",
+    "overall_verdict": "partial",
+    "gates": {
+      "static": "pass",
+      "ui": "blocked",
+      "runtime": "blocked"
+    },
+    "not_verified": [
+      "ui",
+      "runtime"
+    ],
     "checks": {
       "artifact_scope": "pass",
       "flow_artifacts": "pass",
