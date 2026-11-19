@@ -94,6 +94,27 @@ class WebContextPackTests(unittest.TestCase):
                           {"observed", "structural", "inferred"})
 
 
+class FlaskBlueprintTests(unittest.TestCase):
+    """A blueprint decorator is a route declaration and must be found."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.repo = prepare(ROOT / "tests" / "fixtures" / "flask-app",
+                            Path(self._tmp.name) / "flask")
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def test_blueprint_route_is_an_entry_point(self):
+        pack = retrieval.context_pack(self.repo, "xuất báo cáo")
+        routes = {item["route"] for item in pack["entry_points"]}
+        self.assertIn("/reports/export", routes)
+        self.assertIn("/reports/status", routes)
+        for item in pack["entry_points"]:
+            self.assertEqual(item["kind"], "http_route")
+            self.assertGreaterEqual(item["start_line"], 1)
+
+
 class DesktopContextPackTests(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()

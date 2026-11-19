@@ -2,19 +2,17 @@
 """Run the toolchain on one real project and write a scrubbed evidence record.
 
 Why: "chạy được trên fixture" is not the same claim as "chạy được trên dự án thật".
-This script runs flow + index + search + context pack + impact + verify on a real
-repository and records the numbers.
 
 Privacy rules applied to the record:
   * no absolute path, no relative path, no repository name;
   * repository identified by a hash of its canonical path;
-  * symbol names and line numbers are kept — they are the evidence that the
-    result is real, and the caller chose the repository;
-  * everything is written to artifacts/review/<stamp>-real-project.json.
+  * symbol names, route labels and entry-point labels are kept — they are the
+    evidence that the result is real, and the caller chose the repository;
+  * everything is written to artifacts/review/<stamp>-real-project-<label>.json.
 
 Usage:
   python3 scripts/run_real_project_check.py --repo <absolute-path> \
-      --request "..." [--label "<real-project>"] [--copy]
+      --request "..." --label web [--copy]
 
 --copy (default) copies the repository to a temp dir first, so the analysed
 project keeps its working tree and git status untouched.
@@ -23,7 +21,7 @@ project keeps its working tree and git status untouched.
 import argparse
 import hashlib
 import json
-import os
+import re
 import shutil
 import subprocess
 import sys
@@ -44,7 +42,6 @@ def run_json(argv):
     completed = subprocess.run(argv, cwd=str(ROOT), capture_output=True, text=True,
                                check=False)
     duration = round((time.time() - started) * 1000, 1)
-    payload = None
     line = completed.stdout.strip().split("\n")[-1] if completed.stdout.strip() else ""
     try:
         payload = json.loads(line)
@@ -59,23 +56,32 @@ def brief(result, limit=5):
         "symbol": item["symbol"],
         "start_line": item["start_line"],
         "confidence": item["confidence"],
+        "location_confidence": item.get("location_confidence", ""),
+        "relevance_confidence": item.get("relevance_confidence", ""),
         "relation": item["relation"][:4],
         "score": item["score"],
         "why_matched": item["why_matched"],
     } for item in result.get("results", [])[:limit]]
 
 
+def slug(value):
+    cleaned = re.sub(r"[^a-z0-9]+", "-", str(value).lower()).strip("-")
+    return cleaned or "project"
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Real-project evidence run")
     parser.add_argument("--repo", required=True)
     parser.add_argument("--request", required=True)
-    parser.add_argument("--label", default="<real-project>")
+    parser.add_argument("--task", default="")
+    parser.add_argument("--label", default="real-project")
     parser.add_argument("--keep", action="store_true",
                         help="chạy trên chính repository, không copy")
     args = parser.parse_args(argv)
     source = Path(args.repo).expanduser().resolve()
     if not source.is_dir():
         raise SystemExit("không thấy repository: " + str(source))
+    task = args.task or args.request
 
     work = None
     if args.keep:
@@ -85,8 +91,6 @@ def main(argv=None):
         target = work / source.name
         shutil.copytree(source, target, symlinks=True, ignore=shutil.ignore_patterns(
             ".git", "node_modules", ".venv", "venv", "__pycache__", "artifacts", ".pfe"))
-    created_artifacts = not (target / "artifacts").exists()
-    created_index = not (target / ".pfe").exists()
     record = {
         "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
         "label": args.label,
@@ -96,13 +100,13 @@ def main(argv=None):
             "absolute_paths": "removed",
             "relative_paths": "removed",
             "repository_name": "removed",
-            "symbols": "kept (evidence)",
-            "reason": "dự án riêng tư; chỉ giữ số liệu và tên symbol",
+            "symbols_routes": "kept (evidence)",
+            "reason": "dự án riêng tư; chỉ giữ số liệu và định danh kỹ thuật",
         },
     }
     try:
         started = time.time()
-        flow, flow_ms, flow_run = run_json([
+        flow, _flow_ms, flow_run = run_json([
             sys.executable, str(ROOT / "scripts" / "build_flow.py"),
             "--repo", str(target), "--request", args.request, "--json"])
         record["flow"] = {
@@ -127,6 +131,7 @@ def main(argv=None):
             "routes_indexed": full.get("routes_indexed"),
             "tests_indexed": full.get("tests_indexed"),
             "entities": full.get("entities"), "facts": full.get("facts"),
+            "index_version": full.get("index_version"),
             "duration_ms": full.get("duration_ms"), "wall_ms": full_ms,
         }
 
@@ -140,9 +145,33 @@ def main(argv=None):
             "files_reused": incremental.get("files_reused"),
             "duration_ms": incremental.get("duration_ms"),
             "wall_ms": round((time.time() - started) * 1000, 1),
+            "warnings": incremental.get("warnings") or [],
         }
 
-        queries = [args.request, "export excel", "cập nhật dữ liệu"]
+        # Entry points actually found, grouped by kind (0.4.0 schema).
+        entry_counts = {}
+        route_labels = []
+        with index_mod.connect(target, create=False) as connection:
+            index_mod._ensure_schema(connection)
+            # Count with GROUP BY: a LIMIT on the row list silently truncates the
+            # kinds that sort last, which once made the report look like the
+            # index had lost entry points.
+            for row in connection.execute(
+                    "SELECT kind, COUNT(*) AS c FROM entry_points GROUP BY kind"):
+                entry_counts[row["kind"]] = row["c"]
+            for row in connection.execute(
+                    "SELECT label FROM entry_points WHERE kind = 'http_route' "
+                    "AND label <> '' ORDER BY path, start_line LIMIT 8"):
+                route_labels.append(row["label"])
+            files_with_entry = connection.execute(
+                "SELECT COUNT(DISTINCT path) AS c FROM entry_points").fetchone()["c"]
+        record["entry_points"] = {
+            "kinds": entry_counts,
+            "files_with_entry_point": files_with_entry,
+            "route_labels_sample": route_labels,
+        }
+
+        queries = [args.request, "export", "cập nhật dữ liệu"]
         record["search"] = []
         for query in queries:
             payload, wall, _ = run_json([sys.executable, str(ROOT / "tools" / "pfe_cli.py"),
@@ -159,15 +188,36 @@ def main(argv=None):
 
         pack, _, _ = run_json([sys.executable, str(ROOT / "tools" / "pfe_cli.py"),
                                "context-pack", "--repo", str(target),
-                               "--task", args.request, "--max-files", "8"])
+                               "--task", task, "--max-files", "8"])
+        pack_kinds = {}
+        for entry in pack.get("entry_points") or []:
+            pack_kinds[entry["kind"]] = pack_kinds.get(entry["kind"], 0) + 1
         record["context_pack"] = {
+            "analysis_kind": pack.get("analysis_kind"),
+            "intent": pack.get("intent"),
+            "entry_point_kinds": pack_kinds,
             "entry_points": len(pack.get("entry_points") or []),
-            "likely_files": len(pack.get("likely_files") or []),
-            "impacted_symbols": [item["symbol"] for item in (pack.get("impacted_symbols") or [])[:5]],
+            "routes": [item.get("route") for item in (pack.get("routes") or [])][:5],
+            "likely_files": [
+                {"path_kind": item.get("kind"), "symbol": item.get("symbol"),
+                 "start_line": item.get("start_line"),
+                 "location_confidence": item.get("location_confidence"),
+                 "relevance_confidence": item.get("relevance_confidence")}
+                for item in (pack.get("likely_files") or [])[:5]
+            ],
+            "dependencies": [
+                {"kind": item.get("kind"), "relation": item.get("relation"),
+                 "has_line": bool(item.get("start_line")),
+                 "confidence": item.get("confidence"),
+                 "why_included": item.get("why_included")}
+                for item in (pack.get("dependencies") or [])[:5]
+            ],
+            "dependency_count": len(pack.get("dependencies") or []),
+            "external_dependencies": len(pack.get("external_dependencies") or []),
             "related_tests": len(pack.get("related_tests") or []),
-            "dependencies": len(pack.get("dependencies") or []),
+            "limitations": (pack.get("limitations") or [])[:4],
             "snippets_included": pack.get("snippets_included"),
-            "warnings": pack.get("warnings"),
+            "stale": pack.get("stale"),
         }
 
         with index_mod.connect(target, create=False) as connection:
@@ -191,7 +241,10 @@ def main(argv=None):
         verified, _, _ = run_json([sys.executable, str(ROOT / "tools" / "pfe_cli.py"),
                                    "verify", "--repo", str(target)])
         record["verify"] = {
-            "verdict": verified.get("verdict"),
+            "static_verdict": verified.get("static_verdict"),
+            "overall_verdict": verified.get("overall_verdict"),
+            "gates": verified.get("gates"),
+            "not_verified": verified.get("not_verified"),
             "checks": {item["check"]: item["status"] for item in verified.get("checks") or []},
             "ui_verified": verified.get("ui_verified"),
             "runtime_verified": verified.get("runtime_verified"),
@@ -204,16 +257,19 @@ def main(argv=None):
         if work is not None:
             shutil.rmtree(work, ignore_errors=True)
 
-    stamp = datetime.now().strftime("%Y%m%d-%H%M")
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     REVIEW.mkdir(parents=True, exist_ok=True)
-    path = REVIEW / (stamp + "-real-project.json")
+    path = REVIEW / (stamp + "-real-project-" + slug(args.label) + ".json")
     path.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps({"record": path.relative_to(ROOT).as_posix(),
-                      "status": record["status"],
-                      "flow": record.get("flow", {}).get("counts"),
-                      "index": record.get("index_full", {}).get("files_indexed"),
-                      "verify": record.get("verify", {}).get("verdict")},
-                     ensure_ascii=False))
+    print(json.dumps({
+        "record": path.relative_to(ROOT).as_posix(),
+        "status": record["status"],
+        "flow": record.get("flow", {}).get("counts"),
+        "index_files": record.get("index_full", {}).get("files_indexed"),
+        "entry_kinds": record.get("entry_points", {}).get("kinds"),
+        "routes": record.get("context_pack", {}).get("routes"),
+        "verify": record.get("verify", {}).get("overall_verdict"),
+    }, ensure_ascii=False))
     return 0 if record["status"] == "ok" else 1
 
 

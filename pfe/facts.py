@@ -68,6 +68,10 @@ ROUTE_PATTERNS = [
     re.compile(r"@\w*(?:app|router|blueprint)\w*\.(?:route|get|post|put|delete)\s*\(\s*['\"]([^'\"]+)"),
     re.compile(r"(?i)@(?:Get|Post|Put|Delete|Request)Mapping\s*\(\s*(?:value\s*=\s*)?['\"]([^'\"]+)"),
     re.compile(r"(?i)Route::(?:get|post|put|delete)\s*\(\s*['\"]([^'\"]+)"),
+    # Flask/FastAPI blueprint decorators: the object is often named `bp` or
+    # `api_blueprint`, which the named forms above do not catch. The decorator
+    # line itself is the evidence; nothing is inferred from the function name.
+    re.compile(r"^\s*@[A-Za-z_][\w.]*\.(?:route|get|post|put|patch|delete)\s*\(\s*['\"]([^'\"]+)"),
 ]
 
 ENTRY_PATTERNS = [

@@ -164,19 +164,31 @@ def main(argv=None):
     else:
         evidence["bench"] = {}
 
-    real_paths = sorted(REVIEW.glob("*-real-project.json"))
-    real = json.loads(real_paths[-1].read_text(encoding="utf-8")) if real_paths else {}
-    evidence["real_project"] = {
-        "log": real_paths[-1].name if real_paths else "",
-        "status": real.get("status", "missing"),
-        "repository_id": real.get("repository_id", ""),
-        "flow": real.get("flow", {}).get("counts"),
-        "files_scanned": real.get("flow", {}).get("files_scanned"),
-        "index_files": real.get("index_full", {}).get("files_indexed"),
-        "index_incremental_parsed": real.get("index_incremental", {}).get("files_parsed"),
-        "verify": real.get("verify", {}).get("verdict"),
-        "privacy": real.get("privacy", {}).get("absolute_paths", ""),
-    }
+    real_paths = sorted(REVIEW.glob("*-real-project-*.json"))
+    real_projects = []
+    for path in real_paths:
+        record = json.loads(path.read_text(encoding="utf-8"))
+        real_projects.append({
+            "label": record.get("label", ""),
+            "log": path.name,
+            "status": record.get("status", "missing"),
+            "repository_id": record.get("repository_id", ""),
+            "flow": record.get("flow", {}).get("counts"),
+            "files_scanned": record.get("flow", {}).get("files_scanned"),
+            "index_files": record.get("index_full", {}).get("files_indexed"),
+            "index_symbols": record.get("index_full", {}).get("symbols_indexed"),
+            "index_routes": record.get("index_full", {}).get("routes_indexed"),
+            "index_incremental_parsed": record.get("index_incremental", {}).get("files_parsed"),
+            "entry_kinds": record.get("entry_points", {}).get("kinds", {}),
+            "context_pack_routes": record.get("context_pack", {}).get("routes", []),
+            "verify_static": record.get("verify", {}).get("static_verdict"),
+            "verify_overall": record.get("verify", {}).get("overall_verdict"),
+            "privacy": record.get("privacy", {}).get("absolute_paths", ""),
+        })
+    evidence["real_projects"] = real_projects
+    # Backward-compatible single view: the first record by label.
+    real = real_projects[0] if real_projects else {}
+    evidence["real_project"] = real
 
     ui_candidates = sorted(REVIEW.glob("*-ui.json"))
     ui_path = ui_candidates[-1] if ui_candidates else REVIEW / "missing-ui.json"
@@ -256,6 +268,7 @@ def main(argv=None):
         "policy": evidence["policy"],
         "benchmark": evidence["bench"],
         "real_project": evidence["real_project"],
+        "real_projects": evidence["real_projects"],
         "static": {"compileall": evidence["compile"]["ok"],
                    "node_syntax": evidence["node_syntax"]},
         "logs": {key: value for key, value in evidence.items() if key.endswith("_log")},
