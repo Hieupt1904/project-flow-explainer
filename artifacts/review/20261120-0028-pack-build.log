@@ -1,0 +1,8 @@
+$ node dsh-plugin/scripts/pack.mjs
+exit_code: 0
+duration_ms: 268.8
+
+--- stdout ---
+{"tarball":"/home/hieupt/Documents/Agent-skills-main/project-flow-explainer/dist/dsh-project-flow-explainer-0.4.4.tgz","staging":null,"files":26,"packSize":97732,"staged":["vendor/core/scripts/build_flow.py","vendor/core/scripts/render_flow.py","vendor/core/assets/workflow_template.html","vendor/core/tools/pfe_cli.py","vendor/core/pfe/","package.json","index.js","lib/","cordis.patch.yml","client.js"]}
+
+--- stderr ---
