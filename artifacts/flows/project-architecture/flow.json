@@ -1,0 +1,310 @@
+{
+  "flow_id": "project-architecture",
+  "title": "Kiến trúc project-flow-explainer: hai lớp, một bộ sự thật",
+  "description": "Bản đồ tổng quan: skill dạy agent cách chọn tool, adapter DSH đăng ký 7 tool, lõi Python quét repository thành sự thật tĩnh, rồi hai lớp cùng đọc bộ sự thật đó — dựng sơ đồ luồng và tra cứu tri thức code.",
+  "audience": "Người mới vào project, reviewer, người quyết định mở rộng tool",
+  "scope": "SKILL.md · dsh-plugin/ · tools/pfe_cli.py · pfe/ · scripts/ · artifacts/flows/",
+  "entry_node": "start",
+  "notes": "Sơ đồ tổng quan module, không phải một luồng nghiệp vụ. Mỗi node trỏ về file:dòng thật; sơ đồ chi tiết của nhánh dựng flow nằm ở dsh-tool-call-pipeline.",
+  "assumptions": [
+    "Bản 0.5.5 với index tri thức đã dựng; vector là tùy chọn và đang tắt.",
+    "Phần UI panel trong Harness chưa có code nên không có node.",
+    "Nhánh CI và test không vẽ thành node để giữ canvas ở mức kiến trúc."
+  ],
+  "nodes": [
+    {
+      "id": "start",
+      "title": "Câu hỏi: luồng này chạy thế nào?",
+      "type": "start",
+      "summary": "Người dùng hoặc agent cần hiểu một quy trình trong repository trước khi sửa, hoặc cần giải thích cho người không đọc code.",
+      "details": "Đây là lý do project tồn tại: biến mã nguồn thành sơ đồ dễ hiểu nhưng vẫn truy ngược được về file và dòng.",
+      "technical": "SKILL.md:1 — description của skill",
+      "actor": "Người dùng / agent",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "SKILL.md",
+          "start_line": 1,
+          "end_line": 3,
+          "symbol": "description"
+        }
+      ]
+    },
+    {
+      "id": "read-structure",
+      "title": "Đọc file mô tả, entry point và cấu trúc thư mục",
+      "type": "action",
+      "summary": "Trước khi chọn công cụ, agent đọc README, file mô tả project, entry point và router để biết repository này nói chuyện bằng gì.",
+      "details": "Bước này quyết định phạm vi: một luồng nghiệp vụ cụ thể, hay một module, hay cả project chia thành nhiều sơ đồ.",
+      "technical": "SKILL.md:13 — bước 2 của quy trình bắt buộc; references/repository-reader.md",
+      "actor": "Agent",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "SKILL.md",
+          "start_line": 12,
+          "end_line": 14,
+          "symbol": "Quy trình bắt buộc"
+        }
+      ]
+    },
+    {
+      "id": "choose",
+      "title": "Cần sơ đồ luồng hay chỉ cần tra đúng file?",
+      "type": "decision",
+      "summary": "Hai nhu cầu khác nhau nên có hai lớp công cụ khác nhau. Chọn sai lớp thì tốn thời gian mà không ra kết quả.",
+      "details": "Mô tả nghiệp vụ dài thì dựng sơ đồ; biết tên hàm hoặc route thì tìm trực tiếp. Quy ước này ghi ngay trong mô tả tool để model chọn được.",
+      "technical": "dsh-plugin/lib/tools.js:263 (KHÔNG DÙNG KHI của project_code_search); SKILL.md:10 quy trình bắt buộc",
+      "actor": "Agent",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "dsh-plugin/lib/tools.js",
+          "start_line": 258,
+          "end_line": 268,
+          "symbol": "describe"
+        },
+        {
+          "path": "SKILL.md",
+          "start_line": 10,
+          "end_line": 18,
+          "symbol": "Quy trình bắt buộc"
+        }
+      ]
+    },
+    {
+      "id": "skill",
+      "title": "Skill dạy cách đọc repo và cách viết cho người không chuyên",
+      "type": "action",
+      "summary": "SKILL.md cùng bốn tài liệu tham chiếu quy định thứ tự đọc, cách truy vết, cách đặt nhãn node và hợp đồng JSON.",
+      "details": "Đây là lớp tri thức của agent, không phải code chạy: nó quyết định chất lượng sơ đồ nhiều hơn cả thuật toán.",
+      "technical": "SKILL.md:10-18; references/flow-schema.md; references/explainer-style.md",
+      "actor": "Agent",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "SKILL.md",
+          "start_line": 10,
+          "end_line": 26,
+          "symbol": "Quy trình bắt buộc"
+        }
+      ]
+    },
+    {
+      "id": "facts",
+      "title": "Một bộ sự thật tĩnh dùng chung cho mọi lớp",
+      "type": "data",
+      "summary": "Repository được quét một lần thành symbol, route, import, test; cả sơ đồ lẫn tìm kiếm đều đọc từ đây nên không thể nói hai đằng hai nẻo.",
+      "details": "Có ngân sách số file và tổng byte; secret, file test, symlink thoát ra ngoài đều bị loại và đếm riêng.",
+      "technical": "scan_repository() tại pfe/facts.py:488; schema entity/relation tại references/code-knowledge-schema.json",
+      "actor": "Core",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "pfe/facts.py",
+          "start_line": 488,
+          "end_line": 500,
+          "symbol": "scan_repository"
+        }
+      ]
+    },
+    {
+      "id": "flow",
+      "title": "Lớp 1 — dựng sơ đồ luồng có bằng chứng",
+      "type": "action",
+      "summary": "Từ câu mô tả, lõi chọn điểm vào rồi đi theo import để thành các bước; bước nào không chứng minh được thì đánh dấu partial hoặc tách ra ngoài luồng.",
+      "details": "Projection này không có call graph, nên nó từ chối mọi cạnh tự nhận evidence=call thay vì đoán.",
+      "technical": "build_graph() tại pfe/flow.py:157; run() tại scripts/build_flow.py:92",
+      "actor": "Core",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "pfe/flow.py",
+          "start_line": 157,
+          "end_line": 170,
+          "symbol": "build_graph"
+        },
+        {
+          "path": "scripts/build_flow.py",
+          "start_line": 92,
+          "end_line": 110,
+          "symbol": "run"
+        }
+      ]
+    },
+    {
+      "id": "artifacts",
+      "title": "Sản phẩm công khai: sơ đồ mở offline",
+      "type": "data",
+      "summary": "Mỗi lần chạy ghi bốn file vào artifacts/flows/<slug>/: flow.html để đọc, flow.json để render lại, overview.md để đối chiếu, run.json để review.",
+      "details": "Cả bộ ghi vào thư mục staging rồi đổi tên một lần; run.json mang nhãn internal để không ai nhầm là output công khai.",
+      "technical": "write_flow_artifacts() tại pfe/emit.py:152; hợp đồng output tại references/flow-schema.md",
+      "actor": "Core",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "pfe/emit.py",
+          "start_line": 152,
+          "end_line": 176,
+          "symbol": "write_flow_artifacts"
+        }
+      ]
+    },
+    {
+      "id": "index",
+      "title": "Lớp 2 — index tri thức cục bộ",
+      "type": "data",
+      "summary": "Cùng bộ sự thật được ghi vào SQLite tại .pfe/index/knowledge.sqlite, chạy full lần đầu và incremental về sau.",
+      "details": "Index nằm trong .gitignore, không rời khỏi máy; vector là tùy chọn nên mặc định không cần model.",
+      "technical": "build_index() tại pfe/index.py:182; db_path() tại pfe/index.py:96",
+      "actor": "Core",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "pfe/index.py",
+          "start_line": 182,
+          "end_line": 200,
+          "symbol": "build_index"
+        },
+        {
+          "path": "pfe/index.py",
+          "start_line": 96,
+          "end_line": 105,
+          "symbol": "db_path"
+        }
+      ]
+    },
+    {
+      "id": "query",
+      "title": "Tra cứu, gom context, phân tích tác động, kiểm tra",
+      "type": "action",
+      "summary": "Bốn việc trên index: tìm đúng chỗ để đọc, gom file cần đọc trước khi sửa, đo file thay đổi ảnh hưởng gì, và kiểm artifact sau khi sửa.",
+      "details": "Đây là phần giữ cho câu trả lời có căn cứ: mọi kết quả trả path, symbol, line range và confidence, không trả nội dung source.",
+      "technical": "retrieve() tại pfe/retrieval.py:174; context_pack() tại pfe/retrieval.py:584; impact_analysis() tại pfe/impact.py:28; verify_repository() tại pfe/verify.py:37",
+      "actor": "Core",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "pfe/retrieval.py",
+          "start_line": 174,
+          "end_line": 180,
+          "symbol": "retrieve"
+        },
+        {
+          "path": "pfe/verify.py",
+          "start_line": 37,
+          "end_line": 45,
+          "symbol": "verify_repository"
+        }
+      ]
+    },
+    {
+      "id": "end",
+      "title": "Agent trả lời kèm sơ đồ và bằng chứng file:dòng",
+      "type": "end",
+      "summary": "Kết quả là một trang HTML mở được offline, một overview.md đối chiếu được, và một danh sách vị trí trong code để người đọc tự kiểm.",
+      "details": "Chuẩn đầu ra bắt buộc nêu rõ phải tách 'từ code xác nhận' khỏi 'suy luận', và phải nói rõ nếu chỉ scan một phần project.",
+      "technical": "SKILL.md:20-26 (Chuẩn đầu ra); SKILL.md:28-35 (Quy tắc cứng)",
+      "actor": "Agent",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "SKILL.md",
+          "start_line": 20,
+          "end_line": 35,
+          "symbol": "Chuẩn đầu ra"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "start",
+      "to": "read-structure",
+      "label": "mở repository, đọc phần mô tả",
+      "kind": "normal",
+      "evidence": "structure",
+      "technical": "SKILL.md:13 bước 2 — đọc project có chủ đích"
+    },
+    {
+      "from": "read-structure",
+      "to": "choose",
+      "label": "đã biết repository có gì",
+      "kind": "success",
+      "evidence": "structure",
+      "technical": "SKILL.md:12-14 xác định phạm vi trước khi chọn cách phân tích"
+    },
+    {
+      "from": "choose",
+      "to": "skill",
+      "label": "cần hiểu luồng",
+      "kind": "condition",
+      "evidence": "structure",
+      "technical": "SKILL.md:12-16 bước 1-5 của quy trình bắt buộc"
+    },
+    {
+      "from": "choose",
+      "to": "facts",
+      "label": "cần tra đúng file trước khi sửa",
+      "kind": "condition",
+      "evidence": "structure",
+      "technical": "dsh-plugin/lib/tools.js:264 prereq của project_code_search: đã chạy project_code_index"
+    },
+    {
+      "from": "skill",
+      "to": "flow",
+      "label": "áp khung diễn giải lên sự thật tĩnh",
+      "kind": "normal",
+      "evidence": "structure",
+      "technical": "references/explainer-style.md quy định nhãn node; pfe/flow.py:157 dựng graph"
+    },
+    {
+      "from": "facts",
+      "to": "flow",
+      "label": "cùng bộ fact",
+      "kind": "normal",
+      "evidence": "structure",
+      "technical": "scripts/build_flow.py:98 scan_repository → :104 build_graph"
+    },
+    {
+      "from": "facts",
+      "to": "index",
+      "label": "cùng bộ fact",
+      "kind": "normal",
+      "evidence": "structure",
+      "technical": "pfe/index.py:182 build_index đọc lại scan_repository"
+    },
+    {
+      "from": "flow",
+      "to": "artifacts",
+      "label": "validate rồi ghi",
+      "kind": "success",
+      "evidence": "structure",
+      "technical": "pfe/emit.py:161 validate → :163 ghi flow.json/flow.html/overview.md/run.json"
+    },
+    {
+      "from": "index",
+      "to": "query",
+      "label": "index sẵn sàng",
+      "kind": "normal",
+      "evidence": "structure",
+      "technical": "pfe/retrieval.py:174 retrieve đọc .pfe/index/knowledge.sqlite"
+    },
+    {
+      "from": "artifacts",
+      "to": "end",
+      "label": "mở flow.html để đọc",
+      "kind": "success",
+      "evidence": "structure",
+      "technical": "artifacts/flows/<slug>/flow.html — một file, không CDN"
+    },
+    {
+      "from": "query",
+      "to": "end",
+      "label": "trả path:dòng kèm confidence",
+      "kind": "success",
+      "evidence": "structure",
+      "technical": "dsh-plugin/lib/tools.js:262-268 mô tả output của tool tra cứu"
+    }
+  ]
+}

@@ -1,0 +1,382 @@
+{
+  "flow_id": "self-explain-pipeline",
+  "title": "Luồng: Từ lúc agent gọi tool project_flow_explain cho một repository đến khi nhận được flow.json, flow.html và overview.md: dữ ",
+  "description": "Sơ đồ dựng từ phân tích tĩnh theo yêu cầu: Từ lúc agent gọi tool project_flow_explain cho một repository đến khi nhận được flow.json, flow.html và overview.md: dữ liệu đi qua những bước nào, đọc file gì, dựng node/edge có bằng chứng ra sao, kiểm tra schema ở đâu và lỗi được xử lý thế nào. Mỗi bước trỏ tới file và dòng thật; bước chỉ khớp từ khoá được tách riêng thay vì nối vào luồng.",
+  "audience": "Người không đọc code, BA, kiểm thử",
+  "scope": "Đọc source trong repository · tải tệp lên",
+  "entry_node": "start",
+  "nodes": [
+    {
+      "id": "start",
+      "title": "Bắt đầu từ yêu cầu",
+      "type": "start",
+      "summary": "Yêu cầu: “Từ lúc agent gọi tool project_flow_explain cho một repository đến khi nhận được flow.json, flow.html và overview.md: dữ liệu đi qua những bước nào, đọc file gì, dựng node/edge có bằng chứng ra sao, kiểm tra schema ở đâu và lỗi được xử lý thế nào”. Nhóm chủ đề: tải tệp lên.",
+      "confidence": "partial",
+      "source_refs": [],
+      "details": "Điểm vào của sơ đồ do yêu cầu quyết định, không phải một dòng code cụ thể.",
+      "technical": "entry=request",
+      "x": 70,
+      "y": 226
+    },
+    {
+      "id": "step-1",
+      "title": "Bắt đầu tại main",
+      "type": "action",
+      "summary": "Điểm vào — `tools/pfe_cli.py` (dòng 192).",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "tools/pfe_cli.py",
+          "start_line": 192,
+          "symbol": "main"
+        }
+      ],
+      "details": "Bằng chứng thành viên: điểm vào do yêu cầu + khai báo route xác định.",
+      "technical": "tools/pfe_cli.py",
+      "actor": "Hệ thống",
+      "x": 465,
+      "y": 226
+    },
+    {
+      "id": "step-2",
+      "title": "Module __init__",
+      "type": "action",
+      "summary": "Bước xử lý — `pfe/__init__.py` (dòng 1).",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "pfe/__init__.py",
+          "start_line": 1
+        }
+      ],
+      "details": "Bằng chứng thành viên: import từ `tools/pfe_cli.py`.",
+      "technical": "pfe/__init__.py",
+      "actor": "Hệ thống",
+      "x": 860,
+      "y": 226
+    },
+    {
+      "id": "step-3",
+      "title": "Xử lý tại as_dict",
+      "type": "action",
+      "summary": "Bước xử lý — `pfe/index.py` (dòng 87).",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "pfe/index.py",
+          "start_line": 87,
+          "symbol": "as_dict"
+        }
+      ],
+      "details": "Bằng chứng thành viên: import từ `pfe/__init__.py`.",
+      "technical": "pfe/index.py",
+      "actor": "Hệ thống",
+      "x": 1255,
+      "y": 226
+    },
+    {
+      "id": "step-4",
+      "title": "Xử lý tại as_dict",
+      "type": "action",
+      "summary": "Bước xử lý — `pfe/policy.py` (dòng 34).",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "pfe/policy.py",
+          "start_line": 34,
+          "symbol": "as_dict"
+        }
+      ],
+      "details": "Bằng chứng thành viên: import từ `pfe/index.py`.",
+      "technical": "pfe/policy.py",
+      "actor": "Hệ thống",
+      "x": 1650,
+      "y": 226
+    },
+    {
+      "id": "step-5",
+      "title": "Xử lý tại run",
+      "type": "action",
+      "summary": "Bước xử lý — `scripts/build_flow.py` (dòng 92).",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "scripts/build_flow.py",
+          "start_line": 92,
+          "symbol": "run"
+        }
+      ],
+      "details": "Bằng chứng thành viên: import từ `pfe/policy.py`.",
+      "technical": "scripts/build_flow.py",
+      "actor": "Hệ thống",
+      "x": 2045,
+      "y": 226
+    },
+    {
+      "id": "step-6",
+      "title": "Xử lý tại strip_diacritics",
+      "type": "action",
+      "summary": "Bước xử lý — `pfe/text.py` (dòng 11).",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "pfe/text.py",
+          "start_line": 11,
+          "symbol": "strip_diacritics"
+        }
+      ],
+      "details": "Bằng chứng thành viên: import từ `scripts/build_flow.py`.",
+      "technical": "pfe/text.py",
+      "actor": "Hệ thống",
+      "x": 2835,
+      "y": 85
+    },
+    {
+      "id": "step-7",
+      "title": "Xử lý tại main",
+      "type": "action",
+      "summary": "Bước xử lý — `scripts/render_flow.py` (dòng 201).",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "scripts/render_flow.py",
+          "start_line": 201,
+          "symbol": "main"
+        }
+      ],
+      "details": "Bằng chứng thành viên: import từ `pfe/text.py`.",
+      "technical": "scripts/render_flow.py",
+      "actor": "Hệ thống",
+      "x": 3230,
+      "y": 226
+    },
+    {
+      "id": "decision-scripts-build_flow-py",
+      "title": "Có lỗi trong bước này?",
+      "type": "decision",
+      "summary": "Bước xử lý có nhánh bắt lỗi trong chính route/hàm được chọn; sơ đồ tách nhánh thành công và thất bại.",
+      "confidence": "partial",
+      "source_refs": [
+        {
+          "path": "scripts/build_flow.py",
+          "start_line": 153
+        }
+      ],
+      "details": "Nhánh lỗi suy ra từ khối try nằm trong vùng code của bước này; mã lỗi chưa xác minh.",
+      "x": 2440,
+      "y": 226
+    },
+    {
+      "id": "error-scripts-build_flow-py",
+      "title": "Trả lỗi cho người gọi",
+      "type": "error",
+      "summary": "Lỗi được bắt và trả về lớp gọi thay vì kết thúc im lặng.",
+      "confidence": "partial",
+      "source_refs": [
+        {
+          "path": "scripts/build_flow.py",
+          "start_line": 153
+        }
+      ],
+      "details": "Chưa xác minh nội dung thông báo và mã lỗi.",
+      "x": 2835,
+      "y": 367
+    },
+    {
+      "id": "end",
+      "title": "Kết thúc xử lý",
+      "type": "end",
+      "summary": "Không tìm thấy lời gọi trả kết quả rõ ràng; điểm kết thúc suy ra từ bước cuối.",
+      "confidence": "inferred",
+      "source_refs": [],
+      "details": "Chưa xác minh nơi trả kết quả cho người dùng.",
+      "x": 4020,
+      "y": 85
+    },
+    {
+      "id": "decision-scripts-render_flow-py",
+      "title": "Có lỗi trong bước này?",
+      "type": "decision",
+      "summary": "Bước xử lý có nhánh bắt lỗi trong chính route/hàm được chọn; sơ đồ tách nhánh thành công và thất bại.",
+      "confidence": "partial",
+      "source_refs": [
+        {
+          "path": "scripts/render_flow.py",
+          "start_line": 207
+        }
+      ],
+      "details": "Nhánh lỗi suy ra từ khối try nằm trong vùng code của bước này; mã lỗi chưa xác minh.",
+      "x": 3625,
+      "y": 226
+    },
+    {
+      "id": "error-scripts-render_flow-py",
+      "title": "Trả lỗi cho người gọi",
+      "type": "error",
+      "summary": "Lỗi được bắt và trả về lớp gọi thay vì kết thúc im lặng.",
+      "confidence": "partial",
+      "source_refs": [
+        {
+          "path": "scripts/render_flow.py",
+          "start_line": 207
+        }
+      ],
+      "details": "Chưa xác minh nội dung thông báo và mã lỗi.",
+      "x": 4020,
+      "y": 367
+    }
+  ],
+  "edges": [
+    {
+      "from": "start",
+      "to": "step-1",
+      "label": "bắt đầu xử lý",
+      "kind": "success",
+      "technical": "route khai báo tại tools/pfe_cli.py:192",
+      "evidence": "entry"
+    },
+    {
+      "from": "step-1",
+      "to": "step-2",
+      "label": "dùng module",
+      "kind": "success",
+      "technical": "tools/pfe_cli.py import pfe/__init__.py · dòng import 82",
+      "evidence": "import"
+    },
+    {
+      "from": "step-2",
+      "to": "step-3",
+      "label": "dùng module",
+      "kind": "success",
+      "technical": "tools/pfe_cli.py import pfe/index.py · dòng import 82",
+      "evidence": "import"
+    },
+    {
+      "from": "step-3",
+      "to": "step-4",
+      "label": "dùng module",
+      "kind": "success",
+      "technical": "tools/pfe_cli.py import pfe/policy.py · dòng import 37",
+      "evidence": "import"
+    },
+    {
+      "from": "step-4",
+      "to": "step-5",
+      "label": "dùng module",
+      "kind": "success",
+      "technical": "tools/pfe_cli.py import scripts/build_flow.py (qua sys.path) · dòng import 68",
+      "evidence": "import"
+    },
+    {
+      "from": "step-5",
+      "to": "decision-scripts-build_flow-py",
+      "label": "vào bước xử lý",
+      "kind": "normal",
+      "technical": "cùng bước `scripts/build_flow.py`, khối try tại dòng 153",
+      "evidence": "structure"
+    },
+    {
+      "from": "decision-scripts-build_flow-py",
+      "to": "error-scripts-build_flow-py",
+      "label": "có lỗi",
+      "kind": "error",
+      "technical": "khối xử lý ngoại lệ trong file",
+      "evidence": "structure"
+    },
+    {
+      "from": "decision-scripts-build_flow-py",
+      "to": "step-6",
+      "label": "dùng module",
+      "kind": "success",
+      "technical": "scripts/build_flow.py import pfe/text.py · dòng import 44 · qua nhánh không lỗi",
+      "evidence": "import"
+    },
+    {
+      "from": "step-6",
+      "to": "step-7",
+      "label": "dùng module",
+      "kind": "success",
+      "technical": "scripts/build_flow.py import scripts/render_flow.py (qua sys.path) · dòng import 40",
+      "evidence": "import"
+    },
+    {
+      "from": "step-7",
+      "to": "decision-scripts-render_flow-py",
+      "label": "vào bước xử lý",
+      "kind": "normal",
+      "technical": "cùng bước `scripts/render_flow.py`, khối try tại dòng 207",
+      "evidence": "structure"
+    },
+    {
+      "from": "decision-scripts-render_flow-py",
+      "to": "error-scripts-render_flow-py",
+      "label": "có lỗi",
+      "kind": "error",
+      "technical": "khối xử lý ngoại lệ trong file",
+      "evidence": "structure"
+    },
+    {
+      "from": "decision-scripts-render_flow-py",
+      "to": "end",
+      "label": "hoàn tất",
+      "kind": "success",
+      "technical": "bước cuối của luồng · qua nhánh không lỗi",
+      "evidence": "import"
+    }
+  ],
+  "assumptions": [
+    "Không tìm thấy điểm trả kết quả rõ ràng; node kết thúc là suy luận.",
+    "Chưa có call graph runtime: cạnh chỉ mang bằng chứng entry/import/structure; không có cạnh nào tự nhận là call."
+  ],
+  "notes": "Phân tích tĩnh, không chạy code của repository, không dùng network. verified = vị trí có thật + có bằng chứng thành viên (route/import). partial/inferred = suy luận từ cấu trúc. Không chép nội dung source.",
+  "meta": {
+    "schema_version": 2,
+    "generated_at": "2026-11-20T00:53:52+07:00",
+    "source": {
+      "commit": "6b6524bb4d64",
+      "branch": "main",
+      "dirty": false,
+      "dirty_files": 0,
+      "read_only": true
+    },
+    "request": "Từ lúc agent gọi tool project_flow_explain cho một repository đến khi nhận được flow.json, flow.html và overview.md: dữ liệu đi qua những bước nào, đọc file gì, dựng node/edge có bằng chứng ra sao, kiểm tra schema ở đâu và lỗi được xử lý thế nào",
+    "facets": [
+      "upload"
+    ],
+    "related": [
+      {
+        "path": "pfe/flow.py",
+        "reason": "khớp từ khoá nhưng không nối được tới điểm vào bằng import/gọi hàm"
+      },
+      {
+        "path": "pfe/retrieval.py",
+        "reason": "khớp từ khoá nhưng không nối được tới điểm vào bằng import/gọi hàm"
+      }
+    ],
+    "projection": {
+      "kind": "flow",
+      "source": "static_facts",
+      "scanner": "pfe.facts",
+      "branch_count": 2
+    },
+    "evidence_model": {
+      "membership": {
+        "entry": "điểm vào do yêu cầu + khai báo route xác định",
+        "import": "file trước import trực tiếp file này",
+        "route_body": "cùng file với khai báo route",
+        "structure": "nhánh điều kiện do cấu trúc khối xử lý lỗi trong file"
+      },
+      "confidence": {
+        "verified": "vị trí có thật (file + dòng) và có bằng chứng thành viên (route/import); xác minh tĩnh, KHÔNG phải chạy runtime",
+        "partial": "vị trí có thật nhưng vai trò trong luồng chỉ suy ra từ cấu trúc",
+        "inferred": "suy luận từ ngữ cảnh, chưa có bằng chứng trực tiếp",
+        "unknown": "chưa xác minh được"
+      },
+      "call_edges": false,
+      "runtime_verified": false,
+      "note": "Không có cạnh nào mang evidence=call: projection này không có call-site parser cho flow. verified mô tả xác minh tĩnh vị trí và quan hệ, không phải đã chạy code."
+    },
+    "files_scanned": 32,
+    "scan_bytes": 394102
+  }
+}

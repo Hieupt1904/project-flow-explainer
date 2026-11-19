@@ -1,0 +1,84 @@
+{
+  "status": "ok",
+  "schema_version": 2,
+  "flow_id": "self-explain-pipeline",
+  "generated_at": "2026-11-20T00:53:52+07:00",
+  "repository_name": "project-flow-explainer",
+  "request": "Từ lúc agent gọi tool project_flow_explain cho một repository đến khi nhận được flow.json, flow.html và overview.md: dữ liệu đi qua những bước nào, đọc file gì, dựng node/edge có bằng chứng ra sao, kiểm tra schema ở đâu và lỗi được xử lý thế nào",
+  "source": {
+    "commit": "6b6524bb4d64",
+    "branch": "main",
+    "dirty": false,
+    "dirty_files": 0,
+    "read_only": true
+  },
+  "counts": {
+    "verified": 7,
+    "partial": 5,
+    "inferred": 1,
+    "unknown": 0
+  },
+  "limits": [
+    "Không tìm thấy điểm trả kết quả rõ ràng; node kết thúc là suy luận.",
+    "Chưa có call graph runtime: cạnh chỉ mang bằng chứng entry/import/structure; không có cạnh nào tự nhận là call."
+  ],
+  "warnings": [],
+  "related": [
+    {
+      "path": "pfe/flow.py",
+      "reason": "khớp từ khoá nhưng không nối được tới điểm vào bằng import/gọi hàm"
+    },
+    {
+      "path": "pfe/retrieval.py",
+      "reason": "khớp từ khoá nhưng không nối được tới điểm vào bằng import/gọi hàm"
+    }
+  ],
+  "excluded": {
+    "directory": 0,
+    "test_dir": 33,
+    "sensitive_name": 0,
+    "suffix": 28,
+    "symlink_escape": 0,
+    "symlink_sensitive": 0,
+    "too_large": 0,
+    "unreadable": 0,
+    "secret_lines": 2,
+    "budget_files": 0,
+    "budget_bytes": 0
+  },
+  "files_scanned": 32,
+  "scan_bytes": 394102,
+  "budget_notes": [],
+  "evidence_model": {
+    "membership": {
+      "entry": "điểm vào do yêu cầu + khai báo route xác định",
+      "import": "file trước import trực tiếp file này",
+      "route_body": "cùng file với khai báo route",
+      "structure": "nhánh điều kiện do cấu trúc khối xử lý lỗi trong file"
+    },
+    "confidence": {
+      "verified": "vị trí có thật (file + dòng) và có bằng chứng thành viên (route/import); xác minh tĩnh, KHÔNG phải chạy runtime",
+      "partial": "vị trí có thật nhưng vai trò trong luồng chỉ suy ra từ cấu trúc",
+      "inferred": "suy luận từ ngữ cảnh, chưa có bằng chứng trực tiếp",
+      "unknown": "chưa xác minh được"
+    },
+    "call_edges": false,
+    "runtime_verified": false,
+    "note": "Không có cạnh nào mang evidence=call: projection này không có call-site parser cho flow. verified mô tả xác minh tĩnh vị trí và quan hệ, không phải đã chạy code."
+  },
+  "files": [
+    "flow.json",
+    "flow.html",
+    "overview.md",
+    "run.json"
+  ],
+  "contract": "internal-provenance",
+  "public_outputs": [
+    "flow.json",
+    "flow.html",
+    "overview.md"
+  ],
+  "internal_outputs": [
+    "run.json"
+  ]
+}

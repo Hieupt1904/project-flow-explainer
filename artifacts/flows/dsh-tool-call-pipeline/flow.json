@@ -1,0 +1,388 @@
+{
+  "flow_id": "dsh-tool-call-pipeline",
+  "title": "Một lần gọi tool project_flow_explain: từ yêu cầu đến flow.html",
+  "description": "Đường đi thật của một lần gọi tool trong DeepSeek Harness: kiểm quyền đọc repository, gọi core Python bằng subprocess, quét source thành fact tĩnh, dựng sơ đồ có bằng chứng, kiểm schema rồi ghi bốn file vào artifacts/flows/<slug>/.",
+  "audience": "Người dùng tool, reviewer, người không đọc code",
+  "scope": "dsh-plugin/index.js → dsh-plugin/lib → tools/pfe_cli.py → scripts/build_flow.py → pfe/* → scripts/render_flow.py",
+  "entry_node": "start",
+  "notes": "Sơ đồ do người đọc code dựng tay từ call site thật. Cạnh mang evidence=structure và technical ghi rõ file:dòng để người đọc tự kiểm. Không có cạnh nào tự nhận evidence=call.",
+  "assumptions": [
+    "Plugin đã mount trong profile DSH và allowedRoots có chứa repository được phân tích.",
+    "python3 tồn tại trên máy chạy DSH; core không gọi network.",
+    "Chỉ mô tả nhánh tool chạy thành công và hai nhánh lỗi phổ biến; nhánh timeout/abort không vẽ."
+  ],
+  "nodes": [
+    {
+      "id": "start",
+      "title": "Agent nhận yêu cầu giải thích một luồng",
+      "type": "start",
+      "summary": "Agent có repository_path và một câu mô tả luồng cần giải thích, rồi gọi tool project_flow_explain.",
+      "details": "Tool yêu cầu hai tham số bắt buộc: repository_path tuyệt đối và flow_request mô tả luồng. output_directory và slug là tùy chọn.",
+      "technical": "ctx.tools.register({ name: TOOL_NAME }) tại dsh-plugin/index.js:242, parameters tại dsh-plugin/index.js:255",
+      "actor": "Agent",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "dsh-plugin/index.js",
+          "start_line": 242,
+          "end_line": 300,
+          "symbol": "apply"
+        }
+      ]
+    },
+    {
+      "id": "validate-args",
+      "title": "Nhận yêu cầu và kiểm tham số bắt buộc",
+      "type": "action",
+      "summary": "Runtime kiểm JSON schema trước, tool kiểm lại lần nữa: thiếu repository_path hoặc flow_request là dừng ngay với mã lỗi riêng.",
+      "details": "Kiểm lại trong execute() để một lời gọi trực tiếp không thể làm rơi TypeError thô.",
+      "technical": "assertObject() + requiredString() tại dsh-plugin/index.js:372-375",
+      "actor": "DSH runtime",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "dsh-plugin/index.js",
+          "start_line": 372,
+          "end_line": 376,
+          "symbol": "execute"
+        }
+      ]
+    },
+    {
+      "id": "check-access",
+      "title": "Repository này có được phép đọc không?",
+      "type": "decision",
+      "summary": "Tool kiểm tra đường dẫn tuyệt đối, tồn tại, đọc được, và phải nằm trong allowedRoots. Mặc định không cho phép gì cả.",
+      "details": "allowedRoots rỗng nghĩa là từ chối mọi repository. Đường dẫn tương đối bị từ chối trước khi chạm đĩa.",
+      "technical": "resolveRepository() tại dsh-plugin/lib/paths.js:101; phép so khớp allowedRoots tại paths.js:132",
+      "actor": "DSH runtime",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "dsh-plugin/lib/paths.js",
+          "start_line": 101,
+          "end_line": 141,
+          "symbol": "resolveRepository"
+        }
+      ]
+    },
+    {
+      "id": "spawn",
+      "title": "Gọi core Python bằng subprocess, không qua shell",
+      "type": "external",
+      "summary": "Toàn bộ phần phân tích nằm ở Python; Node chỉ truyền argv dạng mảng và đọc đúng một object JSON trên stdout.",
+      "details": "Môi trường con bị thu hẹp (PATH, HOME, LANG, PYTHONIOENCODING); stdout/stderr bị chặn trần dung lượng; abort và timeout đều dừng tiến trình con.",
+      "technical": "runCore() tại dsh-plugin/lib/core-runner.js:156; spawn(pythonPath, argv, { shell: false }) tại core-runner.js:69",
+      "actor": "Plugin",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "dsh-plugin/lib/core-runner.js",
+          "start_line": 156,
+          "end_line": 200,
+          "symbol": "runCore"
+        },
+        {
+          "path": "dsh-plugin/lib/core-runner.js",
+          "start_line": 69,
+          "end_line": 90,
+          "symbol": "runCli"
+        }
+      ]
+    },
+    {
+      "id": "cli",
+      "title": "CLI nhận lệnh flow và chuyển cho lõi",
+      "type": "action",
+      "summary": "pfe_cli.py là cửa duy nhất vào lõi: mọi subcommand in đúng một JSON, lỗi có mã, không rơi traceback.",
+      "details": "Nếu thiếu tools/pfe_cli.py, plugin báo core_cli_not_found thay vì giả vờ chạy được. Lỗi import lõi có mã riêng core_import_failed.",
+      "technical": "cmd_flow() tại tools/pfe_cli.py:66 gọi build_flow.run(); dispatch theo subcommand tại tools/pfe_cli.py:146",
+      "actor": "Core",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "tools/pfe_cli.py",
+          "start_line": 66,
+          "end_line": 82,
+          "symbol": "cmd_flow"
+        }
+      ]
+    },
+    {
+      "id": "scan",
+      "title": "Quét source thành dữ kiện tĩnh, bỏ secret và test",
+      "type": "data",
+      "summary": "Repository được đọc thành danh sách file kèm symbol, route, import; file test, file quá lớn, symlink thoát ra ngoài và dòng giống secret bị loại.",
+      "details": "Có ngân sách số file và tổng byte; khi chạm ngân sách, lần chạy ghi chú rõ phần chưa phân tích thay vì im lặng cắt.",
+      "technical": "scan_repository() tại pfe/facts.py:488; ngân sách ScanBudget tại pfe/facts.py:210",
+      "actor": "Core",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "pfe/facts.py",
+          "start_line": 488,
+          "end_line": 575,
+          "symbol": "scan_repository"
+        }
+      ]
+    },
+    {
+      "id": "build",
+      "title": "Chọn điểm vào và dựng từng bước có bằng chứng",
+      "type": "action",
+      "summary": "Từ câu mô tả, lõi chấm điểm route/handler, chọn điểm vào, rồi đi theo import để thành các bước. Mỗi bước trỏ về file và dòng thật.",
+      "details": "Không có call graph runtime, nên bằng chứng thành viên chỉ là entry và import. Cạnh tự nhận evidence=call sẽ bị chặn bằng AssertionError.",
+      "technical": "build_graph() tại pfe/flow.py:157; add_edge() từ chối evidence='call' tại pfe/flow.py:195",
+      "actor": "Core",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "pfe/flow.py",
+          "start_line": 157,
+          "end_line": 200,
+          "symbol": "build_graph"
+        }
+      ]
+    },
+    {
+      "id": "has-entry",
+      "title": "Có route hoặc handler nào làm điểm vào không?",
+      "type": "decision",
+      "summary": "Chỉ khi tìm được điểm vào thật thì sơ đồ mới có chuỗi bước. File chỉ khớp từ khoá thì không được nối thành luồng.",
+      "details": "Đây là chỗ chống bịa: thà dừng với một node lỗi còn hơn vẽ một luồng không tồn tại.",
+      "technical": "nhánh entry=None tại pfe/flow.py:222 và pfe/flow.py:230",
+      "actor": "Core",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "pfe/flow.py",
+          "start_line": 222,
+          "end_line": 245,
+          "symbol": "build_graph"
+        }
+      ]
+    },
+    {
+      "id": "stop-no-entry",
+      "title": "Dừng và nói rõ lý do, không bịa quan hệ",
+      "type": "error",
+      "summary": "Sơ đồ chỉ có node Không xác định được điểm vào, kèm danh sách file khớp từ khoá để người dùng tự xem.",
+      "details": "Artifact vẫn được ghi: người dùng nhận một sơ đồ dừng sớm có ghi chú giới hạn, không phải một trang trắng.",
+      "technical": "add_node('no-entry', …) tại pfe/flow.py:232; related ghi ở pfe/flow.py:235",
+      "actor": "Core",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "pfe/flow.py",
+          "start_line": 232,
+          "end_line": 240,
+          "symbol": "build_graph"
+        }
+      ]
+    },
+    {
+      "id": "validate",
+      "title": "Kiểm schema trước khi ghi ra đĩa",
+      "type": "action",
+      "summary": "Sơ đồ phải qua kiểm tra: id duy nhất, cạnh trỏ tới node có thật, mọi node đi tới được từ điểm vào, chu trình phải đánh dấu loop.",
+      "details": "Sai schema thì cả lần chạy thành lỗi invalid_graph và thư mục staging bị xóa, không để lại artifact nửa vời.",
+      "technical": "render_flow.validate() gọi tại pfe/emit.py:161; luật kiểm tại scripts/render_flow.py:45",
+      "actor": "Core",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "pfe/emit.py",
+          "start_line": 152,
+          "end_line": 172,
+          "symbol": "write_flow_artifacts"
+        },
+        {
+          "path": "scripts/render_flow.py",
+          "start_line": 45,
+          "end_line": 60,
+          "symbol": "validate"
+        }
+      ]
+    },
+    {
+      "id": "write",
+      "title": "Ghi bốn file vào thư mục tạm rồi đổi tên một lần",
+      "type": "data",
+      "summary": "flow.json, flow.html, overview.md và run.json được ghi vào .staging-*, sau đó đổi tên thành artifacts/flows/<slug>/.",
+      "details": "Đổi tên là phép kiểm tranh chấp: hai lần chạy cùng slug thì chỉ một thắng, lần kia nhận artifact_exists. Staging luôn được dọn, kể cả khi lỗi.",
+      "technical": "write_flow_artifacts() tại pfe/emit.py:152; staging_directory() tại pfe/policy.py:129; render_json() tại scripts/render_flow.py:190",
+      "actor": "Core",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "pfe/emit.py",
+          "start_line": 152,
+          "end_line": 176,
+          "symbol": "write_flow_artifacts"
+        },
+        {
+          "path": "pfe/policy.py",
+          "start_line": 129,
+          "end_line": 160,
+          "symbol": "staging_directory"
+        }
+      ]
+    },
+    {
+      "id": "fail",
+      "title": "Trả lỗi có mã ổn định cho người gọi",
+      "type": "error",
+      "summary": "Mọi nhánh hỏng đều quy về một object lỗi: status error, code, message, hint. Runtime giữ nguyên mã thay vì diễn giải thành câu văn.",
+      "details": "Lỗi nội bộ của tool dùng mã internal_error; lỗi của repository giữ mã riêng. Không bao giờ để traceback rơi ra ngoài.",
+      "technical": "InputError từ payload lỗi tại dsh-plugin/index.js:421; failure() tại dsh-plugin/index.js:159; report_error() tại scripts/build_flow.py:188",
+      "actor": "Plugin",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "dsh-plugin/index.js",
+          "start_line": 415,
+          "end_line": 424,
+          "symbol": "execute"
+        },
+        {
+          "path": "scripts/build_flow.py",
+          "start_line": 188,
+          "end_line": 200,
+          "symbol": "report_error"
+        }
+      ]
+    },
+    {
+      "id": "end",
+      "title": "Agent nhận đường dẫn tương đối và số node",
+      "type": "end",
+      "summary": "Kết quả chỉ mang đường dẫn tính từ repository: flow.html, flow.json, overview.md (công khai) và run.json (nội bộ).",
+      "details": "Không trả đường dẫn tuyệt đối của máy cá nhân, không trả nội dung source. Agent mở flow.html để đọc sơ đồ, gọi project_verify_flow nếu cần kiểm lại.",
+      "technical": "relative() và object trả về tại dsh-plugin/index.js:428-490; render() hiển thị tại dsh-plugin/index.js:362",
+      "actor": "Agent",
+      "confidence": "verified",
+      "source_refs": [
+        {
+          "path": "dsh-plugin/index.js",
+          "start_line": 428,
+          "end_line": 470,
+          "symbol": "execute"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "start",
+      "to": "validate-args",
+      "label": "gọi tool với repository_path + flow_request",
+      "kind": "normal",
+      "evidence": "structure",
+      "technical": "execute() tại dsh-plugin/index.js:373 gọi resolveRepository() tại dsh-plugin/index.js:379"
+    },
+    {
+      "from": "validate-args",
+      "to": "check-access",
+      "label": "hai tham số hợp lệ",
+      "kind": "success",
+      "evidence": "structure",
+      "technical": "dsh-plugin/index.js:377 execute() gọi resolveRepository(repositoryPath, { allowedRoots })"
+    },
+    {
+      "from": "check-access",
+      "to": "fail",
+      "label": "ngoài allowedRoots hoặc không đọc được",
+      "kind": "condition",
+      "evidence": "structure",
+      "technical": "dsh-plugin/lib/paths.js:132 không khớp allowedRoots → :134 throw InputError('repository_outside_allowed_roots')"
+    },
+    {
+      "from": "check-access",
+      "to": "spawn",
+      "label": "được phép",
+      "kind": "condition",
+      "evidence": "structure",
+      "technical": "paths.js:141 return { root, allowedRoots } → index.js:390 runCore()"
+    },
+    {
+      "from": "spawn",
+      "to": "cli",
+      "label": "argv: flow --repo … --request …",
+      "kind": "normal",
+      "evidence": "structure",
+      "technical": "core-runner.js:156 runCore dựng argv cho tools/pfe_cli.py; nhánh flow tại tools/pfe_cli.py:146"
+    },
+    {
+      "from": "cli",
+      "to": "scan",
+      "label": "gọi lõi phân tích",
+      "kind": "normal",
+      "evidence": "structure",
+      "technical": "tools/pfe_cli.py:74 build_flow.run(...) → scripts/build_flow.py:92 run()"
+    },
+    {
+      "from": "scan",
+      "to": "build",
+      "label": "fact tĩnh + import đã phân giải",
+      "kind": "normal",
+      "evidence": "structure",
+      "technical": "scripts/build_flow.py:98 facts.scan_repository() → :104 flow_mod.build_graph()"
+    },
+    {
+      "from": "build",
+      "to": "has-entry",
+      "label": "xét route/handler khớp yêu cầu",
+      "kind": "normal",
+      "evidence": "structure",
+      "technical": "pfe/flow.py:206 chọn entry từ ranked; pfe/flow.py:222 nhánh không có entry"
+    },
+    {
+      "from": "has-entry",
+      "to": "stop-no-entry",
+      "label": "không có",
+      "kind": "condition",
+      "evidence": "structure",
+      "technical": "pfe/flow.py:230 thêm limits rồi add_node('no-entry') tại :232"
+    },
+    {
+      "from": "has-entry",
+      "to": "validate",
+      "label": "có, dựng chuỗi bước theo import",
+      "kind": "condition",
+      "evidence": "structure",
+      "technical": "pfe/flow.py:243 entry_item… rồi _finish() tại pfe/flow.py:406 trả graph"
+    },
+    {
+      "from": "stop-no-entry",
+      "to": "validate",
+      "label": "vẫn ghi sơ đồ dừng sớm kèm giới hạn",
+      "kind": "normal",
+      "evidence": "structure",
+      "technical": "pfe/flow.py:238 _finish(...) trả graph có node lỗi; scripts/build_flow.py:124 emit.render_overview"
+    },
+    {
+      "from": "validate",
+      "to": "write",
+      "label": "graph hợp lệ",
+      "kind": "normal",
+      "evidence": "structure",
+      "technical": "pfe/emit.py:161 render_flow.validate(graph) → :163 render_json → ghi 4 file"
+    },
+    {
+      "from": "validate",
+      "to": "fail",
+      "label": "FlowError → invalid_graph",
+      "kind": "error",
+      "evidence": "structure",
+      "technical": "scripts/build_flow.py:157 except render_flow.FlowError → BuildError('invalid_graph')"
+    },
+    {
+      "from": "write",
+      "to": "end",
+      "label": "đổi tên staging thành <slug>",
+      "kind": "success",
+      "evidence": "structure",
+      "technical": "pfe/policy.py:149 os.rename(staging, final) → scripts/build_flow.py:161 result → index.js:433 relative()"
+    }
+  ]
+}
