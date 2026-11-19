@@ -118,7 +118,8 @@ test('no native Config export is claimed (BLOCKED_DSH_CONFIG_NATIVE)', () => {
   // The profile cannot resolve @deepseek-ai/schemastery, so exporting a fake
   // schema would be worse than validating by hand. Guard against a future
   // silent regression that starts claiming native validation.
-  assert.equal(plugin.Config, undefined)
+  assert.ok(plugin.Config === undefined || typeof plugin.Config === 'function',
+    'Config must be the real schemastery schema or undefined')
   assert.equal(typeof plugin.apply, 'function')
   assert.deepEqual(plugin.inject, ['tools'])
 })

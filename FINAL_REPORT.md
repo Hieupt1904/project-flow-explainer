@@ -5,11 +5,11 @@ model-driven, native Config và tool visibility **chưa chạy được** (ghi B
 
 | Mục | Giá trị |
 |---|---|
-| Package version | `0.4.1` |
+| Package version | `0.4.2` |
 | `engines.dsh` | `0.2.2-rc.2` (khớp DSH đang cài) |
 | Test | 143 Python · 16 adapter · 9 knowledge · 7 lifecycle · 2 pack — 0 fail |
 | Bằng chứng | [evidence-manifest.json](artifacts/review/evidence-manifest.json) |
-| Tarball | `dsh-project-flow-explainer-0.4.1.tgz` · 93 745 byte · sha256 `3c840af5…6bb8e73` |
+| Tarball | `dsh-project-flow-explainer-0.4.2.tgz` · 96 442 byte · sha256 `742c46a0…2a71f20` |
 
 ## 1. Bảng task T0–T9
 
@@ -19,7 +19,7 @@ model-driven, native Config và tool visibility **chưa chạy được** (ghi B
 | T1 Incremental cache | **DONE** | đọc cache trước khi parse; cache thiếu/hỏng → parse lại; invariant "mọi file đều có trong graph" | 5 test | — |
 | T2 Context pack | **DONE** | route thật qua `handles_route`; entry_kind có bằng chứng; rerank theo ý định; dependency đầy đủ; 3 tập seen tách; confidence tách | 10 test + fixture desktop | `export`/`command` khai báo nhưng chưa phát |
 | T3 Conflict persistence | **DONE** | cột `contradicted` trong bảng `facts`; đọc lại qua `facts_about`/`neighbours` | 1 test round-trip qua SQLite | index version 1→2 buộc rebuild |
-| T4 Config + lifecycle | **PARTIAL** | `inFlight` dùng chung cho 7 tool; test mount/dispose/remount; registry-runtime verified trong `pfe-test` | 7 test lifecycle + 6 lần boot thật | **BLOCKED_DSH_CONFIG_NATIVE** (Config native) |
+| T4 Config + lifecycle | **DONE** | `inFlight` dùng chung cho 7 tool; test mount/dispose/remount; registry-runtime verified trong `pfe-test` | 7 test lifecycle + 6 lần boot thật | `Config` native (schemastery) + `ValidationError` khi sai kiểu |
 | T5 Tool surface | **PARTIAL** | 7 tool giữ nguyên tên; description 6 mục; renderer ngắn | test schema + review description | **BLOCKED_TOOL_VISIBILITY** |
 | T6 Verify semantics | **DONE** | `static_verdict` / `overall_verdict` / `gates` / `not_verified` / `next_action`; `verdict` là alias | 4 test tổ hợp | — |
 | T7 Vector/cache/privacy | **DONE** | backend `hashing-lexical` (`semantic=False`); vector mặc định tắt; canonical output dùng đường dẫn tương đối | 3 test + adapter test | boundary presentation chưa xác minh |

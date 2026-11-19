@@ -130,6 +130,10 @@ def main(argv=None):
     evidence["lifecycle_log"] = write_log(stamp, "node-lifecycle", lifecycle).name
     evidence["lifecycle"] = parse_node_tests(lifecycle["stdout"])
 
+    client = run(["node", "--test", "dsh-plugin/tests/client.test.mjs"], "client settings tests")
+    evidence["client_log"] = write_log(stamp, "node-client", client).name
+    evidence["client"] = parse_node_tests(client["stdout"])
+
     pack = run(["node", "--test", "dsh-plugin/tests/pack.test.mjs"], "pack tests")
     evidence["pack_log"] = write_log(stamp, "node-pack", pack).name
     evidence["pack"] = parse_node_tests(pack["stdout"])
@@ -236,6 +240,12 @@ def main(argv=None):
         "checks": smoke_record.get("checks", {}),
         "record": smoke_candidates[-1].name if smoke_candidates else "",
         "blocked": smoke_record.get("blocked", {}),
+        "settings_ui": {
+            "client_entry": "client.js",
+            "slot": "plugins.bundle.config",
+            "config_schema": "native schemastery" if verified else "fallback normalizeConfig",
+            "verified": "client tests + ValidationError boot check",
+        },
     }
     smoke_path.write_text(json.dumps(smoke, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
@@ -258,13 +268,16 @@ def main(argv=None):
             "adapter": evidence["adapter"]["pass"],
             "knowledge_tools": evidence["knowledge"]["pass"],
             "lifecycle": evidence["lifecycle"]["pass"],
+            "client": evidence["client"]["pass"],
             "pack": evidence["pack"]["pass"],
             "failures": (0 if evidence["python"]["ok"] else 1)
                         + evidence["adapter"]["fail"] + evidence["knowledge"]["fail"]
-                        + evidence["lifecycle"]["fail"] + evidence["pack"]["fail"],
+                        + evidence["lifecycle"]["fail"] + evidence["client"]["fail"]
+                        + evidence["pack"]["fail"],
             "adapter_engine_failures": (evidence["adapter"]["fail"]
                                         + evidence["knowledge"]["fail"]
                                         + evidence["lifecycle"]["fail"]
+                                        + evidence["client"]["fail"]
                                         + evidence["pack"]["fail"]),
         },
         "tarball": evidence["tarball"],

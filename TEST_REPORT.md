@@ -12,6 +12,7 @@ Môi trường: Ubuntu 24.04 · Python 3.12.3 · Node v24.22.3 · DSH 0.2.2-rc.2
 | `node --test dsh-plugin/tests/plugin.test.mjs` | **16 pass** | `*-node-adapter.log` |
 | `node --test dsh-plugin/tests/knowledge.test.mjs` | **9 pass** | `*-node-knowledge.log` |
 | `node --test dsh-plugin/tests/lifecycle.test.mjs` | **7 pass** | `*-node-lifecycle.log` |
+| `node --test dsh-plugin/tests/client.test.mjs` | **6 pass** | `*-node-client.log` |
 | `node --test dsh-plugin/tests/pack.test.mjs` | **2 pass** | `*-node-pack.log` |
 | `python3 -m compileall -q scripts tests pfe tools` | OK | `*-compileall.log` |
 | `python3 scripts/check_repo_policy.py` | OK | `*-policy.log` |
@@ -23,10 +24,10 @@ Tarball phát hành:
 
 | Mục | Giá trị |
 |---|---|
-| Tên | `dsh-project-flow-explainer-0.4.1.tgz` |
-| Byte | 93 745 |
-| Entry | 25 (gồm `vendor/core/{scripts,assets,tools,pfe}`) |
-| SHA-256 | `3c840af5ad5ffabbfeb09f5927309e0c88ba0bc9d6b0a9bf7b4d9476bb6b8e73` |
+| Tên | `dsh-project-flow-explainer-0.4.2.tgz` |
+| Byte | 96 442 |
+| Entry | 26 (gồm `client.js` và `vendor/core/{scripts,assets,tools,pfe}`) |
+| SHA-256 | `742c46a0d8824e3b5542b7800fbbb4eaa0f9e40fc9c93c87288ff3bdc2a71f20` |
 
 ## 2. Lỗi tái hiện được và đã sửa trong 0.4.x
 
@@ -162,13 +163,30 @@ Profile `web` không bị chạm; overlay nằm trong thư mục tạm, không s
 Giới hạn: probe gọi **registry thật** nhưng **không qua model**, nên
 `model_driven = not_verified`. Panel UI vẫn `BLOCKED_UI_API_UNVERIFIED`.
 
+## 4d. Settings UI trong DSH (0.4.2)
+
+Bundle có `client.js` đăng ký slot `plugins.bundle.config` với key là package name.
+
+| Kiểm chứng | Cách làm | Kết quả |
+|---|---|---|
+| Envelope của client bundle | `node:vm` chạy `client.js`, kiểm `window.__ModuleLoader__.load` | id khớp `package.json` |
+| Đăng ký slot | gọi `apply(ctx)` với ctx giả | 1 entry `plugins.bundle.config`, key = package name |
+| 5 trường cấu hình | render cây React, tìm `id=pfe-*` | đủ 5 control, textarea nhận nhiều dòng |
+| Lưu | bấm nút, kiểm `form.mutate` | 1 batch, `allowedRoots` thành mảng, ô trống thành `unset` |
+| Root rỗng | render `view: "summary"` | nói rõ "Chưa cấu hình", không giả vờ đã cấu hình |
+| Host không có form | `form: undefined` | hiện hướng dẫn dùng patch, không render form rỗng |
+| Config native | boot thật với `allowedRoots: "oops"` | `ValidationError: $.allowedRoots expected array but got oops` |
+
+6 test client (`dsh-plugin/tests/client.test.mjs`) + 1 check trong DSH smoke
+(`invalid_config_rejected`) khoá hành vi này.
+
 ## 5. Chưa kiểm chứng
 
 | Hạng mục | Trạng thái | Lý do |
 |---|---|---|
 | Smoke registry 0.4.1 trong `pfe-test` | **ĐÃ CHẠY** — `artifacts/review/*-dsh-smoke.json` | 6 lần boot thật, 36 tool, 14/14 check pass |
 | Model tự chọn tool | **CHƯA CHẠY** | profile không có API key; probe gọi registry thật, không qua model |
-| Native `Config` | **BLOCKED_DSH_CONFIG_NATIVE** | profile không resolve `@deepseek-ai/schemastery` |
+| Native `Config` | **ĐÃ XÁC MINH** | boot thật trả `ValidationError: $.allowedRoots expected array but got oops` |
 | Tool visibility | **BLOCKED_TOOL_VISIBILITY** | chưa xác minh cơ chế presentation/visibility |
-| Panel UI Harness | `BLOCKED_UI_API_UNVERIFIED` | ngoài scope |
+| Panel UI Harness | `BLOCKED_UI_API_UNVERIFIED` | panel riêng ngoài scope; settings card dùng slot `plugins.bundle.config` (đã có) |
 | Embedding ngữ nghĩa | **CHƯA CÓ** | backend hashing là lexical |

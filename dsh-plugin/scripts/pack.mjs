@@ -58,6 +58,12 @@ const staging = mkdtempSync(path.join(os.tmpdir(), 'dsh-pfe-pack-'))
 const staged = []
 try {
   cpSync(path.join(PACKAGE_ROOT, 'index.js'), path.join(staging, 'index.js'))
+  // The browser half of the bundle: the settings card registered into
+  // plugins.bundle.config. Absent when a bundle ships host-only.
+  const clientEntry = path.join(PACKAGE_ROOT, 'client.js')
+  if (statSync(clientEntry, { throwIfNoEntry: false })) {
+    cpSync(clientEntry, path.join(staging, 'client.js'))
+  }
   cpSync(path.join(PACKAGE_ROOT, 'lib'), path.join(staging, 'lib'), { recursive: true })
   cpSync(path.join(PACKAGE_ROOT, 'cordis.patch.yml'), path.join(staging, 'cordis.patch.yml'))
   const readme = path.join(PACKAGE_ROOT, 'README.md')
@@ -87,6 +93,7 @@ try {
   writeFileSync(path.join(staging, 'package.json'),
     `${JSON.stringify(manifest, null, 2)}\n`, 'utf8')
   staged.push('package.json', 'index.js', 'lib/', 'cordis.patch.yml')
+  if (statSync(clientEntry, { throwIfNoEntry: false })) staged.push('client.js')
 
   const outDir = OUT_DIR
   mkdirSync(outDir, { recursive: true })

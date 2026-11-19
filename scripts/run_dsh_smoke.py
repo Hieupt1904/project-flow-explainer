@@ -159,6 +159,9 @@ def main(argv=None):
             "timeout": f"- id: {ROW_ID}\n  config:\n    allowedRoots:\n      - {work}\n"
                        "    timeoutMs: 1\n",
             "disabled": f"- id: {ROW_ID}\n  disabled: true\n",
+            # A wrong type must be rejected by the native Config schema before
+            # the tools mount at all.
+            "invalid": f"- id: {ROW_ID}\n  config:\n    allowedRoots: \"oops\"\n",
         }
         for name, body in overlays.items():
             write_overlay(work / f"overlay-{name}.yml", body)
@@ -180,6 +183,7 @@ def main(argv=None):
             ("d", "flow", "empty", 4000),
             ("e", "flow", "timeout", 4000),
             ("f", "", "disabled", 300),
+            ("g", "flow", "invalid", 2500),
         ]
         for key, steps, overlay, wait in batches:
             out = work / f"probe-{key}.json"
@@ -193,6 +197,7 @@ def main(argv=None):
             report["steps"][key] = {
                 "overlay": overlay, "steps": steps,
                 "boot_exit": result["exit_code"],
+                "stderr": result["stderr"],
                 "credential_error": "MISSING_CREDENTIAL" in result["stderr"],
                 "probe": record,
             }
@@ -203,6 +208,7 @@ def main(argv=None):
         d = report["steps"]["d"]["probe"]
         e = report["steps"]["e"]["probe"]
         f = report["steps"]["f"]["probe"]
+        g = report["steps"]["g"]["probe"]
         checks = {
             "tools_registered": len(a.get("registered_tools") or []) >= len(EXPECTED),
             "no_missing_tools": not (a.get("missing_tools") or []),
@@ -219,6 +225,11 @@ def main(argv=None):
             "timeout_code": call_result(e, "flow")["code"] == "core_timeout",
             "disabled_hides_tools": not any(
                 name.startswith("project_") for name in (f.get("registered_tools") or [])),
+            # The native schemastery Config rejects a wrong type at mount time.
+            "invalid_config_rejected": (
+                "ValidationError" in (report["steps"]["g"]["stderr"] or "")
+                and not any(name.startswith("project_")
+                            for name in (report["steps"]["g"]["probe"].get("registered_tools") or []))),
         }
         report["checks"] = checks
         report["tool_count"] = len(a.get("registered_tools") or [])

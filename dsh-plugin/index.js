@@ -32,6 +32,30 @@ import {
 export const name = 'project-flow-explainer'
 export const inject = ['tools']
 
+// Native config schema (schemastery) when the profile can resolve it. Node
+// resolution from the installed package walks up to the profile's
+// node_modules; schemastery is present only when something else already pulled
+// it in, so the import is attempted once. A missing module keeps the
+// hand-written validation in normalizeConfig; never fake a Schema object.
+let ConfigSchema
+try {
+  const schemastery = await import('@deepseek-ai/schemastery')
+  const z = schemastery.default ?? schemastery
+  ConfigSchema = z.object({
+    allowedRoots: z.array(z.string()).description(
+      'Thư mục gốc được đọc, đường dẫn tuyệt đối. Rỗng nghĩa là từ chối mọi repository.'),
+    pythonPath: z.string().default('python3').description('Interpreter dùng để gọi core'),
+    coreRoot: z.string().description('Thư mục core; bỏ trống để tự dò vendor/core'),
+    timeoutMs: z.number().min(1).default(180000).description('Ngân sách mỗi lần gọi, mili giây'),
+    maxOutputBytes: z.number().min(1).default(1048576).description('Giới hạn stdout và stderr'),
+  })
+} catch {
+  ConfigSchema = undefined
+}
+
+/** Real schemastery schema when it resolved, otherwise undefined (fallback path). */
+export const Config = ConfigSchema
+
 export const TOOL_NAME = 'project_flow_explain'
 const PACKAGE_ROOT = path.dirname(fileURLToPath(import.meta.url))
 

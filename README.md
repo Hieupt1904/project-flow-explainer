@@ -102,6 +102,16 @@ theo id, không insert lại cùng id:
 Thiếu `allowedRoots` thì mọi lời gọi trả `allowed_roots_unconfigured` (deny-by-default).
 Chi tiết: [dsh-plugin/README.md](dsh-plugin/README.md).
 
+### Chỉnh cấu hình trong UI
+
+Bundle 0.4.2 có settings card: mở **Plugins → project-flow-explainer**, phần cấu hình
+hiện 5 trường (`allowedRoots`, `pythonPath`, `coreRoot`, `timeoutMs`, `maxOutputBytes`).
+Card ghi qua slot `plugins.bundle.config`; Host lưu vào patch layer và áp cho lần gọi sau.
+Schema là `Config` native (schemastery): giá trị sai kiểu bị từ chối ngay khi mount.
+
+Sau khi cài hoặc nâng cấp bundle, **khởi động lại DSH** để nạp module mới; đổi cấu hình
+trong UI thì không cần restart.
+
 ## Mô hình bằng chứng
 
 Mỗi tool nói rõ `when_to_use`, `when_not_to_use`, `prerequisite`, `output`, `next_action`,
