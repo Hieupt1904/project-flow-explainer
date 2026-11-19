@@ -103,9 +103,10 @@ test('packed tarball carries the core and works without the checkout', async () 
     )
     assert.equal(result.status, 'ok')
     for (const key of ['flow_json', 'flow_html', 'overview', 'run']) {
-      assert.equal(existsSync(result.artifacts[key]), true, `${key} missing`)
+      assert.equal(path.isAbsolute(result.artifacts[key]), false, `${key} must be relative`)
+      assert.equal(existsSync(path.join(repo, result.artifacts[key])), true, `${key} missing`)
     }
-    assert.ok(result.artifacts.flow_html.startsWith(path.join(repo, 'artifacts', 'flows')))
+    assert.ok(result.artifacts.flow_html.startsWith('artifacts/flows/'))
 
     // The packed install must also carry the knowledge layer: index + search
     // have to work from the tarball alone, with no checkout around it.

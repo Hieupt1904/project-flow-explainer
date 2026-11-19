@@ -117,12 +117,15 @@ export function apply(ctx, config = {}) {
 
   ctx.tools.register({
     name: TOOL_NAME,
-    description:
-      'Phân tích một repository trên máy và dựng sơ đồ quy trình dạng HTML mở offline, '
-      + 'kèm dữ liệu có cấu trúc và bản giải thích. Chỉ đọc source trong allowedRoots, '
-      + 'không gọi network, không chạy code của repository, không sửa file nguồn. '
-      + 'Artifact chỉ ghi vào <repo>/artifacts/flows/<slug>/. '
-      + 'Trả đường dẫn tới flow.json, flow.html, overview.md và số bước theo mức tin cậy.',
+      description: [
+        'Dựng sơ đồ quy trình từ một repository và một yêu cầu bằng tiếng Việt.',
+        'DÙNG KHI: cần hiểu một luồng nghiệp vụ trước khi sửa, hoặc giải thích cho người không đọc code.',
+        'KHÔNG DÙNG KHI: chỉ cần tra một hàm/route (dùng project_code_search).',
+        'ĐIỀU KIỆN: repository_path tuyệt đối trong allowedRoots; flow_request mô tả luồng cụ thể.',
+        'KẾT QUẢ: flow.html (mở offline, có chế độ Đơn giản), flow.json, overview.md, run.json nội bộ.',
+        'TIẾP THEO: project_context_pack để biết file nào cần đọc trước khi sửa.',
+        'GIỚI HẠN: phân tích tĩnh, không chạy code; verified = vị trí + quan hệ, không phải runtime.',
+      ].join('\n'),
     parameters: {
       type: 'object',
       properties: {
@@ -157,6 +160,7 @@ export function apply(ctx, config = {}) {
           slug: { type: 'string' },
           repository: { type: 'string' },
           repository_name: { type: 'string' },
+          path_base: { type: 'string' },
           artifacts_dir: { type: 'string' },
           artifacts: {
             type: 'object',
@@ -175,8 +179,9 @@ export function apply(ctx, config = {}) {
               repository: { type: 'string' },
               artifacts: { type: 'string' },
               source_refs: { type: 'string' },
+              absolute_paths_returned: { type: 'boolean' },
             },
-            required: ['repository', 'artifacts', 'source_refs'],
+            required: ['repository', 'artifacts', 'source_refs', 'absolute_paths_returned'],
             additionalProperties: false,
           },
           output_contract: {
@@ -216,24 +221,21 @@ export function apply(ctx, config = {}) {
           limits: { type: 'array', items: { type: 'string' } },
         },
         required: ['status', 'flow_id', 'slug', 'repository', 'repository_name',
-          'artifacts_dir', 'artifacts', 'path_visibility', 'output_contract', 'counts',
+          'path_base', 'artifacts_dir', 'artifacts', 'path_visibility', 'output_contract', 'counts',
           'files_scanned', 'related_count', 'source_version', 'warnings', 'limits'],
         additionalProperties: false,
       },
       render(_args, value) {
         const lines = [
-          `Đã dựng sơ đồ: ${value.flow_id}`,
-          `Bước: ${value.counts.verified} verified · ${value.counts.partial} partial · `
-            + `${value.counts.inferred} inferred · ${value.counts.unknown} unknown`,
-          `File khớp từ khoá nhưng ngoài luồng: ${value.related_count}`,
-          `Mở sơ đồ: ${value.artifacts.flow_html}`,
-          `Dữ liệu: ${value.artifacts.flow_json}`,
-          `Giải thích: ${value.artifacts.overview}`,
+          `Sơ đồ: ${value.flow_id} (${value.counts.verified} verified · `
+            + `${value.counts.partial} partial · ${value.counts.inferred} inferred)`,
+          `Mở: ${value.artifacts.flow_html}`,
+          `Dữ liệu: ${value.artifacts.flow_json} · Giải thích: ${value.artifacts.overview}`,
+          `Ngoài luồng: ${value.related_count} file chỉ khớp từ khoá`,
         ]
-        if (value.warnings.length > 0) {
-          lines.push(`Cảnh báo: ${value.warnings.length} mục — xem overview.md`)
-        }
-        lines.push('Nội dung source không được đưa vào kết quả; chỉ có đường dẫn và số liệu.')
+        if (value.warnings.length > 0) lines.push(`Cảnh báo: ${value.warnings[0]}`)
+        lines.push('Đường dẫn tính từ repository. Không có nội dung source trong kết quả.')
+        lines.push('Tiếp theo: gọi project_context_pack trước khi sửa file trong luồng.')
         return TEXT(lines.join('\n'))
       },
     },
@@ -298,25 +300,34 @@ export function apply(ctx, config = {}) {
       if (run.code !== 0) throw failure('core_failed', run)
 
       const source = payload.source ?? {}
+      // Canonical output is model-facing, so it carries repository-relative
+      // paths only. No DSH presentation boundary has been verified, so an
+      // absolute workstation path must not leave this tool.
+      const relative = (value) => {
+        if (typeof value !== 'string' || value === '') return ''
+        const rel = path.relative(repository.root, value)
+        return rel.split(path.sep).join('/')
+      }
+      const artifactsDir = relative(payload.artifacts_dir)
       return {
         status: 'ok',
         flow_id: payload.flow_id,
         slug: payload.slug,
-        repository: payload.repository,
-        repository_name: payload.repository_name ?? path.basename(payload.repository ?? ''),
-        artifacts_dir: payload.artifacts_dir,
+        repository: payload.repository_name ?? path.basename(repository.root),
+        repository_name: payload.repository_name ?? path.basename(repository.root),
+        path_base: 'repository',
+        artifacts_dir: artifactsDir,
         artifacts: {
-          flow_json: payload.paths.flow_json,
-          flow_html: payload.paths.flow_html,
-          overview: payload.paths.overview,
-          run: payload.paths.run,
+          flow_json: relative(payload.paths.flow_json),
+          flow_html: relative(payload.paths.flow_html),
+          overview: relative(payload.paths.overview),
+          run: relative(payload.paths.run),
         },
-        // Absolute paths are host-only: they are shown to the caller that named
-        // the repository, never folded into knowledge results or artifacts.
         path_visibility: {
-          repository: 'host-only',
-          artifacts: 'host-only',
+          repository: 'model-facing (name only)',
+          artifacts: 'model-facing (repository-relative)',
           source_refs: 'model-facing (repository-relative)',
+          absolute_paths_returned: false,
         },
         output_contract: {
           public: payload.contract?.public ?? ['flow.json', 'flow.html', 'overview.md'],
@@ -343,7 +354,7 @@ export function apply(ctx, config = {}) {
   })
 
   // Knowledge layer: same path policy, same core subprocess, separate tools.
-  for (const definition of knowledgeTools({ settings, core })) {
+  for (const definition of knowledgeTools({ settings, core, inFlight })) {
     ctx.tools.register(definition)
   }
 }

@@ -19,6 +19,22 @@ import {
 
 const TEXT = (value) => [{ type: 'text', text: value }]
 
+/**
+ * One description shape for every tool, so the model can choose without
+ * reading the source. Keep each line short: the model pays for every token.
+ */
+function describe({ what, use, notUse, prereq, output, next, limits }) {
+  return [
+    what,
+    `DÙNG KHI: ${use}`,
+    `KHÔNG DÙNG KHI: ${notUse}`,
+    `ĐIỀU KIỆN: ${prereq}`,
+    `KẾT QUẢ: ${output}`,
+    `TIẾP THEO: ${next}`,
+    `GIỚI HẠN: ${limits}`,
+  ].join('\n')
+}
+
 function abortError(reason) {
   const error = new Error(reason instanceof Error ? reason.message : 'tool call aborted')
   error.name = 'AbortError'
@@ -40,7 +56,7 @@ function parsePayload(run) {
  * separate codes so a caller can tell them apart.
  */
 async function invoke(ctx) {
-  const { settings, core, argv, exec, toolName, timeoutMs } = ctx
+  const { settings, core, argv, exec, toolName, timeoutMs, inFlight } = ctx
   if (exec?.signal?.aborted) throw abortError(exec.signal.reason)
   if (!core.cli) {
     throw new InputError('core_cli_not_found',
@@ -50,6 +66,9 @@ async function invoke(ctx) {
   const controller = new AbortController()
   const forward = () => controller.abort(exec.signal.reason)
   if (exec?.signal) exec.signal.addEventListener('abort', forward, { once: true })
+  // Registered with the plugin so dispose() aborts this run too, not only the
+  // flow tool's. Without this, unload leaves a child process running.
+  inFlight?.add(controller)
   let run
   try {
     run = await runCli({
@@ -62,6 +81,7 @@ async function invoke(ctx) {
       maxOutputBytes: settings.maxOutputBytes,
     })
   } finally {
+    inFlight?.delete(controller)
     if (exec?.signal) exec.signal.removeEventListener('abort', forward)
   }
   if (run.aborted) throw abortError(exec?.signal?.reason)
@@ -105,7 +125,7 @@ const refSchema = {
   additionalProperties: false,
 }
 
-export function knowledgeTools({ settings, core }) {
+export function knowledgeTools({ settings, core, inFlight }) {
   const repository = (args, toolName) => {
     const value = requiredString(args, 'repository_path', toolName)
     return resolveRepository(value, { allowedRoots: settings.allowedRoots })
@@ -114,11 +134,15 @@ export function knowledgeTools({ settings, core }) {
   return [
     {
       name: 'project_code_index',
-      description:
-        'Xây hoặc cập nhật index tri thức code cục bộ tại <repo>/.pfe/index/. '
-        + 'Index gồm entity/relation có bằng chứng (file, symbol, route, import, call site, '
-        + 'test, flow, error case), full-text search và vector tùy chọn (local-only). '
-        + 'Không gọi network, không chạy code của repository, không index file bí mật.',
+      description: describe({
+    what: 'Xây/cập nhật index tri thức cục bộ tại <repo>/.pfe/index/.',
+    use: 'lần đầu vào repo, hoặc sau khi pull/đổi nhiều file.',
+    notUse: 'khi chỉ cần đọc một file đã biết đường dẫn.',
+    prereq: 'repository_path tuyệt đối trong allowedRoots.',
+    output: 'files/symbols/routes/tests đã index, thời gian, cảnh báo; không trả source.',
+    next: 'project_code_search hoặc project_context_pack.',
+    limits: 'phân tích tĩnh; không chạy code; vector mặc định tắt.',
+  }),
       parameters: {
         type: 'object',
         properties: {
@@ -200,7 +224,7 @@ export function knowledgeTools({ settings, core }) {
         const includeVectors = booleanFlag(args, 'include_vectors', 'project_code_index', false)
         const argv = ['index', '--repo', root, '--mode', mode]
         if (includeVectors) argv.push('--include-vectors')
-        const payload = await invoke({ settings, core, argv, exec, toolName: 'project_code_index' })
+        const payload = await invoke({ settings, core, inFlight, argv, exec, toolName: 'project_code_index' })
         return {
           index_id: payload.index_id ?? '',
           index_version: payload.index_version ?? 0,
@@ -233,10 +257,15 @@ export function knowledgeTools({ settings, core }) {
 
     {
       name: 'project_code_search',
-      description:
-        'Tìm context trong code bằng truy hồi hybrid: exact (FTS5) → vector tùy chọn → '
-        + 'mở rộng graph → xếp hạng lại. Trả path, symbol, line range, relation, confidence, '
-        + 'lý do khớp và source commit. Không trả nội dung source thô.',
+      description: describe({
+    what: 'Tìm context bằng exact (FTS5) + graph + vector tùy chọn, xếp hạng lại.',
+    use: 'khi biết tên hàm/lớp/route/từ khoá ngắn.',
+    notUse: 'câu mô tả nghiệp vụ dài — dùng project_flow_explain hoặc project_context_pack.',
+    prereq: 'đã chạy project_code_index (nếu chưa: mã index_missing).',
+    output: 'path, symbol, line range, relation, confidence, lý do khớp, source commit.',
+    next: 'mở đúng path:line; hoặc project_context_pack để gom theo task.',
+    limits: 'exact search cộng dồn theo từ khoá; vector chỉ là candidate lexical.',
+  }),
       parameters: {
         type: 'object',
         properties: {
@@ -318,7 +347,7 @@ export function knowledgeTools({ settings, core }) {
         const argv = ['search', '--repo', root, '--query', query, '--top-k', String(topK)]
         if (filters.language) argv.push('--language', filters.language)
         if (filters.kind) argv.push('--kind', filters.kind)
-        const payload = await invoke({ settings, core, argv, exec, toolName: 'project_code_search' })
+        const payload = await invoke({ settings, core, inFlight, argv, exec, toolName: 'project_code_search' })
         return {
           query: payload.query ?? query,
           intent: payload.intent ?? 'locate',
@@ -351,10 +380,16 @@ export function knowledgeTools({ settings, core }) {
 
     {
       name: 'project_context_pack',
-      description:
-        'Gom context cho một task code: flow liên quan, entry point, symbol bị ảnh hưởng, '
-        + 'test liên quan, file nên đọc, phụ thuộc, cảnh báo stale. Mặc định KHÔNG trả snippet; '
-        + 'include_snippets chỉ dùng khi người gọi chủ động bật trong phiên local.',
+      description: describe({
+        what: 'Gom context trước khi sửa: entry point, file nên đọc, dependency, test.',
+        use: 'MẶC ĐỊNH trước khi sửa code — đây là tool đầu tiên nên gọi.',
+        notUse: 'khi chỉ cần kiểm tra artifact/flow đã sinh (dùng project_verify_flow).',
+        prereq: 'đã chạy project_code_index.',
+        output: 'entry_points có loại (http_route/cli_command/gui_event/...), likely_files, '
+          + 'dependencies có path+line, related_tests, limitations.',
+        next: 'sửa code, rồi gọi project_impact_analysis với changed_files.',
+        limits: 'entry point chỉ từ dòng đăng ký thật; không trả source; chưa chạy test.',
+      }),
       parameters: {
         type: 'object',
         properties: {
@@ -371,10 +406,25 @@ export function knowledgeTools({ settings, core }) {
           type: 'object',
           properties: {
             task: { type: 'string' },
+            analysis_kind: { type: 'string' },
+            intent: { type: 'string' },
             source_commit: { type: 'string' },
             stale: { type: 'boolean' },
             max_files: { type: 'integer' },
             snippets_included: { type: 'boolean' },
+            limitations: { type: 'array', items: { type: 'string' } },
+            warnings: { type: 'array', items: { type: 'string' } },
+            not_verified: { type: 'array', items: { type: 'string' } },
+            seen: {
+              type: 'object',
+              properties: {
+                paths: { type: 'integer' },
+                entities: { type: 'integer' },
+                evidence: { type: 'integer' },
+              },
+              required: ['paths', 'entities', 'evidence'],
+              additionalProperties: false,
+            },
             relevant_flows: {
               type: 'array',
               items: {
@@ -390,11 +440,32 @@ export function knowledgeTools({ settings, core }) {
                 type: 'object',
                 properties: {
                   path: { type: 'string' },
+                  kind: { type: 'string' },
+                  label: { type: 'string' },
                   route: { type: 'string' },
                   start_line: { type: 'integer' },
                   confidence: { type: 'string' },
+                  evidence_kind: { type: 'string' },
+                  evidence_refs: { type: 'array', items: refSchema },
                 },
-                required: ['path', 'route', 'start_line', 'confidence'],
+                required: ['path', 'kind', 'label', 'route', 'start_line', 'confidence',
+                  'evidence_kind', 'evidence_refs'],
+                additionalProperties: false,
+              },
+            },
+            routes: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  route: { type: 'string' },
+                  path: { type: 'string' },
+                  start_line: { type: 'integer' },
+                  confidence: { type: 'string' },
+                  via: { type: 'string' },
+                  evidence_refs: { type: 'array', items: refSchema },
+                },
+                required: ['route', 'path', 'start_line', 'confidence', 'via', 'evidence_refs'],
                 additionalProperties: false,
               },
             },
@@ -406,8 +477,10 @@ export function knowledgeTools({ settings, core }) {
                   symbol: { type: 'string' },
                   path: { type: 'string' },
                   start_line: { type: 'integer' },
+                  kind: { type: 'string' },
+                  confidence: { type: 'string' },
                 },
-                required: ['symbol', 'path', 'start_line'],
+                required: ['symbol', 'path', 'start_line', 'kind', 'confidence'],
                 additionalProperties: false,
               },
             },
@@ -415,8 +488,14 @@ export function knowledgeTools({ settings, core }) {
               type: 'array',
               items: {
                 type: 'object',
-                properties: { path: { type: 'string' }, start_line: { type: 'integer' } },
-                required: ['path', 'start_line'],
+                properties: {
+                  path: { type: 'string' },
+                  test: { type: 'string' },
+                  start_line: { type: 'integer' },
+                  confidence: { type: 'string' },
+                  why_included: { type: 'string' },
+                },
+                required: ['path', 'test', 'start_line', 'confidence', 'why_included'],
                 additionalProperties: false,
               },
             },
@@ -427,12 +506,20 @@ export function knowledgeTools({ settings, core }) {
                 properties: {
                   path: { type: 'string' },
                   symbol: { type: 'string' },
+                  kind: { type: 'string' },
                   start_line: { type: 'integer' },
                   end_line: { type: 'integer' },
                   confidence: { type: 'string' },
+                  location_confidence: { type: 'string' },
+                  relevance_confidence: { type: 'string' },
                   why_matched: { type: 'string' },
+                  relevance_why: { type: 'array', items: { type: 'string' } },
+                  relation: { type: 'array', items: { type: 'string' } },
+                  evidence_refs: { type: 'array', items: refSchema },
                 },
-                required: ['path', 'symbol', 'start_line', 'end_line', 'confidence', 'why_matched'],
+                required: ['path', 'symbol', 'kind', 'start_line', 'end_line', 'confidence',
+                  'location_confidence', 'relevance_confidence', 'why_matched',
+                  'relevance_why', 'relation', 'evidence_refs'],
                 additionalProperties: false,
               },
             },
@@ -442,31 +529,66 @@ export function knowledgeTools({ settings, core }) {
                 type: 'object',
                 properties: {
                   entity: { type: 'string' },
+                  kind: { type: 'string' },
+                  path: { type: 'string' },
+                  symbol: { type: 'string' },
+                  start_line: { type: 'integer' },
+                  end_line: { type: 'integer' },
                   relation: { type: 'string' },
                   confidence: { type: 'string' },
+                  location_confidence: { type: 'string' },
+                  relevance_confidence: { type: 'string' },
+                  why_included: { type: 'string' },
+                  evidence_refs: { type: 'array', items: refSchema },
                 },
-                required: ['entity', 'relation', 'confidence'],
+                required: ['entity', 'kind', 'path', 'symbol', 'start_line', 'end_line',
+                  'relation', 'confidence', 'location_confidence', 'relevance_confidence',
+                  'why_included', 'evidence_refs'],
                 additionalProperties: false,
               },
             },
-            warnings: { type: 'array', items: { type: 'string' } },
+            external_dependencies: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  entity: { type: 'string' },
+                  kind: { type: 'string' },
+                  symbol: { type: 'string' },
+                  relation: { type: 'string' },
+                  confidence: { type: 'string' },
+                  why_included: { type: 'string' },
+                  location: { type: 'string' },
+                },
+                required: ['entity', 'kind', 'symbol', 'relation', 'confidence',
+                  'why_included', 'location'],
+                additionalProperties: false,
+              },
+            },
             evidence_refs: { type: 'array', items: refSchema },
           },
-          required: ['task', 'source_commit', 'stale', 'max_files', 'snippets_included',
-            'relevant_flows', 'entry_points', 'impacted_symbols', 'related_tests',
-            'likely_files', 'dependencies', 'warnings', 'evidence_refs'],
+          required: ['task', 'analysis_kind', 'intent', 'source_commit', 'stale', 'max_files',
+            'snippets_included', 'limitations', 'warnings', 'not_verified', 'seen',
+            'relevant_flows', 'entry_points', 'routes', 'impacted_symbols', 'related_tests',
+            'likely_files', 'dependencies', 'external_dependencies', 'evidence_refs'],
           additionalProperties: false,
         },
         render(_args, value) {
           const lines = [
-            `Context pack cho: ${value.task}`,
-            `Commit: ${value.source_commit || 'không có git'}${value.stale ? ' · index stale' : ''}`,
-            `Entry point: ${value.entry_points.length} · file nên đọc: ${value.likely_files.length}`,
+            `Context: ${value.task}`,
+            `Entry point: ${value.entry_points.length}`
+              + (value.routes.length ? ` · route: ${value.routes[0].route}` : '')
+              + ` · file nên đọc: ${value.likely_files.length}`,
           ]
-          for (const item of value.likely_files.slice(0, 8)) {
-            lines.push(`- ${item.path}:${item.start_line} ${item.symbol} — ${item.why_matched}`)
+          for (const item of value.likely_files.slice(0, 5)) {
+            lines.push(`- ${item.path}:${item.start_line} ${item.symbol} (${item.relevance_confidence})`)
           }
-          lines.push(`Snippet: ${value.snippets_included ? 'có (chế độ local)' : 'không'}`)
+          if (value.related_tests.length) {
+            lines.push(`Test liên quan: ${value.related_tests.map((t) => t.path).join(', ')}`)
+          }
+          if (value.stale) lines.push('CẢNH BÁO: index cũ hơn HEAD — gọi project_knowledge_refresh.')
+          for (const limit of value.limitations.slice(0, 2)) lines.push(`Giới hạn: ${limit}`)
+          lines.push('Tiếp theo: sửa file trên, rồi project_impact_analysis.')
           return TEXT(lines.join('\n'))
         },
       },
@@ -482,27 +604,40 @@ export function knowledgeTools({ settings, core }) {
         const argv = ['context-pack', '--repo', root, '--task', task,
           '--max-files', String(maxFiles)]
         if (snippets) argv.push('--include-snippets')
-        const payload = await invoke({ settings, core, argv, exec, toolName: 'project_context_pack' })
+        const payload = await invoke({ settings, core, inFlight, argv, exec, toolName: 'project_context_pack' })
         return {
           task: payload.task ?? task,
+          analysis_kind: payload.analysis_kind ?? 'context_pack',
+          intent: payload.intent ?? 'locate',
           source_commit: payload.source_commit ?? '',
           stale: Boolean(payload.stale),
           max_files: payload.max_files ?? maxFiles,
           snippets_included: Boolean(payload.snippets_included),
+          limitations: payload.limitations ?? [],
+          warnings: payload.warnings ?? [],
+          not_verified: payload.not_verified ?? ['runtime', 'ui'],
+          seen: payload.seen ?? { paths: 0, entities: 0, evidence: 0 },
           relevant_flows: payload.relevant_flows ?? [],
           entry_points: payload.entry_points ?? [],
+          routes: payload.routes ?? [],
           impacted_symbols: payload.impacted_symbols ?? [],
           related_tests: payload.related_tests ?? [],
           likely_files: (payload.likely_files ?? []).map((item) => ({
             path: item.path ?? '',
             symbol: item.symbol ?? '',
+            kind: item.kind ?? 'file',
             start_line: item.start_line ?? 1,
             end_line: item.end_line ?? item.start_line ?? 1,
             confidence: item.confidence ?? 'inferred',
+            location_confidence: item.location_confidence ?? 'unknown',
+            relevance_confidence: item.relevance_confidence ?? 'inferred',
             why_matched: item.why_matched ?? '',
+            relevance_why: item.relevance_why ?? [],
+            relation: item.relation ?? [],
+            evidence_refs: item.evidence_refs ?? [],
           })),
           dependencies: payload.dependencies ?? [],
-          warnings: payload.warnings ?? [],
+          external_dependencies: payload.external_dependencies ?? [],
           evidence_refs: payload.evidence_refs ?? [],
         }
       },
@@ -510,10 +645,15 @@ export function knowledgeTools({ settings, core }) {
 
     {
       name: 'project_impact_analysis',
-      description:
-        'Phân tích tác động của các file thay đổi: flow/route/symbol bị ảnh hưởng, test liên quan, '
-        + 'module phụ thuộc, mức rủi ro, artifact stale và gợi ý kiểm chứng. '
-        + 'Cần index; trả đường dẫn tương đối và bằng chứng, không trả source.',
+      description: describe({
+    what: 'Phân tích tác động của các file vừa sửa.',
+    use: 'SAU KHI sửa, trước khi commit.',
+    notUse: 'trước khi sửa (dùng project_context_pack).',
+    prereq: 'đã chạy project_code_index; truyền changed_files hoặc diff.',
+    output: 'flow/route/symbol bị ảnh hưởng, test liên quan, module phụ thuộc, risk.',
+    next: 'chạy test trong related_tests, rồi project_verify_flow.',
+    limits: 'chỉ thấy quan hệ có trong index; file mới chưa index sẽ báo unknown_files.',
+  }),
       parameters: {
         type: 'object',
         properties: {
@@ -644,7 +784,7 @@ export function knowledgeTools({ settings, core }) {
         const argv = ['impact', '--repo', root]
         for (const item of changed) argv.push('--changed', item)
         if (diff) argv.push('--diff', diff)
-        const payload = await invoke({ settings, core, argv, exec, toolName: 'project_impact_analysis' })
+        const payload = await invoke({ settings, core, inFlight, argv, exec, toolName: 'project_impact_analysis' })
         return {
           source_commit: payload.source_commit ?? '',
           changed_files: payload.changed_files ?? changed,
@@ -668,11 +808,15 @@ export function knowledgeTools({ settings, core }) {
 
     {
       name: 'project_verify_flow',
-      description:
-        'Kiểm tra kết quả đã sinh: schema graph, bằng chứng (không có call-edge giả, không có '
-        + 'nhánh bypass), artifact đủ 3 file public, HTML không tải tài nguyên ngoài, '
-        + 'privacy (không absolute path/secret trong artifact), mapping test. '
-        + 'Trả verdict pass/partial/fail kèm bằng chứng từng check.',
+      description: describe({
+    what: 'Kiểm tra artifact/flow: schema, bằng chứng, HTML tĩnh, privacy, test mapping.',
+    use: 'bước cuối, sau khi sửa và render lại flow.',
+    notUse: 'để thay cho việc chạy test hoặc mở trình duyệt.',
+    prereq: 'đã có artifact trong <repo>/artifacts/flows/.',
+    output: 'static_verdict, overall_verdict, gates (static/ui/runtime), checks, next_action.',
+    next: 'nếu overall_verdict=partial: mở flow.html và chạy test liên quan.',
+    limits: 'không mở trình duyệt, không chạy code; ui/runtime luôn blocked trừ khi có bằng chứng ngoài.',
+  }),
       parameters: {
         type: 'object',
         properties: { repository_path: repoProp },
@@ -684,11 +828,25 @@ export function knowledgeTools({ settings, core }) {
           type: 'object',
           properties: {
             verdict: { type: 'string' },
+            static_verdict: { type: 'string' },
+            overall_verdict: { type: 'string' },
             source_commit: { type: 'string' },
             flow_artifacts: { type: 'integer' },
             ui_verified: { type: 'boolean' },
             runtime_verified: { type: 'boolean' },
             notes: { type: 'array', items: { type: 'string' } },
+            not_verified: { type: 'array', items: { type: 'string' } },
+            next_action: { type: 'string' },
+            gates: {
+              type: 'object',
+              properties: {
+                static: { type: 'string' },
+                ui: { type: 'string' },
+                runtime: { type: 'string' },
+              },
+              required: ['static', 'ui', 'runtime'],
+              additionalProperties: false,
+            },
             checks: {
               type: 'array',
               items: {
@@ -704,16 +862,24 @@ export function knowledgeTools({ settings, core }) {
               },
             },
           },
-          required: ['verdict', 'source_commit', 'flow_artifacts', 'ui_verified',
-            'runtime_verified', 'notes', 'checks'],
+          required: ['verdict', 'static_verdict', 'overall_verdict', 'source_commit',
+            'flow_artifacts', 'ui_verified', 'runtime_verified', 'notes', 'not_verified',
+            'next_action', 'gates', 'checks'],
           additionalProperties: false,
         },
         render(_args, value) {
-          const lines = [`Verdict: ${value.verdict} · ${value.flow_artifacts} flow artifact`]
-          for (const check of value.checks) {
-            lines.push(`- ${check.check}: ${check.status} — ${check.detail}`)
+          const lines = [
+            `Tĩnh: ${value.static_verdict} · Tổng: ${value.overall_verdict}`
+              + ` · ${value.flow_artifacts} flow artifact`,
+            `Gate chưa xác minh: ${value.not_verified.join(', ') || 'không có'}`,
+          ]
+          const failed = value.checks.filter((c) => c.status === 'fail')
+          for (const check of failed.slice(0, 3)) lines.push(`- FAIL ${check.check}: ${check.detail}`)
+          if (!failed.length) {
+            const blocked = value.checks.filter((c) => c.status === 'blocked')
+            if (blocked.length) lines.push(`Check chưa chạy: ${blocked.map((c) => c.check).join(', ')}`)
           }
-          lines.push('ui_verified=false: chỉ đọc HTML tĩnh. runtime_verified=false: không chạy code.')
+          lines.push(`Tiếp theo: ${value.next_action}`)
           return TEXT(lines.join('\n'))
         },
       },
@@ -727,12 +893,17 @@ export function knowledgeTools({ settings, core }) {
           toolName: 'project_verify_flow',
         })
         return {
-          verdict: payload.verdict ?? 'partial',
+          verdict: payload.overall_verdict ?? payload.verdict ?? 'partial',
+          static_verdict: payload.static_verdict ?? 'partial',
+          overall_verdict: payload.overall_verdict ?? 'partial',
           source_commit: payload.source_commit ?? '',
           flow_artifacts: payload.flow_artifacts ?? 0,
           ui_verified: Boolean(payload.ui_verified),
           runtime_verified: Boolean(payload.runtime_verified),
           notes: payload.notes ?? [],
+          not_verified: payload.not_verified ?? ['ui', 'runtime'],
+          next_action: payload.next_action ?? '',
+          gates: payload.gates ?? { static: 'partial', ui: 'blocked', runtime: 'blocked' },
           checks: payload.checks ?? [],
         }
       },
@@ -740,9 +911,15 @@ export function knowledgeTools({ settings, core }) {
 
     {
       name: 'project_knowledge_refresh',
-      description:
-        'Refresh index tăng dần sau khi sửa code: phát hiện file changed/added/deleted/renamed, '
-        + 'chỉ parse lại phần đã đổi, báo stale. Không rebuild toàn bộ nếu không cần.',
+      description: describe({
+    what: 'Refresh index tăng dần sau khi sửa code.',
+    use: 'sau khi sửa file, trước khi search/impact lần nữa.',
+    notUse: 'khi index chưa tồn tại (dùng project_code_index mode=full).',
+    prereq: 'index đã tồn tại.',
+    output: 'số file parse lại/dùng lại, changed/added/deleted/renamed, stale.',
+    next: 'project_code_search hoặc project_impact_analysis.',
+    limits: 'rename nhận qua content hash; không rebuild toàn bộ nếu không cần.',
+  }),
       parameters: {
         type: 'object',
         properties: {
@@ -801,7 +978,7 @@ export function knowledgeTools({ settings, core }) {
         const argv = ['refresh', '--repo', root, '--mode', mode]
         if (includeVectors) argv.push('--include-vectors')
         const payload = await invoke({
-          settings, core, argv, exec, toolName: 'project_knowledge_refresh',
+          settings, core, inFlight, argv, exec, toolName: 'project_knowledge_refresh',
         })
         return {
           mode: payload.mode ?? mode,

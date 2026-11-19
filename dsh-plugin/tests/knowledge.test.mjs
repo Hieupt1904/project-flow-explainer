@@ -134,7 +134,10 @@ test('index → search → context pack → impact → verify → refresh end to
     const flow = await call(tools.get(TOOL_NAME),
       { repository_path: fixture.repo, flow_request: REQUEST })
     assert.equal(flow.output_contract.internal.includes('run.json'), true)
-    assert.equal(flow.path_visibility.artifacts, 'host-only')
+    assert.equal(flow.path_visibility.artifacts, 'model-facing (repository-relative)')
+    assert.equal(flow.path_visibility.absolute_paths_returned, false)
+    assert.equal(JSON.stringify(flow).includes(fixture.repo), false,
+      'flow result must not carry an absolute path')
 
     const verified = await call(tools.get('project_verify_flow'),
       { repository_path: fixture.repo })

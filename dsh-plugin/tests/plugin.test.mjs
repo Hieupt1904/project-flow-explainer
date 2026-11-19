@@ -106,10 +106,15 @@ test('end-to-end: builds four artifacts through the core CLI', async () => {
     const result = await call(tool, { repository_path: fixture.repo, flow_request: REQUEST })
     assert.equal(result.status, 'ok')
     for (const key of ['flow_json', 'flow_html', 'overview', 'run']) {
-      assert.equal(existsSync(result.artifacts[key]), true, `${key} missing`)
-      assert.equal(path.isAbsolute(result.artifacts[key]), true)
+      // Canonical output is repository-relative: no absolute workstation path.
+      assert.equal(path.isAbsolute(result.artifacts[key]), false, key)
+      assert.equal(existsSync(path.join(fixture.repo, result.artifacts[key])), true, `${key} missing`)
     }
-    assert.equal(path.dirname(result.artifacts_dir), path.join(fixture.repo, 'artifacts', 'flows'))
+    assert.equal(result.path_base, 'repository')
+    assert.equal(result.path_visibility.absolute_paths_returned, false)
+    assert.equal(JSON.stringify(result).includes(fixture.repo), false,
+      'tool result must not carry an absolute path')
+    assert.equal(result.artifacts_dir.split(path.sep).join('/'), 'artifacts/flows/' + result.slug)
     assert.ok(result.counts.verified > 0)
     assert.equal(result.flow_id, result.slug)
     const rendered = tool.output.render({}, result)
@@ -127,7 +132,8 @@ test('tool result never carries source secrets', async () => {
     const result = await call(tool, { repository_path: fixture.repo, flow_request: REQUEST })
     assert.equal(JSON.stringify(result).includes(SECRET), false)
     for (const key of ['flow_json', 'flow_html', 'overview', 'run']) {
-      assert.equal(readFileSync(result.artifacts[key], 'utf8').includes(SECRET), false, key)
+      const file = path.join(fixture.repo, result.artifacts[key])
+      assert.equal(readFileSync(file, 'utf8').includes(SECRET), false, key)
     }
   } finally {
     fixture.cleanup()
@@ -154,7 +160,10 @@ test('adapter and direct core produce the same graph', async () => {
       node.id, node.type, node.title, node.confidence,
       (node.source_refs || []).map((ref) => ref.path),
     ])
-    assert.deepEqual(shape(read(viaAdapter.artifacts.flow_json)), shape(read(direct.paths.flow_json)))
+    assert.deepEqual(
+      shape(read(path.join(fixture.repo, viaAdapter.artifacts.flow_json))),
+      shape(read(direct.paths.flow_json)),
+    )
   } finally {
     fixture.cleanup()
   }
