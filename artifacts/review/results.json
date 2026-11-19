@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-11-19T21:39:42+07:00",
-  "head": "2606e88f83b5",
-  "tag": "v0.2.1",
+  "generated_at": "2026-11-19T21:47:41+07:00",
+  "head": "72f34d8b1cca",
+  "tag": "v0.2.2",
   "dsh_version": "0.2.2-rc.2",
   "python": "3.12.3",
   "node": "24.22.3",
   "tarball": {
-    "file": "dist/dsh-project-flow-explainer-0.2.1.tgz",
-    "version": "0.2.1",
-    "sha256": "733148d440b3a464356ade5b71bc9b44926bfdfafa666e694cae0835a5210e84",
+    "file": "dist/dsh-project-flow-explainer-0.2.2.tgz",
+    "version": "0.2.2",
+    "sha256": "332f692a686256035df8454cb2330b8d688b4927c07550a6a0b335d8e9eaf2e5",
     "files": 9
   },
   "checks": [
@@ -16,7 +16,7 @@
       "name": "python-unittest",
       "command": "python3 -m unittest discover -s tests -v",
       "result": "pass",
-      "count": 33,
+      "count": 35,
       "log": "artifacts/review/20261119-2138-self-test.log"
     },
     {
@@ -97,6 +97,20 @@
       "console_errors": 0,
       "external_requests": 0,
       "log": "artifacts/review/20261119-2139-ui.json"
+    },
+    {
+      "name": "real-project-run",
+      "command": "build_flow.py on ~/Documents/Tudonghoa/TienAnAuto",
+      "result": "pass",
+      "counts": {
+        "verified": 10,
+        "partial": 3,
+        "inferred": 1,
+        "unknown": 0
+      },
+      "nodes": 14,
+      "outside_flow": 2,
+      "log": "artifacts/review/real-project-run.json"
     }
   ],
   "known_gaps": [

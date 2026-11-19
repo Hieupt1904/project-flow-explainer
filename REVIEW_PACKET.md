@@ -6,8 +6,8 @@ Mọi con số dưới đây đều có log/ảnh tương ứng trong `artifacts
 | Mục | Giá trị |
 |---|---|
 | Repo | `https://github.com/Hieupt1904/project-flow-explainer` |
-| HEAD code được test | `2606e88` (tag `v0.2.1`); commit chứa packet này là commit kế tiếp, chỉ thêm tài liệu + log |
-| Release | `v0.2.1` — asset `dsh-project-flow-explainer-0.2.1.tgz` (37 589 byte, sha256 `733148d4…10e84`) |
+| HEAD code được test | `72f34d8` (tag `v0.2.2`); commit chứa packet này là commit kế tiếp, chỉ thêm tài liệu + log |
+| Release | `v0.2.2` — asset `dsh-project-flow-explainer-0.2.2.tgz` (38 183 byte, sha256 `332f692a…af2e5`) |
 | DSH đã kiểm chứng | `0.2.2-rc.2` |
 | Python / Node | 3.12.3 / v24.22.3 (CI thêm Node 20) |
 | Trạng thái tự test | **PASS** — 35 unittest, 16 adapter, 2 pack, policy OK, DSH smoke OK, UI 7/7 tổ hợp sạch |
@@ -72,6 +72,7 @@ dsh --profile pfe-test --dump-config | grep -A6 project-flow-explainer
 | 8 | Artifact policy âm tính | `out-dir = .`, `src`, `../outside` → `invalid_artifact_root` | §9 |
 | 9 | DSH thật với **bản phát hành 0.2.1** | tool trong registry, gọi `ok`, 4 artifact, không secret, `duplicates: []` | `*-dsh-smoke.log` §10 |
 | 10 | UI `flow.html` | 7 tổ hợp (shop/self/empty × 3 viewport): `labelOverCard 0`, card chồng 0, tràn ngang 0, console error 0, request ngoài 0 | `*-ui.json` + `artifacts/ui-verification/*.png` |
+| 11 | Chạy dự án thật | 14 node, 10 verified / 3 partial / 1 inferred, 2 file ngoài luồng đúng thực tế | `real-project-run.json`, `real-tienanauto-1440x900.png` |
 
 ## 4. Bản đồ bằng chứng
 
@@ -114,6 +115,9 @@ không import `_xls` (chỉ dùng `_xlsio`).
 
 Giới hạn đã ghi trong `limits`: thứ tự bước phản ánh quan hệ import, **không** phải thứ tự thực thi
 runtime — nhãn cạnh vì vậy đổi thành "dùng module" thay cho "gọi tiếp".
+
+Số liệu máy đọc của lần chạy này: [artifacts/review/real-project-run.json](artifacts/review/real-project-run.json)
+(node, cạnh, file ngoài luồng, limits — đường dẫn đều tương đối).
 
 ## 5. Những chỗ **chưa** làm được (đừng coi là đã xong)
 

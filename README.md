@@ -1,5 +1,10 @@
 # Project Flow Explainer
 
+> **Đang review?** Bắt đầu từ [REVIEW_PACKET.md](REVIEW_PACKET.md) — kiến trúc, lệnh chạy lại,
+> bảng kết quả tự test, bản đồ bằng chứng, danh sách việc chưa làm và checklist để tấn công.
+> Số liệu máy đọc: [artifacts/review/results.json](artifacts/review/results.json).
+> Bản phát hành mới nhất: [v0.2.2](https://github.com/Hieupt1904/project-flow-explainer/releases/tag/v0.2.2).
+
 Bộ skill tích hợp 4 module: đọc repository → truy vết flow → viết dễ hiểu → dựng HTML. Các file trong `references/` đóng vai trò prompt/tài liệu module; `scripts/render_flow.py` là renderer offline dùng chung.
 
 ## Dành cho người dùng
