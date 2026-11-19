@@ -34,6 +34,25 @@ của máy cá nhân (trước đây là đường dẫn tuyệt đối của m�
 Bản sửa thêm `scaleX = (vw-46)/(maxX-minX)`; đo lại: 768×1024 zoom 94%, **0 card bị cắt**
 (trước: 1 card).
 
+### UI-003 — Nhãn cạnh bị card che (đã sửa)
+
+- Viewport: 1242×756 (đúng khung người dùng báo), tái hiện ở cả 3 sample.
+- Hiện tượng: nhãn cạnh nằm **dưới** lớp card nên mất chữ — đo được 2 nhãn giao card:
+  "bắt đầu xử lý" (đè lên card `step-1`) và "vào bước xử lý" (đè lên `decision-server-js`).
+- Nguyên nhân: `drawEdges()` đặt nhãn ở một điểm cố định trên đường cong (26% chiều dài, lệch 14px).
+  Khi hai card cách nhau hẹp hơn bề rộng nhãn, điểm đó luôn rơi vào trong card; lớp card vẽ sau nên che chữ.
+- Sửa trong `assets/workflow_template.html`:
+  - `labelBox()` tính đúng bề rộng nhãn (dùng chung cho đo và vẽ);
+  - `nodeRects()` lấy hình chữ nhật thật của mọi card (kèm `offsetHeight`);
+  - `pickLabelPoint()` lấy điểm trên path bằng `getPointAtLength()` tại 7 mốc, thử lệch dọc ±24…±64 px,
+    rồi tới hai anchor trên/dưới cặp card; chỉ nhận điểm không giao card nào (đệm 6 px).
+  - `placeLabel()` dùng chung `labelBox()` nên hộp vẽ và hộp đo không lệch nhau.
+- Retest: 7 tổ hợp (3 sample × 3 viewport) → `labelOverCard: 0`, `cardOverlap: false`,
+  tràn ngang 0 px, console error 0.
+- Ảnh trước/sau: [shop-1242x756-label-fix.png](artifacts/ui-verification/shop-1242x756-label-fix.png)
+  (sau sửa); các ảnh `shop-*`/`self-*`/`empty-*` đã chụp lại bằng template mới.
+- Chống tái phát: test `test_edge_labels_avoid_node_cards` khoá việc template phải đi qua `pickLabelPoint`.
+
 ### UI-002 — "Toàn cảnh" co còn 34% với chuỗi 8 node
 
 Giữ nguyên đánh giá: trade-off thiết kế, không phải lỗi. "Toàn cảnh" là chế độ tổng quan; người dùng

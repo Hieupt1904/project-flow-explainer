@@ -50,6 +50,13 @@ class RenderFlowTests(unittest.TestCase):
         self.assertNotIn("</script><img", html)
         self.assertIn("\\u003c/script\\u003e", html)
 
+    def test_edge_labels_avoid_node_cards(self):
+        """Guard the UI-003 fix: labels are placed through pickLabelPoint."""
+        template = (ROOT / "assets" / "workflow_template.html").read_text(encoding="utf-8")
+        self.assertIn("function pickLabelPoint", template)
+        self.assertIn("pickLabelPoint(pathEl", template)
+        self.assertNotIn("placeLabel(group,labelX,labelY", template)
+
     def test_auto_layout_for_missing_coordinates(self):
         f = copy.deepcopy(self.flow)
         for node in f["nodes"]:
