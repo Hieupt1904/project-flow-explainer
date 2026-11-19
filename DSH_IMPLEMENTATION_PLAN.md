@@ -3,7 +3,7 @@
 Trạng thái sau pass review: **7/8 task review DONE; TASK 4 (smoke DSH thật) BLOCKED chờ phê duyệt cài**
 (chi tiết: [FINAL_REPORT.md](FINAL_REPORT.md)).
 
-Cập nhật: 2026-11-19 · commit code của pass review: `PENDING-CODE-SHA` · nhánh `main`.
+Cập nhật: 2026-11-19 · commit code của pass review: `797401a61f9b` · nhánh `main`.
 
 ---
 

@@ -110,4 +110,4 @@ Trạng thái: **toàn bộ test tự động PASS**. Chỉ TASK 4 (smoke trong 
 
 Sau mỗi thay đổi: `python3 -m unittest discover -s tests` → `node --test dsh-plugin/tests/*.test.mjs`
 → `python3 scripts/check_repo_policy.py`. Lần chạy cuối: 32 / 16 / 2 pass, policy OK, trên commit
-`PENDING-CODE-SHA`.
+`797401a61f9b`.

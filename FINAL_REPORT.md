@@ -6,7 +6,7 @@ Lý do duy nhất: **TASK 4 (smoke trong DSH thật) đang BLOCKED** vì bước
 
 | Mục | Giá trị |
 |---|---|
-| Commit code + test của pass review | `PENDING-CODE-SHA` |
+| Commit code + test của pass review | `797401a61f9b` |
 | Commit báo cáo | commit kế tiếp (chỉ sửa tài liệu) |
 | DSH đã kiểm chứng | `0.2.2-rc.2`, profile `web` (chỉ đọc, không cài gì) |
 | Python / Node | 3.12.3 / v24.22.3 (và ma trận Node 20 trong CI) |
