@@ -1,6 +1,6 @@
 # TEST_REPORT
 
-Sinh từ lần chạy thật trên commit `13a2c49e4942` + thay đổi chưa commit của pass 0.3.0.
+Sinh từ lần chạy thật trên commit `bd02147` (code 0.3.0); commit kế tiếp chỉ chứa bằng chứng.
 Máy đọc: [artifacts/review/evidence-manifest.json](artifacts/review/evidence-manifest.json).
 Môi trường: Ubuntu 24.04 · Python 3.12.3 · Node v24.22.3 · DSH 0.2.2-rc.2 · 2026-11-19.
 

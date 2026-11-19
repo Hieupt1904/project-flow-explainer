@@ -6,7 +6,7 @@ Mọi con số đều có log/artifact tương ứng, sinh từ cùng một comm
 | Mục | Giá trị |
 |---|---|
 | Repo | `https://github.com/Hieupt1904/project-flow-explainer` |
-| Commit nguồn | `13a2c49e4942` + thay đổi chưa commit của pass 0.3.0 |
+| Commit nguồn | `bd02147` (code 0.3.0); commit kế tiếp chỉ chứa bằng chứng |
 | Package version | `0.3.0` (`engines.dsh: 0.2.2-rc.2`) |
 | Tarball | `dsh-project-flow-explainer-0.3.0.tgz` · 84 670 byte · 25 entry · sha256 `b3647435…20bf581c` |
 | Test | 116 Python · 16 adapter · 9 knowledge tool · 2 pack — 0 fail |

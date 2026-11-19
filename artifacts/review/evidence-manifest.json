@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-11-19T23:09:46+07:00",
+  "generated_at": "2026-11-19T23:10:17+07:00",
   "generator": "scripts/regen_evidence.py",
-  "source_commit": "13a2c49e4942f0db83e15966c358d4b31f6ab6ba",
+  "source_commit": "bd0214776ae7f468950abdbd2d83b882b2f91ac8",
   "source_branch": "main",
   "working_tree_dirty": true,
   "package_version": "0.3.0",
@@ -50,22 +50,22 @@
   },
   "policy": {
     "ok": true,
-    "summary": "OK: 67 file đã kiểm tra · không có absolute path, nested artifacts hay secret"
+    "summary": "OK: 65 file đã kiểm tra · không có absolute path, nested artifacts hay secret"
   },
   "benchmark": {
     "files": 2000,
     "source_bytes": 942071,
-    "scan_ms": 599.3,
+    "scan_ms": 631.9,
     "scan_files": 2001,
     "budget_notes": [],
-    "index_full_ms": 1392.3,
-    "index_incremental_ms": 434.9,
+    "index_full_ms": 1383.1,
+    "index_incremental_ms": 419.3,
     "files_parsed_full": 2001,
     "files_parsed_incremental": 0,
     "entities": 20003,
     "facts": 20001,
     "db_bytes": 15548416,
-    "rss_mb": 68.7,
+    "rss_mb": 68.0,
     "limits": {
       "max_files_scanned": 20000,
       "max_total_source_bytes": 33554432,
@@ -118,14 +118,14 @@
     ]
   },
   "logs": {
-    "python_log": "20261119-2309-python-tests.log",
-    "adapter_log": "20261119-2309-node-adapter.log",
-    "knowledge_log": "20261119-2309-node-knowledge.log",
-    "pack_log": "20261119-2309-node-pack.log",
-    "policy_log": "20261119-2309-policy.log",
-    "bundle_log": "20261119-2309-pack-build.log",
-    "bench_log": "20261119-2309-bench.json",
-    "consistency_log": "20261119-2309-consistency.log"
+    "python_log": "20261119-2310-python-tests.log",
+    "adapter_log": "20261119-2310-node-adapter.log",
+    "knowledge_log": "20261119-2310-node-knowledge.log",
+    "pack_log": "20261119-2310-node-pack.log",
+    "policy_log": "20261119-2310-policy.log",
+    "bundle_log": "20261119-2310-pack-build.log",
+    "bench_log": "20261119-2310-bench.json",
+    "consistency_log": "20261119-2310-consistency.log"
   },
   "classification": {
     "confirmed": [

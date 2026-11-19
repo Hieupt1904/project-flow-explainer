@@ -6,7 +6,7 @@ và profile không có API key.
 
 | Mục | Giá trị |
 |---|---|
-| Commit nguồn khi sinh bằng chứng | `13a2c49e4942` + thay đổi chưa commit của pass này |
+| Commit nguồn khi sinh bằng chứng | `bd02147` (commit code 0.3.0); commit kế tiếp chỉ chứa bằng chứng |
 | Package version | `0.3.0` |
 | `engines.dsh` | `0.2.2-rc.2` |
 | DSH đã cài (chưa nâng cấp) | `0.2.2-rc.2`, profile `pfe-test` còn bundle 0.2.2 |
