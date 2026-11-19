@@ -1,0 +1,22 @@
+## 7. CLI smoke trên fixture copy
+status: ok | flow: giai-thich-tu-luc-nguoi-dung-04f9c7
+counts: {'verified': 5, 'partial': 3, 'inferred': 0, 'unknown': 0} | files_scanned: 6
+related: ['jobs/export_worker.py', 'routes/preview.js']
+paths: {'flow_json': 'flows/giai-thich-tu-luc-nguoi-dung-04f9c7/flow.json', 'flow_html': 'flows/giai-thich-tu-luc-nguoi-dung-04f9c7/flow.html', 'overview': 'flows/giai-thich-tu-luc-nguoi-dung-04f9c7/overview.md', 'run': 'flows/giai-thich-tu-luc-nguoi-dung-04f9c7/run.json'}
+
+--- secret leak check ---
+no secret in artifacts
+
+--- artifact dir ---
+/tmp/pfe-review/shop-app/artifacts/flows/giai-thich-tu-luc-nguoi-dung-04f9c7/flow.html
+/tmp/pfe-review/shop-app/artifacts/flows/giai-thich-tu-luc-nguoi-dung-04f9c7/flow.json
+/tmp/pfe-review/shop-app/artifacts/flows/giai-thich-tu-luc-nguoi-dung-04f9c7/overview.md
+/tmp/pfe-review/shop-app/artifacts/flows/giai-thich-tu-luc-nguoi-dung-04f9c7/run.json
+
+## 8. core độc lập (không có dsh-plugin)
+core-only status: ok | counts: {'verified': 5, 'partial': 3, 'inferred': 0, 'unknown': 0}
+
+## 9. artifact policy âm tính
+out-dir='.' -> invalid_artifact_root
+out-dir='src' -> invalid_artifact_root
+out-dir='../outside' -> invalid_artifact_root

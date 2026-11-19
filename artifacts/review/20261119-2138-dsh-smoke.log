@@ -1,0 +1,28 @@
+## 10. Smoke bản phát hành 0.2.1 trong DSH thật (profile pfe-test)
+DSH: 0.2.2-rc.2
+
+Done in 18ms using pnpm v12.5.1
+Done in 23ms using pnpm v12.5.1
+--- bundle list ---
+['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-headless', 'dsh-project-flow-explainer', 'pfe-probe']
+--- installed version ---
+0.2.1
+--- vendor template has label fix ---
+2
+registered: True | duplicates: []
+call.ok: True | code: None
+flow_id: giai-thich-tu-luc-nguoi-dung-04f9c7 | counts: {'verified': 5, 'partial': 3, 'inferred': 0, 'unknown': 0} | related: 2
+   flow_json True
+   flow_html True
+   overview True
+   run True
+--- artifacts trên đĩa ---
+/tmp/pfe-review/shop-app/artifacts/flows/giai-thich-tu-luc-nguoi-dung-04f9c7/flow.html
+/tmp/pfe-review/shop-app/artifacts/flows/giai-thich-tu-luc-nguoi-dung-04f9c7/flow.json
+--- secret trong artifact ---
+no secret
+--- dọn: remove plugin + probe ---
+Done in 35ms using pnpm v12.5.1
+Done in 13ms using pnpm v12.5.1
+--- trạng thái profile sau dọn ---
+['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-headless']

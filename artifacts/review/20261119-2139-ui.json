@@ -1,0 +1,9 @@
+[
+ {"case":"shop","viewport":"1440x900","cards":8,"labels":8,"labelOverCard":0,"cardOverlap":false,"overflowX":0,"errors":[],"external":[]},
+ {"case":"shop","viewport":"768x1024","cards":8,"labels":8,"labelOverCard":0,"cardOverlap":false,"overflowX":0,"errors":[],"external":[]},
+ {"case":"shop","viewport":"375x812","cards":8,"labels":8,"labelOverCard":0,"cardOverlap":false,"overflowX":0,"errors":[],"external":[]},
+ {"case":"self","viewport":"1440x900","cards":6,"labels":6,"labelOverCard":0,"cardOverlap":false,"overflowX":0,"errors":[],"external":[]},
+ {"case":"self","viewport":"375x812","cards":6,"labels":6,"labelOverCard":0,"cardOverlap":false,"overflowX":0,"errors":[],"external":[]},
+ {"case":"empty","viewport":"1440x900","cards":2,"labels":1,"labelOverCard":0,"cardOverlap":false,"overflowX":0,"errors":[],"external":[]},
+ {"case":"empty","viewport":"375x812","cards":2,"labels":1,"labelOverCard":0,"cardOverlap":false,"overflowX":0,"errors":[],"external":[]}
+]
