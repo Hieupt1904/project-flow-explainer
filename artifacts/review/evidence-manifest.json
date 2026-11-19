@@ -1,27 +1,30 @@
 {
-  "generated_at": "2026-11-19T23:10:17+07:00",
+  "generated_at": "2026-11-19T23:47:51+07:00",
   "generator": "scripts/regen_evidence.py",
-  "source_commit": "bd0214776ae7f468950abdbd2d83b882b2f91ac8",
+  "source_commit": "fab326518e7f46a8f63fdb48f8c1936558190338",
   "source_branch": "main",
-  "working_tree_dirty": true,
-  "package_version": "0.3.0",
+  "working_tree_dirty": false,
+  "evidence_files_changed": 23,
+  "dirty_semantics": "working_tree_dirty chỉ tính file ngoài artifacts/review; evidence_files_changed là số file bằng chứng do lần chạy này sinh.",
+  "package_version": "0.4.0",
   "engines_dsh": "0.2.2-rc.2",
   "dsh_version": "0.2.2-rc.2",
   "python_version": "3.12.3",
   "node_version": "v24.22.3",
   "tests": {
-    "python": 116,
+    "python": 142,
     "adapter": 16,
     "knowledge_tools": 9,
+    "lifecycle": 7,
     "pack": 2,
     "failures": 0,
     "adapter_engine_failures": 0
   },
   "tarball": {
-    "filename": "dsh-project-flow-explainer-0.3.0.tgz",
-    "path": "dist/dsh-project-flow-explainer-0.3.0.tgz",
-    "bytes": 84670,
-    "sha256": "b3647435f63c1d7b98259a84740cecf11b6b3034e2634e1c9e8669e220bf581c",
+    "filename": "dsh-project-flow-explainer-0.4.0.tgz",
+    "path": "dist/dsh-project-flow-explainer-0.4.0.tgz",
+    "bytes": 93626,
+    "sha256": "c5dd93fdef48efaa6c411827ebbdf5757c2f61535b4abfe8fd8ac52bbec41463",
     "entry_count": 25,
     "contains_cli": true,
     "contains_knowledge": true
@@ -39,33 +42,36 @@
     "status": "pass",
     "combinations": 12,
     "summary": {
-      "horizontal_overflow": 0,
+      "overflow": 0,
       "card_overlap": 0,
       "label_over_card": 0,
+      "clipped_headers": 0,
       "console_errors": 0,
       "external_requests": 0,
-      "clipped_headers": 0
+      "simple_stage_min": 3,
+      "simple_stage_max": 7
     },
+    "problems": [],
     "log": "20261119-ui.json"
   },
   "policy": {
     "ok": true,
-    "summary": "OK: 65 file đã kiểm tra · không có absolute path, nested artifacts hay secret"
+    "summary": "OK: 71 file đã kiểm tra · không có absolute path, nested artifacts hay secret"
   },
   "benchmark": {
     "files": 2000,
     "source_bytes": 942071,
-    "scan_ms": 631.9,
+    "scan_ms": 707.3,
     "scan_files": 2001,
     "budget_notes": [],
-    "index_full_ms": 1383.1,
-    "index_incremental_ms": 419.3,
+    "index_full_ms": 1966.9,
+    "index_incremental_ms": 465.5,
     "files_parsed_full": 2001,
     "files_parsed_incremental": 0,
     "entities": 20003,
     "facts": 20001,
-    "db_bytes": 15548416,
-    "rss_mb": 68.0,
+    "db_bytes": 15601664,
+    "rss_mb": 68.7,
     "limits": {
       "max_files_scanned": 20000,
       "max_total_source_bytes": 33554432,
@@ -118,14 +124,15 @@
     ]
   },
   "logs": {
-    "python_log": "20261119-2310-python-tests.log",
-    "adapter_log": "20261119-2310-node-adapter.log",
-    "knowledge_log": "20261119-2310-node-knowledge.log",
-    "pack_log": "20261119-2310-node-pack.log",
-    "policy_log": "20261119-2310-policy.log",
-    "bundle_log": "20261119-2310-pack-build.log",
-    "bench_log": "20261119-2310-bench.json",
-    "consistency_log": "20261119-2310-consistency.log"
+    "python_log": "20261119-2347-python-tests.log",
+    "adapter_log": "20261119-2347-node-adapter.log",
+    "knowledge_log": "20261119-2347-node-knowledge.log",
+    "lifecycle_log": "20261119-2347-node-lifecycle.log",
+    "pack_log": "20261119-2347-node-pack.log",
+    "policy_log": "20261119-2347-policy.log",
+    "bundle_log": "20261119-2347-pack-build.log",
+    "bench_log": "20261119-2347-bench.json",
+    "consistency_log": "20261119-2347-consistency.log"
   },
   "classification": {
     "confirmed": [
@@ -152,15 +159,6 @@
   "consistency_recheck": {
     "ok": true,
     "note": "chạy lại toàn bộ unittest sau khi manifest được ghi",
-    "ran": 116
-  },
-  "ci": {
-    "run_id": "44563079783",
-    "commit": "9195956",
-    "conclusion": "success",
-    "jobs": 4,
-    "url": "https://github.com/Hieupt1904/project-flow-explainer/actions/runs/44563079783",
-    "recorded_at": "2026-11-19T23:11:44+07:00",
-    "note": "CI chạy trên commit chứa chính manifest này; commit kế tiếp chỉ thêm run id."
+    "ran": 142
   }
 }

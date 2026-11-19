@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-11-19T15:54:21.418Z",
-  "method": "ego browser (CDP), file:// load, addScriptToEvaluateOnNewDocument for error capture",
+  "generated_at": "2026-11-19T16:43:41.087Z",
+  "method": "ego browser (CDP); simple view default, technical measured after switch",
   "viewports": [
     "1440x900",
-    "1024x768",
+    "1280x800",
     "768x1024",
     "375x812"
   ],
@@ -14,214 +14,524 @@
   ],
   "combinations": 12,
   "interactions": {
-    "searchCount": "Tìm thấy 1/6",
-    "muted": 5,
-    "asideTitle": "Chi tiết bước đang chọn",
+    "stageCount": 4,
+    "asideAfterStage": "Chi tiết bước đang chọn",
+    "searchCount": "Tìm thấy 1/4",
+    "visibleStages": 1,
+    "afterClear": 4,
     "zoomBefore": "102%",
-    "zoomAfter": "140%",
-    "zoomAfterFit": "40%",
+    "zoomAfter": "119%",
+    "zoomFit": "40%",
+    "backToSimple": true,
     "errors": []
   },
   "results": [
     {
       "viewport": "1440x900",
       "sample": "shop",
-      "innerWidth": 1440,
-      "innerHeight": 900,
-      "scrollWidth": 1425,
-      "horizontalOverflow": false,
-      "cards": 6,
-      "cardOverlaps": 0,
-      "labels": 5,
-      "labelOverCard": 0,
-      "externalResources": [],
-      "errors": [],
-      "zoom": "102%",
-      "clippedHeaders": 0
+      "simple": {
+        "stages": 4,
+        "stageTitles": [
+          "Nhận yêu cầu /api/reports/export",
+          "3 bước xử lý",
+          "Trả kết quả",
+          "1 điểm cần xác nhận"
+        ],
+        "cards": 6,
+        "cardOverlaps": 0,
+        "labelOverCard": 0,
+        "clippedHeaders": 0,
+        "overflow": false,
+        "zoom": "55%",
+        "simpleVisible": true,
+        "errors": [],
+        "external": []
+      },
+      "technical": {
+        "stages": 4,
+        "stageTitles": [
+          "Nhận yêu cầu /api/reports/export",
+          "3 bước xử lý",
+          "Trả kết quả",
+          "1 điểm cần xác nhận"
+        ],
+        "cards": 6,
+        "cardOverlaps": 0,
+        "labelOverCard": 0,
+        "clippedHeaders": 0,
+        "overflow": false,
+        "zoom": "102%",
+        "simpleVisible": false,
+        "errors": [],
+        "external": []
+      }
     },
     {
       "viewport": "1440x900",
       "sample": "self",
-      "innerWidth": 1440,
-      "innerHeight": 900,
-      "scrollWidth": 1425,
-      "horizontalOverflow": false,
-      "cards": 13,
-      "cardOverlaps": 0,
-      "labels": 12,
-      "labelOverCard": 0,
-      "externalResources": [],
-      "errors": [],
-      "zoom": "102%",
-      "clippedHeaders": 0
+      "simple": {
+        "stages": 7,
+        "stageTitles": [
+          "Bắt đầu tại main",
+          "6 bước xử lý",
+          "Có lỗi trong bước này?",
+          "Có lỗi trong bước này?",
+          "Kết thúc xử lý",
+          "2 nhánh lỗi",
+          "2 điểm cần xác nhận"
+        ],
+        "cards": 13,
+        "cardOverlaps": 0,
+        "labelOverCard": 0,
+        "clippedHeaders": 0,
+        "overflow": false,
+        "zoom": "55%",
+        "simpleVisible": true,
+        "errors": [],
+        "external": []
+      },
+      "technical": {
+        "stages": 7,
+        "stageTitles": [
+          "Bắt đầu tại main",
+          "6 bước xử lý",
+          "Có lỗi trong bước này?",
+          "Có lỗi trong bước này?",
+          "Kết thúc xử lý",
+          "2 nhánh lỗi",
+          "2 điểm cần xác nhận"
+        ],
+        "cards": 13,
+        "cardOverlaps": 0,
+        "labelOverCard": 0,
+        "clippedHeaders": 0,
+        "overflow": false,
+        "zoom": "102%",
+        "simpleVisible": false,
+        "errors": [],
+        "external": []
+      }
     },
     {
       "viewport": "1440x900",
       "sample": "empty",
-      "innerWidth": 1440,
-      "innerHeight": 900,
-      "scrollWidth": 1425,
-      "horizontalOverflow": false,
-      "cards": 2,
-      "cardOverlaps": 0,
-      "labels": 1,
-      "labelOverCard": 0,
-      "externalResources": [],
-      "errors": [],
-      "zoom": "102%",
-      "clippedHeaders": 0
+      "simple": {
+        "stages": 3,
+        "stageTitles": [
+          "Bắt đầu từ yêu cầu",
+          "Không tìm thấy mã nguồn liên quan",
+          "1 điểm cần xác nhận"
+        ],
+        "cards": 2,
+        "cardOverlaps": 0,
+        "labelOverCard": 0,
+        "clippedHeaders": 0,
+        "overflow": false,
+        "zoom": "55%",
+        "simpleVisible": true,
+        "errors": [],
+        "external": []
+      },
+      "technical": {
+        "stages": 3,
+        "stageTitles": [
+          "Bắt đầu từ yêu cầu",
+          "Không tìm thấy mã nguồn liên quan",
+          "1 điểm cần xác nhận"
+        ],
+        "cards": 2,
+        "cardOverlaps": 0,
+        "labelOverCard": 0,
+        "clippedHeaders": 0,
+        "overflow": false,
+        "zoom": "102%",
+        "simpleVisible": false,
+        "errors": [],
+        "external": []
+      }
     },
     {
-      "viewport": "1024x768",
+      "viewport": "1280x800",
       "sample": "shop",
-      "innerWidth": 1024,
-      "innerHeight": 768,
-      "scrollWidth": 1009,
-      "horizontalOverflow": false,
-      "cards": 6,
-      "cardOverlaps": 0,
-      "labels": 5,
-      "labelOverCard": 0,
-      "externalResources": [],
-      "errors": [],
-      "zoom": "80%",
-      "clippedHeaders": 0
+      "simple": {
+        "stages": 4,
+        "stageTitles": [
+          "Nhận yêu cầu /api/reports/export",
+          "3 bước xử lý",
+          "Trả kết quả",
+          "1 điểm cần xác nhận"
+        ],
+        "cards": 6,
+        "cardOverlaps": 0,
+        "labelOverCard": 0,
+        "clippedHeaders": 0,
+        "overflow": false,
+        "zoom": "55%",
+        "simpleVisible": true,
+        "errors": [],
+        "external": []
+      },
+      "technical": {
+        "stages": 4,
+        "stageTitles": [
+          "Nhận yêu cầu /api/reports/export",
+          "3 bước xử lý",
+          "Trả kết quả",
+          "1 điểm cần xác nhận"
+        ],
+        "cards": 6,
+        "cardOverlaps": 0,
+        "labelOverCard": 0,
+        "clippedHeaders": 0,
+        "overflow": false,
+        "zoom": "102%",
+        "simpleVisible": false,
+        "errors": [],
+        "external": []
+      }
     },
     {
-      "viewport": "1024x768",
+      "viewport": "1280x800",
       "sample": "self",
-      "innerWidth": 1024,
-      "innerHeight": 768,
-      "scrollWidth": 1009,
-      "horizontalOverflow": false,
-      "cards": 13,
-      "cardOverlaps": 0,
-      "labels": 12,
-      "labelOverCard": 0,
-      "externalResources": [],
-      "errors": [],
-      "zoom": "80%",
-      "clippedHeaders": 0
+      "simple": {
+        "stages": 7,
+        "stageTitles": [
+          "Bắt đầu tại main",
+          "6 bước xử lý",
+          "Có lỗi trong bước này?",
+          "Có lỗi trong bước này?",
+          "Kết thúc xử lý",
+          "2 nhánh lỗi",
+          "2 điểm cần xác nhận"
+        ],
+        "cards": 13,
+        "cardOverlaps": 0,
+        "labelOverCard": 0,
+        "clippedHeaders": 0,
+        "overflow": false,
+        "zoom": "55%",
+        "simpleVisible": true,
+        "errors": [],
+        "external": []
+      },
+      "technical": {
+        "stages": 7,
+        "stageTitles": [
+          "Bắt đầu tại main",
+          "6 bước xử lý",
+          "Có lỗi trong bước này?",
+          "Có lỗi trong bước này?",
+          "Kết thúc xử lý",
+          "2 nhánh lỗi",
+          "2 điểm cần xác nhận"
+        ],
+        "cards": 13,
+        "cardOverlaps": 0,
+        "labelOverCard": 0,
+        "clippedHeaders": 0,
+        "overflow": false,
+        "zoom": "102%",
+        "simpleVisible": false,
+        "errors": [],
+        "external": []
+      }
     },
     {
-      "viewport": "1024x768",
+      "viewport": "1280x800",
       "sample": "empty",
-      "innerWidth": 1024,
-      "innerHeight": 768,
-      "scrollWidth": 1009,
-      "horizontalOverflow": false,
-      "cards": 2,
-      "cardOverlaps": 0,
-      "labels": 1,
-      "labelOverCard": 0,
-      "externalResources": [],
-      "errors": [],
-      "zoom": "80%",
-      "clippedHeaders": 0
+      "simple": {
+        "stages": 3,
+        "stageTitles": [
+          "Bắt đầu từ yêu cầu",
+          "Không tìm thấy mã nguồn liên quan",
+          "1 điểm cần xác nhận"
+        ],
+        "cards": 2,
+        "cardOverlaps": 0,
+        "labelOverCard": 0,
+        "clippedHeaders": 0,
+        "overflow": false,
+        "zoom": "55%",
+        "simpleVisible": true,
+        "errors": [],
+        "external": []
+      },
+      "technical": {
+        "stages": 3,
+        "stageTitles": [
+          "Bắt đầu từ yêu cầu",
+          "Không tìm thấy mã nguồn liên quan",
+          "1 điểm cần xác nhận"
+        ],
+        "cards": 2,
+        "cardOverlaps": 0,
+        "labelOverCard": 0,
+        "clippedHeaders": 0,
+        "overflow": false,
+        "zoom": "102%",
+        "simpleVisible": false,
+        "errors": [],
+        "external": []
+      }
     },
     {
       "viewport": "768x1024",
       "sample": "shop",
-      "innerWidth": 768,
-      "innerHeight": 1024,
-      "scrollWidth": 753,
-      "horizontalOverflow": false,
-      "cards": 6,
-      "cardOverlaps": 0,
-      "labels": 5,
-      "labelOverCard": 0,
-      "externalResources": [],
-      "errors": [],
-      "zoom": "94%",
-      "clippedHeaders": 0
+      "simple": {
+        "stages": 4,
+        "stageTitles": [
+          "Nhận yêu cầu /api/reports/export",
+          "3 bước xử lý",
+          "Trả kết quả",
+          "1 điểm cần xác nhận"
+        ],
+        "cards": 6,
+        "cardOverlaps": 0,
+        "labelOverCard": 0,
+        "clippedHeaders": 0,
+        "overflow": false,
+        "zoom": "55%",
+        "simpleVisible": true,
+        "errors": [],
+        "external": []
+      },
+      "technical": {
+        "stages": 4,
+        "stageTitles": [
+          "Nhận yêu cầu /api/reports/export",
+          "3 bước xử lý",
+          "Trả kết quả",
+          "1 điểm cần xác nhận"
+        ],
+        "cards": 6,
+        "cardOverlaps": 0,
+        "labelOverCard": 0,
+        "clippedHeaders": 0,
+        "overflow": false,
+        "zoom": "94%",
+        "simpleVisible": false,
+        "errors": [],
+        "external": []
+      }
     },
     {
       "viewport": "768x1024",
       "sample": "self",
-      "innerWidth": 768,
-      "innerHeight": 1024,
-      "scrollWidth": 753,
-      "horizontalOverflow": false,
-      "cards": 13,
-      "cardOverlaps": 0,
-      "labels": 12,
-      "labelOverCard": 0,
-      "externalResources": [],
-      "errors": [],
-      "zoom": "94%",
-      "clippedHeaders": 0
+      "simple": {
+        "stages": 7,
+        "stageTitles": [
+          "Bắt đầu tại main",
+          "6 bước xử lý",
+          "Có lỗi trong bước này?",
+          "Có lỗi trong bước này?",
+          "Kết thúc xử lý",
+          "2 nhánh lỗi",
+          "2 điểm cần xác nhận"
+        ],
+        "cards": 13,
+        "cardOverlaps": 0,
+        "labelOverCard": 0,
+        "clippedHeaders": 0,
+        "overflow": false,
+        "zoom": "55%",
+        "simpleVisible": true,
+        "errors": [],
+        "external": []
+      },
+      "technical": {
+        "stages": 7,
+        "stageTitles": [
+          "Bắt đầu tại main",
+          "6 bước xử lý",
+          "Có lỗi trong bước này?",
+          "Có lỗi trong bước này?",
+          "Kết thúc xử lý",
+          "2 nhánh lỗi",
+          "2 điểm cần xác nhận"
+        ],
+        "cards": 13,
+        "cardOverlaps": 0,
+        "labelOverCard": 0,
+        "clippedHeaders": 0,
+        "overflow": false,
+        "zoom": "94%",
+        "simpleVisible": false,
+        "errors": [],
+        "external": []
+      }
     },
     {
       "viewport": "768x1024",
       "sample": "empty",
-      "innerWidth": 768,
-      "innerHeight": 1024,
-      "scrollWidth": 753,
-      "horizontalOverflow": false,
-      "cards": 2,
-      "cardOverlaps": 0,
-      "labels": 1,
-      "labelOverCard": 0,
-      "externalResources": [],
-      "errors": [],
-      "zoom": "94%",
-      "clippedHeaders": 0
+      "simple": {
+        "stages": 3,
+        "stageTitles": [
+          "Bắt đầu từ yêu cầu",
+          "Không tìm thấy mã nguồn liên quan",
+          "1 điểm cần xác nhận"
+        ],
+        "cards": 2,
+        "cardOverlaps": 0,
+        "labelOverCard": 0,
+        "clippedHeaders": 0,
+        "overflow": false,
+        "zoom": "55%",
+        "simpleVisible": true,
+        "errors": [],
+        "external": []
+      },
+      "technical": {
+        "stages": 3,
+        "stageTitles": [
+          "Bắt đầu từ yêu cầu",
+          "Không tìm thấy mã nguồn liên quan",
+          "1 điểm cần xác nhận"
+        ],
+        "cards": 2,
+        "cardOverlaps": 0,
+        "labelOverCard": 0,
+        "clippedHeaders": 0,
+        "overflow": false,
+        "zoom": "94%",
+        "simpleVisible": false,
+        "errors": [],
+        "external": []
+      }
     },
     {
       "viewport": "375x812",
       "sample": "shop",
-      "innerWidth": 375,
-      "innerHeight": 812,
-      "scrollWidth": 375,
-      "horizontalOverflow": false,
-      "cards": 6,
-      "cardOverlaps": 0,
-      "labels": 5,
-      "labelOverCard": 0,
-      "externalResources": [],
-      "errors": [],
-      "zoom": "55%",
-      "clippedHeaders": 0
+      "simple": {
+        "stages": 4,
+        "stageTitles": [
+          "Nhận yêu cầu /api/reports/export",
+          "3 bước xử lý",
+          "Trả kết quả",
+          "1 điểm cần xác nhận"
+        ],
+        "cards": 6,
+        "cardOverlaps": 0,
+        "labelOverCard": 0,
+        "clippedHeaders": 0,
+        "overflow": false,
+        "zoom": "55%",
+        "simpleVisible": true,
+        "errors": [],
+        "external": []
+      },
+      "technical": {
+        "stages": 4,
+        "stageTitles": [
+          "Nhận yêu cầu /api/reports/export",
+          "3 bước xử lý",
+          "Trả kết quả",
+          "1 điểm cần xác nhận"
+        ],
+        "cards": 6,
+        "cardOverlaps": 0,
+        "labelOverCard": 0,
+        "clippedHeaders": 0,
+        "overflow": false,
+        "zoom": "55%",
+        "simpleVisible": false,
+        "errors": [],
+        "external": []
+      }
     },
     {
       "viewport": "375x812",
       "sample": "self",
-      "innerWidth": 375,
-      "innerHeight": 812,
-      "scrollWidth": 375,
-      "horizontalOverflow": false,
-      "cards": 13,
-      "cardOverlaps": 0,
-      "labels": 12,
-      "labelOverCard": 0,
-      "externalResources": [],
-      "errors": [],
-      "zoom": "55%",
-      "clippedHeaders": 0
+      "simple": {
+        "stages": 7,
+        "stageTitles": [
+          "Bắt đầu tại main",
+          "6 bước xử lý",
+          "Có lỗi trong bước này?",
+          "Có lỗi trong bước này?",
+          "Kết thúc xử lý",
+          "2 nhánh lỗi",
+          "2 điểm cần xác nhận"
+        ],
+        "cards": 13,
+        "cardOverlaps": 0,
+        "labelOverCard": 0,
+        "clippedHeaders": 0,
+        "overflow": false,
+        "zoom": "55%",
+        "simpleVisible": true,
+        "errors": [],
+        "external": []
+      },
+      "technical": {
+        "stages": 7,
+        "stageTitles": [
+          "Bắt đầu tại main",
+          "6 bước xử lý",
+          "Có lỗi trong bước này?",
+          "Có lỗi trong bước này?",
+          "Kết thúc xử lý",
+          "2 nhánh lỗi",
+          "2 điểm cần xác nhận"
+        ],
+        "cards": 13,
+        "cardOverlaps": 0,
+        "labelOverCard": 0,
+        "clippedHeaders": 0,
+        "overflow": false,
+        "zoom": "55%",
+        "simpleVisible": false,
+        "errors": [],
+        "external": []
+      }
     },
     {
       "viewport": "375x812",
       "sample": "empty",
-      "innerWidth": 375,
-      "innerHeight": 812,
-      "scrollWidth": 375,
-      "horizontalOverflow": false,
-      "cards": 2,
-      "cardOverlaps": 0,
-      "labels": 1,
-      "labelOverCard": 0,
-      "externalResources": [],
-      "errors": [],
-      "zoom": "55%",
-      "clippedHeaders": 0
+      "simple": {
+        "stages": 3,
+        "stageTitles": [
+          "Bắt đầu từ yêu cầu",
+          "Không tìm thấy mã nguồn liên quan",
+          "1 điểm cần xác nhận"
+        ],
+        "cards": 2,
+        "cardOverlaps": 0,
+        "labelOverCard": 0,
+        "clippedHeaders": 0,
+        "overflow": false,
+        "zoom": "55%",
+        "simpleVisible": true,
+        "errors": [],
+        "external": []
+      },
+      "technical": {
+        "stages": 3,
+        "stageTitles": [
+          "Bắt đầu từ yêu cầu",
+          "Không tìm thấy mã nguồn liên quan",
+          "1 điểm cần xác nhận"
+        ],
+        "cards": 2,
+        "cardOverlaps": 0,
+        "labelOverCard": 0,
+        "clippedHeaders": 0,
+        "overflow": false,
+        "zoom": "55%",
+        "simpleVisible": false,
+        "errors": [],
+        "external": []
+      }
     }
   ],
   "summary": {
-    "horizontal_overflow": 0,
+    "overflow": 0,
     "card_overlap": 0,
     "label_over_card": 0,
+    "clipped_headers": 0,
     "console_errors": 0,
     "external_requests": 0,
-    "clipped_headers": 0
-  }
+    "simple_stage_min": 3,
+    "simple_stage_max": 7
+  },
+  "problems": []
 }

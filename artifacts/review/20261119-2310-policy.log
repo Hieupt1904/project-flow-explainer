@@ -1,8 +1,0 @@
-$ /usr/bin/python3 scripts/check_repo_policy.py
-exit_code: 0
-duration_ms: 61.2
-
---- stdout ---
-OK: 65 file đã kiểm tra · không có absolute path, nested artifacts hay secret
-
---- stderr ---

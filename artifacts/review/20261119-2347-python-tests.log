@@ -1,6 +1,6 @@
 $ /usr/bin/python3 -m unittest discover -s tests -v
 exit_code: 0
-duration_ms: 2045.4
+duration_ms: 3319.5
 
 --- stdout ---
 
@@ -33,6 +33,16 @@ test_symlinked_artifact_directory_is_rejected (test_build_flow.BuildFlowTests.te
 test_sys_path_flat_import_is_resolved_by_unique_basename (test_build_flow.BuildFlowTests.test_sys_path_flat_import_is_resolved_by_unique_basename) ... ok
 test_three_files_are_consistent (test_build_flow.BuildFlowTests.test_three_files_are_consistent) ... ok
 test_verified_nodes_have_location_and_membership (test_build_flow.BuildFlowTests.test_verified_nodes_have_location_and_membership) ... ok
+test_dependency_is_a_real_relation (test_context_pack.DesktopContextPackTests.test_dependency_is_a_real_relation) ... ok
+test_desktop_has_no_invented_http_route (test_context_pack.DesktopContextPackTests.test_desktop_has_no_invented_http_route) ... ok
+test_gui_cli_worker_entry_points (test_context_pack.DesktopContextPackTests.test_gui_cli_worker_entry_points) ... ok
+test_analysis_metadata_present (test_context_pack.WebContextPackTests.test_analysis_metadata_present) ... ok
+test_confidence_fields_are_split (test_context_pack.WebContextPackTests.test_confidence_fields_are_split) ... ok
+test_entry_points_carry_evidence_and_kind (test_context_pack.WebContextPackTests.test_entry_points_carry_evidence_and_kind) ... ok
+test_error_intent_raises_error_case_priority (test_context_pack.WebContextPackTests.test_error_intent_raises_error_case_priority) ... ok
+test_likely_files_and_dependencies_have_paths_and_lines (test_context_pack.WebContextPackTests.test_likely_files_and_dependencies_have_paths_and_lines) ... ok
+test_route_is_a_real_route_entity_not_a_file_name (test_context_pack.WebContextPackTests.test_route_is_a_real_route_entity_not_a_file_name) ... ok
+test_seen_sets_are_separate (test_context_pack.WebContextPackTests.test_seen_sets_are_separate) ... ok
 test_budget_note_reaches_limits (test_flow_evidence.ArtifactWriteTests.test_budget_note_reaches_limits) ... ok
 test_concurrent_same_slug_has_one_winner (test_flow_evidence.ArtifactWriteTests.test_concurrent_same_slug_has_one_winner) ... ok
 test_failure_leaves_no_partial_artifact (test_flow_evidence.ArtifactWriteTests.test_failure_leaves_no_partial_artifact) ... ok
@@ -123,8 +133,24 @@ test_invalid_dangling_edge (test_render_flow.RenderFlowTests.test_invalid_dangli
 test_invalid_unmarked_cycle (test_render_flow.RenderFlowTests.test_invalid_unmarked_cycle) ... ok
 test_invalid_verified_without_source (test_render_flow.RenderFlowTests.test_invalid_verified_without_source) ... ok
 test_sample_graph_valid (test_render_flow.RenderFlowTests.test_sample_graph_valid) ... ok
+test_flow_from_another_working_directory (test_v04_regressions.CliFlowTests.test_flow_from_another_working_directory) ... ok
+test_flow_from_repository_root (test_v04_regressions.CliFlowTests.test_flow_from_repository_root) ... ok
+test_invalid_repository_keeps_stable_code (test_v04_regressions.CliFlowTests.test_invalid_repository_keeps_stable_code) ... ok
+test_missing_request_keeps_stable_code (test_v04_regressions.CliFlowTests.test_missing_request_keeps_stable_code) ... ok
+test_conflict_metadata_is_written_and_read_back (test_v04_regressions.ConflictPersistenceTests.test_conflict_metadata_is_written_and_read_back) ... ok
+test_deleted_and_renamed_still_work (test_v04_regressions.IncrementalCacheRepairTests.test_deleted_and_renamed_still_work) ... ok
+test_graph_is_equivalent_after_repair (test_v04_regressions.IncrementalCacheRepairTests.test_graph_is_equivalent_after_repair) ... ok
+test_malformed_cache_payload_is_repaired (test_v04_regressions.IncrementalCacheRepairTests.test_malformed_cache_payload_is_repaired) ... ok
+test_missing_cache_row_is_repaired (test_v04_regressions.IncrementalCacheRepairTests.test_missing_cache_row_is_repaired) ... ok
+test_hashing_backend_is_declared_lexical (test_v04_regressions.VectorContractTests.test_hashing_backend_is_declared_lexical) ... ok
+test_missing_vector_index_falls_back_with_warning (test_v04_regressions.VectorContractTests.test_missing_vector_index_falls_back_with_warning) ... ok
+test_vectors_are_off_by_default (test_v04_regressions.VectorContractTests.test_vectors_are_off_by_default) ... ok
+test_full_pass_requires_real_gate_evidence (test_v04_regressions.VerifyVerdictTests.test_full_pass_requires_real_gate_evidence) ... ok
+test_no_artifact_is_blocked_not_pass (test_v04_regressions.VerifyVerdictTests.test_no_artifact_is_blocked_not_pass) ... ok
+test_static_failure_is_overall_failure (test_v04_regressions.VerifyVerdictTests.test_static_failure_is_overall_failure) ... ok
+test_static_pass_ui_runtime_blocked_is_partial (test_v04_regressions.VerifyVerdictTests.test_static_pass_ui_runtime_blocked_is_partial) ... ok
 
 ----------------------------------------------------------------------
-Ran 116 tests in 1.958s
+Ran 142 tests in 3.234s
 
 OK
