@@ -22,9 +22,12 @@ const FIXTURE = path.join(REPO_ROOT, 'tests', 'fixtures', 'shop-app')
 const REQUEST = 'Giải thích từ lúc người dùng nhấn xuất báo cáo đến khi nhận được file'
 
 function pack() {
-  const output = execFileSync('node', [path.join(PACKAGE_ROOT, 'scripts', 'pack.mjs')], {
-    cwd: PACKAGE_ROOT, encoding: 'utf8',
-  })
+  // Own output directory: a test must never delete the release artifact.
+  const outDir = mkdtempSync(path.join(os.tmpdir(), 'pfe-pack-out-'))
+  const output = execFileSync('node',
+    [path.join(PACKAGE_ROOT, 'scripts', 'pack.mjs'), '--out', outDir], {
+      cwd: PACKAGE_ROOT, encoding: 'utf8',
+    })
   const line = output.trim().split('\n').filter((entry) => entry.startsWith('{')).pop()
   return JSON.parse(line)
 }

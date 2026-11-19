@@ -12,7 +12,8 @@ Hai lớp, một core:
 |---|---|---|
 | Giải thích flow | **ĐÃ TRIỂN KHAI** | `scripts/build_flow.py`, `pfe/flow.py`, `scripts/render_flow.py`, `assets/workflow_template.html` |
 | Tri thức code | **ĐÃ TRIỂN KHAI** (vector là tùy chọn) | `pfe/facts.py`, `pfe/ontology.py`, `pfe/knowledge.py`, `pfe/index.py`, `pfe/retrieval.py`, `pfe/impact.py`, `pfe/verify.py` |
-| DSH adapter | **ĐÃ TRIỂN KHAI**, smoke registry 0.4.1 **CHƯA XÁC MINH** | `dsh-plugin/` |
+| DSH adapter | **ĐÃ TRIỂN KHAI**; registry-runtime **ĐÃ XÁC MINH** trong profile `pfe-test` (36 tool, 14 check) | `dsh-plugin/` |
+| Model tự chọn tool trong DSH | **CHƯA CHẠY** (không có API key) | — |
 | Panel UI trong Harness | **BLOCKED_UI_API_UNVERIFIED** | chưa có code UI (không nằm trong scope) |
 | DSH native Config schema | **BLOCKED_DSH_CONFIG_NATIVE** | profile không resolve `@deepseek-ai/schemastery` |
 | Tool visibility cho 4 workflow chính | **BLOCKED_TOOL_VISIBILITY** | chưa có cơ chế visibility đã xác minh |
@@ -168,8 +169,8 @@ artifacts/               bằng chứng: samples, review, ui-verification
 | Call graph đầy đủ (type-aware) | **CHƯA CÓ**; `calls` trong index chỉ là call site đọc theo lexical |
 | Vector ngữ nghĩa thật | **CHƯA CÓ**; backend mặc định là hashing lexical, chỉ tạo candidate |
 | Panel UI trong Harness | BLOCKED_UI_API_UNVERIFIED |
-| Smoke registry 0.4.1 trong `pfe-test` | **CHƯA CHẠY**: cài bundle cần npm/pnpm trong profile, phải xin phép trước |
-| Model tự chọn tool | **CHƯA CHẠY**: profile không có API key |
+| Smoke registry 0.4.1 trong `pfe-test` | **ĐÃ CHẠY** 2026-11-20: 6 lần boot thật, 7/7 tool gọi được, policy/abort/timeout đúng (`artifacts/review/*-dsh-smoke.json`) |
+| Model tự chọn tool | **CHƯA CHẠY**: profile không có API key; probe gọi registry, không qua model |
 | Ngôn ngữ ngoài danh sách pattern | Go, Rust, C#, Kotlin chỉ có symbol/route cơ bản |
 
 Tài liệu tri thức: [references/code-knowledge-schema.json](references/code-knowledge-schema.json) (schema),

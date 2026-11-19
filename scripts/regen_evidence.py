@@ -220,17 +220,22 @@ def main(argv=None):
     dsh = run(["dsh", "--version"], "dsh version")
     dsh_version = dsh["stdout"].strip().splitlines()[-1] if dsh["stdout"].strip() else ""
 
+    smoke_candidates = sorted(REVIEW.glob("*-dsh-smoke.json"))
+    smoke_record = (json.loads(smoke_candidates[-1].read_text(encoding="utf-8"))
+                    if smoke_candidates else {})
     smoke_path = REVIEW / (stamp + "-dsh-smoke.json")
+    verified = smoke_record.get("status") == "verified"
     smoke = {
-        "status": "blocked",
+        "status": "verified" if verified else "blocked",
         "profile": "pfe-test",
-        "registry_runtime": "not_verified",
+        "registry_runtime": "verified" if verified else "not_verified",
         "model_driven": "not_verified",
-        "reason": ("Bundle 0.3.0 chưa được cài vào profile pfe-test trong phiên này: "
-                   "cài bundle chạy npm/pnpm trong profile nên phải dừng trước bước cài và xin phép."),
-        "installed_in_profile": "0.2.2 (bản cài trước đó, chưa nâng cấp)",
-        "note": ("Lời gọi tool đã được kiểm chứng qua registry thật ở pass 0.2.x; "
-                 "với 0.3.0 chỉ có bằng chứng adapter in-process + pack test."),
+        "reason": ("model không tham gia: profile không có API key; probe gọi registry thật "
+                   "bên trong một lần boot DSH thật."),
+        "tool_count": smoke_record.get("tool_count", 0),
+        "checks": smoke_record.get("checks", {}),
+        "record": smoke_candidates[-1].name if smoke_candidates else "",
+        "blocked": smoke_record.get("blocked", {}),
     }
     smoke_path.write_text(json.dumps(smoke, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 

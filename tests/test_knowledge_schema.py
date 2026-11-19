@@ -86,10 +86,18 @@ class EvidenceConsistencyTests(unittest.TestCase):
             self.assertIn(str(manifest["tests"]["python"]), text,
                           name + " không khớp số test Python trong manifest")
 
-    def test_no_report_claims_done_for_blocked_items(self):
+    def test_smoke_claims_match_recorded_evidence(self):
         manifest = self.manifest()
-        self.assertEqual(manifest["smoke"]["model_driven"], "not_verified")
-        self.assertEqual(manifest["smoke"]["registry_runtime"], "not_verified")
+        smoke = manifest["smoke"]
+        # Model-driven selection is never claimed without an API key.
+        self.assertEqual(smoke["model_driven"], "not_verified")
+        self.assertIn(smoke["registry_runtime"], {"verified", "not_verified"})
+        if smoke["registry_runtime"] == "verified":
+            self.assertTrue(smoke.get("record"), "verified without a smoke record")
+            self.assertTrue(smoke.get("checks"), "verified without per-check evidence")
+            self.assertTrue(all(smoke["checks"].values()),
+                            "registry_runtime=verified nhưng có check false")
+            self.assertGreaterEqual(smoke.get("tool_count", 0), 7)
         final = (ROOT / "FINAL_REPORT.md").read_text(encoding="utf-8")
         self.assertIn("CHƯA CHẠY", final)
         self.assertIn("BLOCKED_UI_API_UNVERIFIED", final)

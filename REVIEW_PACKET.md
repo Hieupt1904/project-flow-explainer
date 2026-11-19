@@ -104,6 +104,7 @@ USAGE_GUIDE.md                              hướng dẫn dùng hiệu quả + 
 |---|---|
 | Smoke registry 0.3.0 trong `pfe-test` | **CHƯA CHẠY**: cài bundle cần npm/pnpm trong profile → phải xin phép trước bước cài |
 | Model tự chọn tool | **CHƯA CHẠY**: profile không có API key |
+| Registry-runtime 0.4.1 | **ĐÃ XÁC MINH**: 6 lần boot `pfe-test`, 36 tool, 14/14 check |
 | Panel UI Harness | `BLOCKED_UI_API_UNVERIFIED` — chưa có code UI, chưa xác minh API |
 | Config schema native của DSH | **KHÔNG LÀM ĐƯỢC**: profile không resolve `@deepseek-ai/schemastery`; validate tay + test là mức hiện tại |
 | Embedding ngữ nghĩa | **CHƯA CÓ**: backend local mặc định là hashing bag-of-words |

@@ -138,12 +138,36 @@ Hai điểm đáng chú ý:
    Đã sửa sang `GROUP BY` — lỗi của script bằng chứng, không phải của index.
 2. Repo web có 2 file > 256 KB bị bỏ qua và ghi trong `warnings`, đúng ngân sách công bố.
 
+## 4c. DSH registry-runtime smoke (0.4.1)
+
+Chạy bằng `python3 scripts/run_dsh_smoke.py` (harness ở `smoke/dsh-probe/`).
+Bundle 0.4.1 được cài vào profile thử `pfe-test`; probe cài tạm, gỡ sau khi chạy.
+Profile `web` không bị chạm; overlay nằm trong thư mục tạm, không sửa patch của profile.
+
+| Check | Kết quả |
+|---|---|
+| Tool trong registry thật | **36** tool, 7/7 tool của plugin có mặt |
+| flow qua registry | ok |
+| context pack qua registry | ok |
+| impact qua registry | ok |
+| verify qua registry | ok, overall = partial (ui/runtime blocked) |
+| search qua registry | ok |
+| repository ngoài allowedRoots | `repository_outside_allowed_roots` |
+| tham số thiếu | `flow_request_missing` |
+| abort trước khi gọi | `AbortError` |
+| `allowedRoots: []` | `allowed_roots_unconfigured` |
+| `timeoutMs: 1` | `core_timeout` |
+| `disabled: true` | không còn tool `project_*` trong registry |
+
+Giới hạn: probe gọi **registry thật** nhưng **không qua model**, nên
+`model_driven = not_verified`. Panel UI vẫn `BLOCKED_UI_API_UNVERIFIED`.
+
 ## 5. Chưa kiểm chứng
 
 | Hạng mục | Trạng thái | Lý do |
 |---|---|---|
-| Smoke registry 0.4.0 trong `pfe-test` | **BLOCKED_DSH_SMOKE** | cài bundle chạy npm/pnpm trong profile; chưa được cho phép |
-| Model tự chọn tool | **BLOCKED_DSH_SMOKE** | profile không có API key |
+| Smoke registry 0.4.1 trong `pfe-test` | **ĐÃ CHẠY** — `artifacts/review/*-dsh-smoke.json` | 6 lần boot thật, 36 tool, 14/14 check pass |
+| Model tự chọn tool | **CHƯA CHẠY** | profile không có API key; probe gọi registry thật, không qua model |
 | Native `Config` | **BLOCKED_DSH_CONFIG_NATIVE** | profile không resolve `@deepseek-ai/schemastery` |
 | Tool visibility | **BLOCKED_TOOL_VISIBILITY** | chưa xác minh cơ chế presentation/visibility |
 | Panel UI Harness | `BLOCKED_UI_API_UNVERIFIED` | ngoài scope |

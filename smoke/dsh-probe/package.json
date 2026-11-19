@@ -1,0 +1,13 @@
+{
+  "name": "pfe-smoke-probe",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Temporary probe: exercise the installed project-flow-explainer tools through the real DSH tool registry.",
+  "main": "./probe.js",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

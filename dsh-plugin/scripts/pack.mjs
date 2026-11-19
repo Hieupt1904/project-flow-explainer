@@ -25,6 +25,12 @@ const HERE = path.dirname(fileURLToPath(import.meta.url))
 const PACKAGE_ROOT = path.resolve(HERE, '..')
 const REPO_ROOT = path.resolve(PACKAGE_ROOT, '..')
 const keep = process.argv.includes('--keep')
+// Tests pack into their own directory: packing into dist/ and deleting the
+// result left the release artifact missing after a test run.
+const outIndex = process.argv.indexOf('--out')
+const OUT_DIR = outIndex > -1 && process.argv[outIndex + 1]
+  ? path.resolve(process.argv[outIndex + 1])
+  : path.join(REPO_ROOT, 'dist')
 
 const CORE_FILES = [
   ['scripts/build_flow.py', 'vendor/core/scripts/build_flow.py'],
@@ -82,7 +88,7 @@ try {
     `${JSON.stringify(manifest, null, 2)}\n`, 'utf8')
   staged.push('package.json', 'index.js', 'lib/', 'cordis.patch.yml')
 
-  const outDir = path.join(REPO_ROOT, 'dist')
+  const outDir = OUT_DIR
   mkdirSync(outDir, { recursive: true })
   const output = execFileSync('npm', ['pack', '--json', '--pack-destination', outDir], {
     cwd: staging, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],

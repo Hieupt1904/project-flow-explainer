@@ -1,0 +1,4 @@
+# Temporary smoke probe (not shipped in the release tarball).
+- insert:
+    - id: pfe-smoke-probe
+      name: ./probe.js
