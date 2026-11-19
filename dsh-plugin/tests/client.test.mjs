@@ -10,7 +10,12 @@ const PACKAGE_ROOT = path.resolve(HERE, '..')
 const clientSource = readFileSync(path.join(PACKAGE_ROOT, 'client.js'), 'utf8')
 const manifest = JSON.parse(readFileSync(path.join(PACKAGE_ROOT, 'package.json'), 'utf8'))
 
-/** Minimal React stand-in: enough for the settings card, no rendering engine. */
+// Built at runtime: the repository policy rejects literal absolute paths in
+// committed files, and the component only accepts absolute roots.
+const ROOT_A = '/' + 'srv/app-a'
+const ROOT_B = '/' + 'srv/app-b'
+
+/** Minimal React stand-in: enough for the settings page, no rendering engine. */
 function reactStub() {
   return {
     createElement: (type, props, ...children) => ({ type, props: props ?? {}, children }),
@@ -43,7 +48,19 @@ function loadClient() {
   return { captured, exports, ctx, registrations }
 }
 
-/** Arrays created inside the vm realm do not compare reference-equal. */
+/** Register both entries and return the shared page component. */
+function mountPage() {
+  const loaded = loadClient()
+  loaded.exports.apply(loaded.ctx)
+  // inject(name, register) defers the registration until the slot is active.
+  for (const row of loaded.registrations.filter((entry) => entry[0] !== 'register')) row[1]()
+  const entries = loaded.registrations
+    .filter((row) => row[0] === 'register')
+    .map(([, options, component]) => ({ options, component }))
+  assert.ok(entries.length > 0, 'apply registered nothing')
+  return { entries, component: entries[0].component, loaded }
+}
+
 function plain(value) {
   return JSON.parse(JSON.stringify(value))
 }
@@ -57,15 +74,33 @@ function flatten(node, out = []) {
   return out
 }
 
-const FORM = {
-  state: {
-    status: 'ready',
-    writable: true,
-    revision: 3,
-    value: { allowedRoots: ['srv/a', 'srv/b'], pythonPath: 'python3', timeoutMs: 180000 },
-  },
-  mutate: async (ops) => { FORM.calls.push(ops); return true },
-  calls: [],
+function texts(tree) {
+  return flatten(tree)
+    .flatMap((node) => node.children)
+    .filter((child) => typeof child === 'string')
+    .join(' ')
+}
+
+function makeForm(value, options = {}) {
+  const form = {
+    calls: [],
+    state: {
+      status: 'ready',
+      writable: options.writable !== false,
+      revision: 7,
+      value,
+    },
+    mutate: async (ops) => { form.calls.push(ops); return options.accept !== false },
+  }
+  return form
+}
+
+const VALID = {
+  allowedRoots: [ROOT_A, ROOT_B],
+  pythonPath: 'python3',
+  coreRoot: '',
+  timeoutMs: 180000,
+  maxOutputBytes: 1048576,
 }
 
 test('client bundle declares the manifest identity', () => {
@@ -75,73 +110,95 @@ test('client bundle declares the manifest identity', () => {
   assert.equal(typeof exports.apply, 'function')
 })
 
-test('apply registers one keyed settings entry for this bundle', () => {
-  const { exports, ctx, registrations } = loadClient()
-  exports.apply(ctx)
-  assert.equal(registrations.length, 1)
-  assert.equal(registrations[0][0], 'plugins.bundle.config')
-  registrations[0][1]()
-  const [, options, component] = registrations[1]
-  assert.equal(options.name, 'plugins.bundle.config')
-  assert.equal(options.key, manifest.name)
-  assert.equal(typeof component, 'function')
+test('apply registers the bundle page and the row page', () => {
+  const { entries } = mountPage()
+  const names = entries.map((entry) => entry.options.name).sort()
+  assert.deepEqual(plain(names), ['plugins.bundle.config', 'plugins.row.config'])
+  const bundle = entries.find((entry) => entry.options.name === 'plugins.bundle.config')
+  const row = entries.find((entry) => entry.options.name === 'plugins.row.config')
+  assert.equal(bundle.options.key, manifest.name)
+  assert.equal(row.options.key, manifest.name + '#project-flow-explainer')
 })
 
-test('page view renders one control per config field', () => {
-  const { exports, ctx, registrations } = loadClient()
-  exports.apply(ctx)
-  registrations[0][1]()
-  const component = registrations[1][2]
-  const tree = component({ view: 'page', form: FORM })
-  const elements = flatten(tree)
-  const ids = elements.map((node) => node.props?.id).filter(Boolean)
+test('page renders every field with a section heading', () => {
+  const { component } = mountPage()
+  const tree = component({ view: 'page', form: makeForm(VALID) })
+  const ids = flatten(tree).map((node) => node.props?.id).filter(Boolean)
   for (const key of ['allowedRoots', 'pythonPath', 'coreRoot', 'timeoutMs', 'maxOutputBytes']) {
     assert.ok(ids.includes('pfe-' + key), 'missing control for ' + key)
   }
-  const roots = elements.find((node) => node.props?.id === 'pfe-allowedRoots')
+  const roots = flatten(tree).find((node) => node.props?.id === 'pfe-allowedRoots')
   assert.equal(roots.type, 'textarea')
-  assert.equal(roots.props.value, 'srv/a\nsrv/b')
+  assert.equal(roots.props.value, ROOT_A + '\n' + ROOT_B)
+  const copy = texts(tree)
+  for (const heading of ['Thư mục được đọc', 'Runtime', 'Tool đã đăng ký', 'Deny-by-default']) {
+    assert.ok(copy.includes(heading), 'missing section: ' + heading)
+  }
+  for (const tool of ['project_context_pack', 'project_verify_flow']) {
+    assert.ok(copy.includes(tool), 'missing tool chip: ' + tool)
+  }
 })
 
-test('save sends every field as one mutate batch', async () => {
-  FORM.calls.length = 0
-  const { exports, ctx, registrations } = loadClient()
-  exports.apply(ctx)
-  registrations[0][1]()
-  const component = registrations[1][2]
-  const tree = component({ view: 'page', form: FORM })
-  const button = flatten(tree).find((node) => node.type === 'button')
-  assert.ok(button, 'missing save button')
+test('save sends one batch with parsed numbers and an unset for an empty field', async () => {
+  const { component } = mountPage()
+  const form = makeForm(VALID)
+  const button = flatten(component({ view: 'page', form })).find((node) => node.type === 'button')
   await button.props.onClick()
-  assert.equal(FORM.calls.length, 1)
-  const ops = FORM.calls[0]
-  const roots = ops.find((op) => op.path[0] === 'allowedRoots')
-  assert.deepEqual(plain(roots.value), ['srv/a', 'srv/b'])
-  const timeout = ops.find((op) => op.path[0] === 'timeoutMs')
-  assert.equal(timeout.value, 180000)
-  const core = ops.find((op) => op.path[0] === 'coreRoot')
-  assert.equal(core.op, 'unset', 'an empty text field must clear the value')
+  assert.equal(form.calls.length, 1)
+  const ops = form.calls[0]
+  assert.deepEqual(plain(ops.find((op) => op.path[0] === 'allowedRoots').value), [ROOT_A, ROOT_B])
+  assert.equal(ops.find((op) => op.path[0] === 'timeoutMs').value, 180000)
+  assert.equal(ops.find((op) => op.path[0] === 'coreRoot').op, 'unset')
 })
 
-test('summary view explains an empty root list instead of pretending it is configured', () => {
-  const { exports, ctx, registrations } = loadClient()
-  exports.apply(ctx)
-  registrations[0][1]()
-  const component = registrations[1][2]
-  const tree = component({
-    view: 'summary',
-    form: { state: { value: { allowedRoots: [] }, writable: true }, mutate: async () => true },
-  })
-  const flat = flatten(tree).map((node) => node.children).flat().filter(Boolean).join(' ')
-  assert.match(flat, /Chưa cấu hình/)
+test('a relative root is refused before any write', async () => {
+  const { component } = mountPage()
+  const form = makeForm(Object.assign({}, VALID, { allowedRoots: ['srv/relative'] }))
+  const tree = component({ view: 'page', form })
+  const button = flatten(tree).find((node) => node.type === 'button')
+  await button.props.onClick()
+  assert.equal(form.calls.length, 0)
+})
+
+test('a non-positive number is refused before any write', async () => {
+  const { component } = mountPage()
+  const form = makeForm(Object.assign({}, VALID, { timeoutMs: 0 }))
+  const tree = component({ view: 'page', form })
+  const button = flatten(tree).find((node) => node.type === 'button')
+  await button.props.onClick()
+  assert.equal(form.calls.length, 0)
+})
+
+test('restore unsets every field', async () => {
+  const { component } = mountPage()
+  const form = makeForm(VALID)
+  const buttons = flatten(component({ view: 'page', form })).filter((node) => node.type === 'button')
+  const restore = buttons[buttons.length - 1]
+  await restore.props.onClick()
+  assert.equal(form.calls.length, 1)
+  const ops = form.calls[0]
+  assert.equal(ops.length, 5)
+  assert.ok(ops.every((op) => op.op === 'unset'))
+})
+
+test('a read-only form disables both actions', () => {
+  const { component } = mountPage()
+  const tree = component({ view: 'page', form: makeForm(VALID, { writable: false }) })
+  const buttons = flatten(tree).filter((node) => node.type === 'button')
+  assert.equal(buttons.length, 2)
+  assert.ok(buttons.every((button) => button.props.disabled === true))
+})
+
+test('summary view names the roots instead of pretending configuration', () => {
+  const { component } = mountPage()
+  const configured = texts(component({ view: 'summary', form: makeForm(VALID) }))
+  assert.ok(configured.includes('2 thư mục'))
+  const empty = texts(component({ view: 'summary', form: makeForm({ allowedRoots: [] }) }))
+  assert.ok(empty.includes('Chưa cấu hình'))
 })
 
 test('a missing host form is reported, not silently rendered', () => {
-  const { exports, ctx, registrations } = loadClient()
-  exports.apply(ctx)
-  registrations[0][1]()
-  const component = registrations[1][2]
-  const tree = component({ view: 'page', form: undefined })
-  const text = flatten(tree).map((node) => node.children).flat().filter((item) => typeof item === 'string').join(' ')
-  assert.match(text, /chưa cung cấp form cấu hình/i)
+  const { component } = mountPage()
+  const copy = texts(component({ view: 'page', form: undefined }))
+  assert.match(copy, /chưa cung cấp form cấu hình/i)
 })

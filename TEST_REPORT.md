@@ -12,7 +12,7 @@ Môi trường: Ubuntu 24.04 · Python 3.12.3 · Node v24.22.3 · DSH 0.2.2-rc.2
 | `node --test dsh-plugin/tests/plugin.test.mjs` | **16 pass** | `*-node-adapter.log` |
 | `node --test dsh-plugin/tests/knowledge.test.mjs` | **9 pass** | `*-node-knowledge.log` |
 | `node --test dsh-plugin/tests/lifecycle.test.mjs` | **7 pass** | `*-node-lifecycle.log` |
-| `node --test dsh-plugin/tests/client.test.mjs` | **6 pass** | `*-node-client.log` |
+| `node --test dsh-plugin/tests/client.test.mjs` | **10 pass** | `*-node-client.log` |
 | `node --test dsh-plugin/tests/pack.test.mjs` | **2 pass** | `*-node-pack.log` |
 | `python3 -m compileall -q scripts tests pfe tools` | OK | `*-compileall.log` |
 | `python3 scripts/check_repo_policy.py` | OK | `*-policy.log` |
@@ -24,10 +24,10 @@ Tarball phát hành:
 
 | Mục | Giá trị |
 |---|---|
-| Tên | `dsh-project-flow-explainer-0.4.3.tgz` |
-| Byte | 96 724 |
+| Tên | `dsh-project-flow-explainer-0.4.4.tgz` |
+| Byte | 97 732 |
 | Entry | 26 (gồm `client.js` và `vendor/core/{scripts,assets,tools,pfe}`) |
-| SHA-256 | `281d588b30f1efedc39ab4cadfa769ea7b59535ba512dbadcf517ce05a78f615` |
+| SHA-256 | `8b4fc3d193e277602300db0c8e3e61185883882e18b3ec662d29b5911f0d9723` |
 
 ## 2. Lỗi tái hiện được và đã sửa trong 0.4.x
 
@@ -171,8 +171,11 @@ Bundle có `client.js` đăng ký slot `plugins.bundle.config` với key là pac
 |---|---|---|
 | Envelope của client bundle | `node:vm` chạy `client.js`, kiểm `window.__ModuleLoader__.load` | id khớp `package.json` |
 | Đăng ký slot | gọi `apply(ctx)` với ctx giả | 1 entry `plugins.bundle.config`, key = package name |
-| 5 trường cấu hình | render cây React, tìm `id=pfe-*` | đủ 5 control, textarea nhận nhiều dòng |
+| 5 trường cấu hình + 3 section | render cây React, tìm `id=pfe-*` và heading | đủ control, có "Thư mục được đọc"/"Runtime"/"Tool đã đăng ký" |
 | Lưu | bấm nút, kiểm `form.mutate` | 1 batch, `allowedRoots` thành mảng, ô trống thành `unset` |
+| Chặn ghi sai | root tương đối, timeout 0 | không gọi `mutate` |
+| Khôi phục | bấm nút thứ hai | 5 lệnh `unset` |
+| Host chặn ghi | `writable: false` | cả hai nút disabled |
 | Root rỗng | render `view: "summary"` | nói rõ "Chưa cấu hình", không giả vờ đã cấu hình |
 | Host không có form | `form: undefined` | hiện hướng dẫn dùng patch, không render form rỗng |
 | Config native | boot thật với `allowedRoots: "oops"` | `ValidationError: $.allowedRoots expected array but got oops` |
