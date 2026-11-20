@@ -304,5 +304,15 @@
     "ok": true,
     "note": "chạy lại toàn bộ unittest sau khi manifest được ghi",
     "ran": 145
+  },
+  "provenance": {
+    "source_commit": "6079d6e8765ec33a460e9d6a6908d877bed08fcf",
+    "evidence_commit": "25dc9328b864062889dcd0d458a06528d21bdf83",
+    "head_at_record": "25dc9328b864062889dcd0d458a06528d21bdf83",
+    "source_tree_equals_evidence_tree_except": "artifacts/review",
+    "non_evidence_diff": [],
+    "clean_source_tree": true,
+    "recorded_at": "2026-11-20T10:22:08+07:00",
+    "note": "source_commit là commit của code được mô tả; evidence_commit là commit chứa manifest này. Hai cây chỉ khác nhau ở artifacts/review/, đã kiểm bằng git diff."
   }
 }
