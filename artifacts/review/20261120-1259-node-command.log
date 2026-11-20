@@ -1,0 +1,24 @@
+$ node --test dsh-plugin/tests/command.test.mjs
+exit_code: 0
+duration_ms: 276.2
+
+--- stdout ---
+✔ registers exactly one command next to the seven tools (4.097523ms)
+✔ mounts without a command service (headless composition) (0.440865ms)
+✔ the command declares a name the registry accepts and an input hint (0.614698ms)
+✔ a real request returns success with the artifact paths (95.901799ms)
+✔ an empty request is an error with the usage line (0.870976ms)
+✔ a repository outside allowedRoots is refused with its stable code and a fix (0.857567ms)
+✔ a session whose cwd is not a repository names --repo as the fix (0.663356ms)
+✔ an unconfigured allowedRoots is refused, not silently widened (0.403047ms)
+✔ --repo targets an explicit repository (70.630262ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 238.909739
+
+--- stderr ---
