@@ -93,7 +93,19 @@ export function flowCommand({ ctx, settings, core }) {
       } catch (error) {
         const code = error?.code ?? 'command_failed'
         const hint = error?.hint ? '\n' + error.hint : ''
-        return { kind: 'error', text: `${code}: ${error?.message ?? String(error)}${hint}` }
+        // A command runs where the *session* lives, which is often not a
+        // repository at all. Say what to type next instead of only what failed:
+        // the person who just typed a command wants the run, not a policy lesson.
+        const nextStep = code === 'repository_outside_allowed_roots'
+            || code === 'repository_not_found'
+            || code === 'repository_not_directory'
+          ? '\nCách sửa: thêm --repo <đường dẫn tuyệt đối tới repository>, '
+            + 'hoặc mở phiên trong chính thư mục repository.'
+          : ''
+        return {
+          kind: 'error',
+          text: `${code}: ${error?.message ?? String(error)}${hint}${nextStep}`,
+        }
       }
       if (signal?.aborted) return { kind: 'error', text: 'ABORTED: lệnh đã bị huỷ.' }
       let run

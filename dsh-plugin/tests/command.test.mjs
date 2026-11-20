@@ -31,7 +31,13 @@ function mount(applied = {}, { withCommands = true, cwd = CORPUS } = {}) {
     workingDirectory: { async ensure() { return cwd } },
     inject(services, cb) {
       if (!withCommands || !services.includes('commands')) return
+      // A real Cordis scoped context inherits every other service from its
+      // parent. The mock must do the same, or `workingDirectory` silently
+      // disappears and the command falls back to process.cwd() — which is the
+      // repository under test, so a policy failure would look like a success.
       cb({
+        get: ctx.get,
+        workingDirectory: ctx.workingDirectory,
         commands: {
           register(definition) {
             commands.set(definition.name, definition)
@@ -94,13 +100,24 @@ test('an empty request is an error with the usage line', async () => {
   assert.match(result.text, /Cách dùng/)
 })
 
-test('a repository outside allowedRoots is refused with its stable code', async () => {
+test('a repository outside allowedRoots is refused with its stable code and a fix', async () => {
   const command = mount().commands.get('project-flow-explainer')
   const result = await command.handler({
     agent: {}, rawInput: 'x --repo /etc', signal: undefined,
   })
   assert.equal(result.kind, 'error')
   assert.match(result.text, /repository_outside_allowed_roots|repository_not_found/)
+  // The person typing a command wants the run, not a policy lesson: name the flag.
+  assert.match(result.text, /Cách sửa:.*--repo/)
+})
+
+test('a session whose cwd is not a repository names --repo as the fix', async () => {
+  // Commands run where the session lives; that is often the home directory.
+  const { commands } = mount({ allowedRoots: [CORPUS] }, { cwd: os.homedir() })
+  const result = await commands.get('project-flow-explainer')
+    .handler({ agent: {}, rawInput: 'xuất báo cáo', signal: undefined })
+  assert.equal(result.kind, 'error')
+  assert.match(result.text, /Cách sửa:.*--repo/)
 })
 
 test('an unconfigured allowedRoots is refused, not silently widened', async () => {
