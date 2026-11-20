@@ -1,0 +1,25 @@
+$ node --test dsh-plugin/tests/client.test.mjs
+exit_code: 0
+duration_ms: 99.5
+
+--- stdout ---
+✔ client bundle declares the manifest identity (2.242357ms)
+✔ apply registers the bundle page and the row page (0.77011ms)
+✔ page renders every field with a section heading (1.584575ms)
+✔ save sends one batch with parsed numbers and an unset for an empty field (11.161473ms)
+✔ a relative root is refused before any write (1.708097ms)
+✔ a non-positive number is refused before any write (1.135923ms)
+✔ restore unsets every field (1.038166ms)
+✔ a read-only form disables both actions (0.692423ms)
+✔ summary view names the roots instead of pretending configuration (0.60772ms)
+✔ a missing host form is reported, not silently rendered (0.793295ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 71.565884
+
+--- stderr ---
