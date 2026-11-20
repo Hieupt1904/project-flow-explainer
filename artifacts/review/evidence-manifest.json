@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-11-20T10:07:03+07:00",
+  "generated_at": "2026-11-20T10:08:05+07:00",
   "generator": "scripts/regen_evidence.py",
-  "source_commit": "f596ceb58a03c7aea08b9376e83dc530184998a3",
+  "source_commit": "f5a3dd0a431b764bd24849d6599817170c03e646",
   "source_branch": "main",
-  "working_tree_dirty": false,
-  "evidence_files_changed": 28,
+  "working_tree_dirty": true,
+  "evidence_files_changed": 32,
   "dirty_semantics": "working_tree_dirty chỉ tính file ngoài artifacts/review; evidence_files_changed là số file bằng chứng do lần chạy này sinh.",
   "package_version": "0.6.0",
   "engines_dsh": "0.2.2-rc.2",
@@ -21,7 +21,8 @@
     "settings": 5,
     "arguments": 9,
     "description": 18,
-    "failures": 1,
+    "command": 8,
+    "failures": 0,
     "adapter_engine_failures": 0
   },
   "tarball": {
@@ -57,6 +58,10 @@
     "record": "",
     "stale_records": [
       {
+        "record": "20261120-1007-dsh-smoke.json",
+        "reason": "summary của regen_evidence, không phải lần chạy thật"
+      },
+      {
         "record": "20261120-094226-dsh-smoke.json",
         "reason": "chạy cho 0.5.7, không phải 0.6.0"
       },
@@ -75,10 +80,6 @@
       {
         "record": "20261120-004041-dsh-smoke.json",
         "reason": "chạy cho 0.5.0, không phải 0.6.0"
-      },
-      {
-        "record": "20261120-003620-dsh-smoke.json",
-        "reason": "chạy cho 0.4.5, không phải 0.6.0"
       }
     ],
     "blocked": {},
@@ -114,22 +115,22 @@
   },
   "policy": {
     "ok": true,
-    "summary": "OK: 110 file đã kiểm tra · không có absolute path, nested artifacts hay secret"
+    "summary": "OK: 105 file đã kiểm tra · không có absolute path, nested artifacts hay secret"
   },
   "benchmark": {
     "files": 2000,
     "source_bytes": 942071,
-    "scan_ms": 660.7,
+    "scan_ms": 681.0,
     "scan_files": 2001,
     "budget_notes": [],
-    "index_full_ms": 1400.8,
-    "index_incremental_ms": 397.9,
+    "index_full_ms": 1393.4,
+    "index_incremental_ms": 400.1,
     "files_parsed_full": 2001,
     "files_parsed_incremental": 0,
     "entities": 20003,
     "facts": 20001,
     "db_bytes": 15601664,
-    "rss_mb": 68.8,
+    "rss_mb": 68.9,
     "limits": {
       "max_files_scanned": 20000,
       "max_total_source_bytes": 33554432,
@@ -262,19 +263,20 @@
     ]
   },
   "logs": {
-    "python_log": "20261120-1006-python-tests.log",
-    "adapter_log": "20261120-1006-node-adapter.log",
-    "knowledge_log": "20261120-1006-node-knowledge.log",
-    "lifecycle_log": "20261120-1006-node-lifecycle.log",
-    "client_log": "20261120-1006-node-client.log",
-    "pack_log": "20261120-1006-node-pack.log",
-    "settings_log": "20261120-1006-node-settings.log",
-    "arguments_log": "20261120-1006-node-arguments.log",
-    "description_log": "20261120-1006-node-description.log",
-    "policy_log": "20261120-1006-policy.log",
-    "bundle_log": "20261120-1006-pack-build.log",
-    "bench_log": "20261120-1006-bench.json",
-    "consistency_log": "20261120-1006-consistency.log"
+    "python_log": "20261120-1007-python-tests.log",
+    "adapter_log": "20261120-1007-node-adapter.log",
+    "knowledge_log": "20261120-1007-node-knowledge.log",
+    "lifecycle_log": "20261120-1007-node-lifecycle.log",
+    "client_log": "20261120-1007-node-client.log",
+    "pack_log": "20261120-1007-node-pack.log",
+    "settings_log": "20261120-1007-node-settings.log",
+    "arguments_log": "20261120-1007-node-arguments.log",
+    "description_log": "20261120-1007-node-description.log",
+    "command_log": "20261120-1007-node-command.log",
+    "policy_log": "20261120-1007-policy.log",
+    "bundle_log": "20261120-1007-pack-build.log",
+    "bench_log": "20261120-1007-bench.json",
+    "consistency_log": "20261120-1007-consistency.log"
   },
   "classification": {
     "confirmed": [
@@ -284,6 +286,7 @@
       "settings binding tests",
       "argument contract tests",
       "tool description contract tests",
+      "slash command tests",
       "pack tests",
       "policy",
       "tarball manifest",
@@ -302,7 +305,7 @@
     ]
   },
   "consistency_recheck": {
-    "ok": false,
+    "ok": true,
     "note": "chạy lại toàn bộ unittest sau khi manifest được ghi",
     "ran": 145
   }
