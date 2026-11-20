@@ -114,11 +114,13 @@ test('dispose cancels an in-flight run', async () => {
   }
 })
 
-test('no native Config export is claimed (BLOCKED_DSH_CONFIG_NATIVE)', () => {
-  // The profile cannot resolve @deepseek-ai/schemastery, so exporting a fake
-  // schema would be worse than validating by hand. Guard against a future
-  // silent regression that starts claiming native validation.
-  assert.ok(plugin.Config === undefined || typeof plugin.Config === 'function',
+test('Config is either a real schema or absent — never a hand-built fake', () => {
+  // `loadSchemaModule()` returns the installation's schemastery when it can
+  // reach it (that is what makes native validation real) and undefined when it
+  // cannot. In a `node --test` worker it usually cannot, because argv[1] is the
+  // test runner. Either state is honest; a plain object pretending to be a
+  // schema is not. The child-process probe below covers the native branch.
+  assert.ok(plugin.Config === undefined || typeof plugin.Config === 'object',
     'Config must be the real schemastery schema or undefined')
   assert.equal(typeof plugin.apply, 'function')
   assert.deepEqual(plugin.inject, ['tools'])

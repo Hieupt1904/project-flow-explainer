@@ -15,7 +15,7 @@ Hai lớp, một core:
 | DSH adapter | **ĐÃ TRIỂN KHAI**; registry-runtime **ĐÃ XÁC MINH** trong profile `pfe-test` (36 tool, 14 check) | `dsh-plugin/` |
 | Model tự chọn tool trong DSH | **ĐÃ XÁC MINH**: model gọi `project_code_index` rồi `project_context_pack` trong session thật | — |
 | Panel UI trong Harness | **BLOCKED_UI_API_UNVERIFIED** | chưa có code UI (không nằm trong scope) |
-| DSH native Config schema | **BLOCKED_DSH_CONFIG_NATIVE** | profile không resolve `@deepseek-ai/schemastery` |
+| DSH native Config schema | **ĐÃ TRIỂN KHAI**, xác minh bằng probe tiến trình con (xem dưới) | `dsh-plugin/index.js`, `dsh-plugin/tests/lifecycle.test.mjs` |
 | Tool visibility cho 4 workflow chính | **BLOCKED_TOOL_VISIBILITY** | chưa có cơ chế visibility đã xác minh |
 
 Bắt đầu từ [USAGE_GUIDE.md](USAGE_GUIDE.md) để dùng đúng công cụ và đọc kết quả đúng cách.
@@ -153,10 +153,14 @@ Ba luật không thương lượng:
 ## Kiểm thử
 
 ```bash
-python3 -m unittest discover -s tests -v                # core + knowledge + regression (143 test)
+python3 -m unittest discover -s tests -v                # core + knowledge + regression (145 test)
 node --test dsh-plugin/tests/plugin.test.mjs            # adapter (16 test)
 node --test dsh-plugin/tests/knowledge.test.mjs         # tool tri thức (9 test)
-node --test dsh-plugin/tests/lifecycle.test.mjs         # mount/dispose/remount (7 test)
+node --test dsh-plugin/tests/lifecycle.test.mjs         # mount/dispose/remount + native Config (8 test)
+node --test dsh-plugin/tests/client.test.mjs            # settings UI client (10 test)
+node --test dsh-plugin/tests/settings.test.mjs          # binding settings (5 test)
+node --test dsh-plugin/tests/arguments.test.mjs         # hợp đồng tham số (9 test)
+node --test dsh-plugin/tests/description.test.mjs       # hợp đồng mô tả tool (18 test)
 node --test dsh-plugin/tests/pack.test.mjs              # đóng gói + cài độc lập (2 test)
 python3 scripts/check_repo_policy.py                    # policy artifact/provenance
 python3 scripts/regen_evidence.py                        # sinh lại evidence-manifest.json
@@ -174,7 +178,7 @@ tools/pfe_cli.py         CLI máy đọc cho 6 tool tri thức
 dsh-plugin/              adapter DSH (zero dependency)
 assets/                  template HTML offline
 references/              schema + prompt module + code-knowledge-schema.json
-tests/                   143 unittest + fixture web/desktop
+tests/                   145 unittest + fixture web/desktop
 artifacts/               bằng chứng: samples, review, ui-verification
 ```
 
