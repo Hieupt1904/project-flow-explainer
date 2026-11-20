@@ -28,10 +28,10 @@ Tarball phát hành:
 
 | Mục | Giá trị |
 |---|---|
-| Tên | `dsh-project-flow-explainer-0.6.0.tgz` |
+| Tên | `dsh-project-flow-explainer-0.6.3.tgz` |
 | Byte | 105331 |
 | Entry | 27 (gồm `client.js` và `vendor/core/{scripts,assets,tools,pfe}`) |
-| SHA-256 | `658a0e3f1851c5fb6ef9c8ef65f6b48c840e3f4c7da4dd279f51c782009cbcf4` |
+| SHA-256 | `e60220a591f3c18fdfebcd6e98c01442c3143051c5103593421c31a37c063f10` |
 
 ## 2. Lỗi tái hiện được và đã sửa trong 0.4.x
 
