@@ -95,7 +95,19 @@ class EvidenceConsistencyTests(unittest.TestCase):
             session = smoke.get("model_session") or {}
             self.assertTrue(session.get("record"), "verified without a session record")
             self.assertTrue(session.get("tools"), "verified without a tool sequence")
-            self.assertGreaterEqual(session.get("entry_points") or 0, 1)
+            # Attribution: a verified claim must name the build it observed.
+            self.assertEqual(session.get("package_version"), manifest["package_version"],
+                             "model session ran on a different package version")
+            self.assertEqual(session.get("installed_version"), manifest["package_version"],
+                             "the profile had a different build installed than the manifest")
+            self.assertEqual(session.get("session_sha256") and True, True,
+                             "verified without a session hash")
+            # The claim is about behaviour, so it must be backed by the checks.
+            order = session.get("order") or {}
+            self.assertEqual(order.get("missing"), [], "verified with expected tools missing")
+            self.assertTrue(order.get("ordered"), "verified with the workflow out of order")
+            self.assertEqual((session.get("policy") or {}).get("tool_errors"), [],
+                             "verified while a tool returned an error")
         self.assertIn(smoke["registry_runtime"], {"verified", "not_verified"})
         if smoke["registry_runtime"] == "verified":
             self.assertTrue(smoke.get("record"), "verified without a smoke record")

@@ -1,0 +1,24 @@
+$ node --test dsh-plugin/tests/knowledge.test.mjs
+exit_code: 0
+duration_ms: 650.6
+
+--- stdout ---
+✔ registers the flow tool and the six knowledge tools (2.777234ms)
+✔ every knowledge tool declares a strict schema with a renderer (0.662298ms)
+✔ index → search → context pack → impact → verify → refresh end to end (475.593437ms)
+✔ search reports index_missing with a stable code before indexing (63.796718ms)
+✔ knowledge tools enforce allowedRoots deny-by-default (4.891866ms)
+✔ malformed arguments produce stable codes, never a TypeError (4.993614ms)
+✔ a core timeout keeps its own code, distinct from a business failure (6.174218ms)
+✔ abort surfaces as AbortError from a knowledge tool too (2.395835ms)
+✔ unloading the plugin disposes every registered tool (1.678219ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 618.018314
+
+--- stderr ---

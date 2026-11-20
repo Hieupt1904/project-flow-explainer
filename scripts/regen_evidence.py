@@ -298,32 +298,64 @@ def main(argv=None):
         smoke_record_name = candidate.name
         break
     smoke_path = REVIEW / (stamp + "-dsh-smoke.json")
+    # A model session is evidence for one build only. Pick the newest record that
+    # names this version AND this tarball hash; a record for another build is
+    # history, not a claim about the release being described.
     model_records = sorted(REVIEW.glob("*-model-session.json"))
-    model_session = (json.loads(model_records[-1].read_text(encoding="utf-8"))
-                     if model_records else {})
+    model_session, model_record_name, model_rejected = {}, "", []
+    for candidate in reversed(model_records):
+        try:
+            parsed = json.loads(candidate.read_text(encoding="utf-8"))
+        except (ValueError, OSError):
+            continue
+        if parsed.get("status") != "verified":
+            model_rejected.append({"record": candidate.name,
+                                   "reason": "status " + str(parsed.get("status"))})
+            continue
+        if parsed.get("package_version") != current_version:
+            model_rejected.append({"record": candidate.name,
+                                   "reason": "package_version " + str(parsed.get("package_version"))})
+            continue
+        if parsed.get("tarball_sha256") != current_sha:
+            model_rejected.append({"record": candidate.name,
+                                   "reason": "tarball khác hash hiện tại"})
+            continue
+        model_session = parsed
+        model_record_name = candidate.name
+        break
+    model_verified = bool(model_session)
     verified = smoke_record.get("status") == "verified"
     smoke = {
         "status": "verified" if verified else "blocked",
         "profile": "pfe-test",
         "registry_runtime": "verified" if verified else "not_verified",
-        # A model session proves selection only for the build it ran on, and the
-        # record carries no version — so it cannot be attributed to this release
-        # by itself. Keep the historical record visible but do not upgrade it to
-        # a claim for a build nobody observed the model on.
-        "model_driven": "not_verified",
+        # Verified only by a record that names this exact build: a session from
+        # another version proves nothing about this one.
+        "model_driven": "verified" if model_verified else "not_verified",
         "model_driven_note": (
-            "record mô tả một session thật nhưng không mang package_version/tarball_sha256, "
-            "nên không quy được cho bản " + current_version + "; cần chạy lại session model "
-            "trên bản này trước khi claim."),
+            "session thật trên " + current_version + " (tarball " + current_sha[:8]
+            + "): model tự chọn " + str(len(model_session.get("tool_sequence") or []))
+            + " tool, thứ tự đúng, 0 lỗi."
+            if model_verified else
+            "chưa có record verified mang package_version " + current_version
+            + " + tarball " + current_sha[:8] + "; chạy scripts/run_model_smoke.py."),
         "model_session": {
-            "record": model_records[-1].name if model_records else "",
+            "record": model_record_name,
+            "status": model_session.get("status", ""),
+            "package_version": model_session.get("package_version", ""),
+            "provider": model_session.get("provider", ""),
             "model": model_session.get("model", ""),
-            "tools": model_session.get("tool_sequence", []),
-            "entry_points": (model_session.get("answer_summary") or {}).get("entry_points"),
-            "steps": model_session.get("steps"),
+            "session_sha256": model_session.get("session_sha256", ""),
+            "prompt_sha256": model_session.get("prompt_sha256", ""),
+            "tools": [item.get("tool") for item in (model_session.get("tool_sequence") or [])],
+            "order": model_session.get("order", {}),
+            "policy": model_session.get("policy", {}),
+            "stop_reason": model_session.get("stop_reason", ""),
+            "requested_profile": model_session.get("requested_profile", ""),
+            "installed_version": model_session.get("installed_version", ""),
             "wall_seconds": model_session.get("wall_seconds"),
-            "screenshot": model_session.get("screenshot", ""),
         },
+        "model_records_rejected": model_rejected[:6],
         "reason": (("model tự chọn tool trong một session thật; probe registry là bằng chứng bổ sung.")
                    if verified else
                    ("BLOCKED_DSH_SMOKE: không có bản ghi smoke nào chạy trên "
@@ -407,7 +439,7 @@ def main(argv=None):
             "unverified": ([]
                            if verified else
                            ["DSH registry-runtime smoke cho " + current_version])
-                          + ([] if model_session and verified else
+                          + ([] if model_verified else
                              ["model-driven tool selection (cần trajectory của "
                               + current_version + " kèm tarball hash)"])
                           + ["Harness panel UI (BLOCKED_UI_API_UNVERIFIED)"],

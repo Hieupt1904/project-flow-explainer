@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-11-20T14:09:53+07:00",
+  "generated_at": "2026-11-20T14:12:27+07:00",
   "generator": "scripts/regen_evidence.py",
-  "source_commit": "a0cd07d97a0c50c344885801b8b0f38f340186b0",
+  "source_commit": "7010b7c4d30d49b27576e33e7e62a19bb07105be",
   "source_branch": "main",
   "working_tree_dirty": true,
-  "evidence_files_changed": 34,
+  "evidence_files_changed": 35,
   "dirty_semantics": "working_tree_dirty chỉ tính file ngoài artifacts/review; evidence_files_changed là số file bằng chứng do lần chạy này sinh.",
   "package_version": "0.7.2",
   "engines_dsh": "0.2.2-rc.2",
@@ -22,7 +22,7 @@
     "arguments": 9,
     "description": 18,
     "command": 12,
-    "failures": 1,
+    "failures": 0,
     "adapter_engine_failures": 0
   },
   "tarball": {
@@ -38,42 +38,43 @@
     "status": "blocked",
     "profile": "pfe-test",
     "registry_runtime": "not_verified",
-    "model_driven": "not_verified",
-    "model_driven_note": "record mô tả một session thật nhưng không mang package_version/tarball_sha256, nên không quy được cho bản 0.7.2; cần chạy lại session model trên bản này trước khi claim.",
+    "model_driven": "verified",
+    "model_driven_note": "session thật trên 0.7.2 (tarball 522d87ba): model tự chọn 4 tool, thứ tự đúng, 0 lỗi.",
     "model_session": {
-      "record": "20261120-140809-model-session.json",
+      "record": "20261120-141107-model-session.json",
+      "status": "verified",
+      "package_version": "0.7.2",
+      "provider": "deepseek",
       "model": "deepseek-flash",
+      "session_sha256": "51d56c54bda1d3285ae365a9e353b36eeced3a7afc0b136ed6985e80168da902",
+      "prompt_sha256": "3f7f40f8d3bb097b98d09b4e6b7d4285abcef1c8d91b15cb7732a63cf6a9f81e",
       "tools": [
-        {
-          "tool": "project_code_index",
-          "step": 2,
-          "call": "call_00_Ax97HlLkBi4WB5GWQREd1151",
-          "outcome": "ok"
-        },
-        {
-          "tool": "project_context_pack",
-          "step": 3,
-          "call": "call_00_O7A2GQMfiq0LyKVgYo6i7868",
-          "outcome": "ok"
-        },
-        {
-          "tool": "project_impact_analysis",
-          "step": 4,
-          "call": "call_00_9BSIcj8xU5PZ2erjSriL1670",
-          "outcome": "ok"
-        },
-        {
-          "tool": "project_verify_flow",
-          "step": 5,
-          "call": "call_00_QKYen9f91NvqFRVqOMly6899",
-          "outcome": "ok"
-        }
+        "project_code_index",
+        "project_context_pack",
+        "project_impact_analysis",
+        "project_verify_flow"
       ],
-      "entry_points": null,
-      "steps": null,
-      "wall_seconds": 12.8,
-      "screenshot": ""
+      "order": {
+        "missing": [],
+        "ordered": true,
+        "observed": [
+          "project_code_index",
+          "project_context_pack",
+          "project_impact_analysis",
+          "project_verify_flow"
+        ]
+      },
+      "policy": {
+        "tool_errors": [],
+        "expected_tools_ran": true,
+        "order_respected": true
+      },
+      "stop_reason": "completed",
+      "requested_profile": "pfe-model",
+      "installed_version": "0.7.2",
+      "wall_seconds": 14.3
     },
+    "model_records_rejected": [],
     "reason": "BLOCKED_DSH_SMOKE: không có bản ghi smoke nào chạy trên 0.7.2 với tarball sha 522d87ba; cần chạy scripts/run_dsh_smoke.py cho bản này.",
     "tool_count": 0,
     "checks": {},
@@ -137,22 +138,22 @@
   },
   "policy": {
     "ok": true,
-    "summary": "OK: 126 file đã kiểm tra · không có absolute path, nested artifacts hay secret"
+    "summary": "OK: 124 file đã kiểm tra · không có absolute path, nested artifacts hay secret"
   },
   "benchmark": {
     "files": 2000,
     "source_bytes": 942071,
-    "scan_ms": 721.7,
+    "scan_ms": 670.2,
     "scan_files": 2001,
     "budget_notes": [],
-    "index_full_ms": 1673.0,
-    "index_incremental_ms": 468.7,
+    "index_full_ms": 1441.3,
+    "index_incremental_ms": 395.1,
     "files_parsed_full": 2001,
     "files_parsed_incremental": 0,
     "entities": 20003,
     "facts": 20001,
     "db_bytes": 15601664,
-    "rss_mb": 68.7,
+    "rss_mb": 69.0,
     "limits": {
       "max_files_scanned": 20000,
       "max_total_source_bytes": 33554432,
@@ -285,20 +286,20 @@
     ]
   },
   "logs": {
-    "python_log": "20261120-1409-python-tests.log",
-    "adapter_log": "20261120-1409-node-adapter.log",
-    "knowledge_log": "20261120-1409-node-knowledge.log",
-    "lifecycle_log": "20261120-1409-node-lifecycle.log",
-    "client_log": "20261120-1409-node-client.log",
-    "pack_log": "20261120-1409-node-pack.log",
-    "settings_log": "20261120-1409-node-settings.log",
-    "arguments_log": "20261120-1409-node-arguments.log",
-    "description_log": "20261120-1409-node-description.log",
-    "command_log": "20261120-1409-node-command.log",
-    "policy_log": "20261120-1409-policy.log",
-    "bundle_log": "20261120-1409-pack-build.log",
-    "bench_log": "20261120-1409-bench.json",
-    "consistency_log": "20261120-1409-consistency.log"
+    "python_log": "20261120-1412-python-tests.log",
+    "adapter_log": "20261120-1412-node-adapter.log",
+    "knowledge_log": "20261120-1412-node-knowledge.log",
+    "lifecycle_log": "20261120-1412-node-lifecycle.log",
+    "client_log": "20261120-1412-node-client.log",
+    "pack_log": "20261120-1412-node-pack.log",
+    "settings_log": "20261120-1412-node-settings.log",
+    "arguments_log": "20261120-1412-node-arguments.log",
+    "description_log": "20261120-1412-node-description.log",
+    "command_log": "20261120-1412-node-command.log",
+    "policy_log": "20261120-1412-policy.log",
+    "bundle_log": "20261120-1412-pack-build.log",
+    "bench_log": "20261120-1412-bench.json",
+    "consistency_log": "20261120-1412-consistency.log"
   },
   "classification": {
     "confirmed": [
@@ -322,15 +323,14 @@
     ],
     "unverified": [
       "DSH registry-runtime smoke cho 0.7.2",
-      "model-driven tool selection (cần trajectory của 0.7.2 kèm tarball hash)",
       "Harness panel UI (BLOCKED_UI_API_UNVERIFIED)"
     ],
     "verified_for": "0.7.2",
     "registry_runtime": "not_verified",
-    "model_driven": "not_verified"
+    "model_driven": "verified"
   },
   "consistency_recheck": {
-    "ok": false,
+    "ok": true,
     "note": "chạy lại toàn bộ unittest sau khi manifest được ghi",
     "ran": 174
   }

@@ -2,42 +2,43 @@
   "status": "blocked",
   "profile": "pfe-test",
   "registry_runtime": "not_verified",
-  "model_driven": "not_verified",
-  "model_driven_note": "record mô tả một session thật nhưng không mang package_version/tarball_sha256, nên không quy được cho bản 0.7.2; cần chạy lại session model trên bản này trước khi claim.",
+  "model_driven": "verified",
+  "model_driven_note": "session thật trên 0.7.2 (tarball 522d87ba): model tự chọn 4 tool, thứ tự đúng, 0 lỗi.",
   "model_session": {
-    "record": "20261120-140809-model-session.json",
+    "record": "20261120-141107-model-session.json",
+    "status": "verified",
+    "package_version": "0.7.2",
+    "provider": "deepseek",
     "model": "deepseek-flash",
+    "session_sha256": "51d56c54bda1d3285ae365a9e353b36eeced3a7afc0b136ed6985e80168da902",
+    "prompt_sha256": "3f7f40f8d3bb097b98d09b4e6b7d4285abcef1c8d91b15cb7732a63cf6a9f81e",
     "tools": [
-      {
-        "tool": "project_code_index",
-        "step": 2,
-        "call": "call_00_Ax97HlLkBi4WB5GWQREd1151",
-        "outcome": "ok"
-      },
-      {
-        "tool": "project_context_pack",
-        "step": 3,
-        "call": "call_00_O7A2GQMfiq0LyKVgYo6i7868",
-        "outcome": "ok"
-      },
-      {
-        "tool": "project_impact_analysis",
-        "step": 4,
-        "call": "call_00_9BSIcj8xU5PZ2erjSriL1670",
-        "outcome": "ok"
-      },
-      {
-        "tool": "project_verify_flow",
-        "step": 5,
-        "call": "call_00_QKYen9f91NvqFRVqOMly6899",
-        "outcome": "ok"
-      }
+      "project_code_index",
+      "project_context_pack",
+      "project_impact_analysis",
+      "project_verify_flow"
     ],
-    "entry_points": null,
-    "steps": null,
-    "wall_seconds": 12.8,
-    "screenshot": ""
+    "order": {
+      "missing": [],
+      "ordered": true,
+      "observed": [
+        "project_code_index",
+        "project_context_pack",
+        "project_impact_analysis",
+        "project_verify_flow"
+      ]
+    },
+    "policy": {
+      "tool_errors": [],
+      "expected_tools_ran": true,
+      "order_respected": true
+    },
+    "stop_reason": "completed",
+    "requested_profile": "pfe-model",
+    "installed_version": "0.7.2",
+    "wall_seconds": 14.3
   },
+  "model_records_rejected": [],
   "reason": "BLOCKED_DSH_SMOKE: không có bản ghi smoke nào chạy trên 0.7.2 với tarball sha 522d87ba; cần chạy scripts/run_dsh_smoke.py cho bản này.",
   "tool_count": 0,
   "checks": {},
