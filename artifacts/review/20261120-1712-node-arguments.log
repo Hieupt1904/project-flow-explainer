@@ -1,17 +1,17 @@
 $ node --test dsh-plugin/tests/arguments.test.mjs
 exit_code: 0
-duration_ms: 91.5
+duration_ms: 100.3
 
 --- stdout ---
-✔ project_flow_explain rejects an undeclared argument (2.241599ms)
-✔ project_code_index rejects an undeclared argument (0.746027ms)
-✔ project_code_search rejects an undeclared argument (0.616762ms)
-✔ project_context_pack rejects an undeclared argument (0.61071ms)
-✔ project_impact_analysis rejects an undeclared argument (0.575086ms)
-✔ project_verify_flow rejects an undeclared argument (0.6129ms)
-✔ project_knowledge_refresh rejects an undeclared argument (0.558805ms)
-✔ declared arguments are still accepted (2.794525ms)
-✔ every declared parameter is accepted by the rejection list (0.812404ms)
+✔ project_flow_explain rejects an undeclared argument (2.448404ms)
+✔ project_code_index rejects an undeclared argument (0.762601ms)
+✔ project_code_search rejects an undeclared argument (0.634456ms)
+✔ project_context_pack rejects an undeclared argument (0.631352ms)
+✔ project_impact_analysis rejects an undeclared argument (0.594943ms)
+✔ project_verify_flow rejects an undeclared argument (0.653153ms)
+✔ project_knowledge_refresh rejects an undeclared argument (0.630753ms)
+✔ declared arguments are still accepted (3.092815ms)
+✔ every declared parameter is accepted by the rejection list (0.848045ms)
 ℹ tests 9
 ℹ suites 0
 ℹ pass 9
@@ -19,6 +19,6 @@ duration_ms: 91.5
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 62.171488
+ℹ duration_ms 69.270175
 
 --- stderr ---
