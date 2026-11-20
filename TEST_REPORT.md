@@ -28,10 +28,10 @@ Tarball phát hành:
 
 | Mục | Giá trị |
 |---|---|
-| Tên | `dsh-project-flow-explainer-0.6.4.tgz` |
-| Byte | 105516 |
+| Tên | `dsh-project-flow-explainer-0.7.0.tgz` |
+| Byte | 112282 |
 | Entry | 27 (gồm `client.js` và `vendor/core/{scripts,assets,tools,pfe}`) |
-| SHA-256 | `306f220bdff271d1498eb6f3ffc36c60496ac9ab104561320e74fb79efc02e70` |
+| SHA-256 | `f07e5e2e7cd1c9c97fca3ac2c096f806a3a3c0153939e775ec678fad360f6733` |
 
 ## 2. Lỗi tái hiện được và đã sửa trong 0.4.x
 
@@ -270,8 +270,8 @@ Manifest: `smoke.model_driven = verified`.
 
 | Hạng mục | Trạng thái | Lý do |
 |---|---|---|
-| Smoke registry trên `0.6.4` trong `pfe-test` | **ĐÃ CHẠY** — `artifacts/review/20261120-112353-dsh-smoke.json` | 17/17 check, 36 tool |
-| Model tự chọn tool | **CHƯA XÁC MINH** | record hiện có không mang `package_version`/`tarball_sha256` nên không quy được cho 0.6.4 (mục 4g là bản ghi cũ) |
+| Smoke registry trên `0.7.0` trong `pfe-test` | **ĐÃ CHẠY** — `artifacts/review/20261120-112353-dsh-smoke.json` | 17/17 check, 36 tool |
+| Model tự chọn tool | **CHƯA XÁC MINH** | record hiện có không mang `package_version`/`tarball_sha256` nên không quy được cho 0.7.0 (mục 4g là bản ghi cũ) |
 | Native `Config` | **ĐÃ XÁC MINH** | boot thật trả `ValidationError: $.allowedRoots expected array but got oops` |
 | Tool visibility | **BLOCKED_TOOL_VISIBILITY** | chưa xác minh cơ chế presentation/visibility |
 | Panel UI Harness | `BLOCKED_UI_API_UNVERIFIED` | panel riêng ngoài scope; settings card dùng slot `plugins.bundle.config` (đã có) |

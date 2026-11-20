@@ -1,6 +1,6 @@
 $ /usr/bin/python3 -m unittest discover -s tests -v
-exit_code: 0
-duration_ms: 3588.1
+exit_code: 1
+duration_ms: 4431.0
 
 --- stdout ---
 
@@ -36,7 +36,15 @@ test_verified_nodes_have_location_and_membership (test_build_flow.BuildFlowTests
 test_dependency_is_a_real_relation (test_context_pack.DesktopContextPackTests.test_dependency_is_a_real_relation) ... ok
 test_desktop_has_no_invented_http_route (test_context_pack.DesktopContextPackTests.test_desktop_has_no_invented_http_route) ... ok
 test_gui_cli_worker_entry_points (test_context_pack.DesktopContextPackTests.test_gui_cli_worker_entry_points) ... ok
+test_an_error_task_still_reaches_its_entry_point (test_context_pack.EntryPointRelevanceTests.test_an_error_task_still_reaches_its_entry_point) ... ok
+test_related_routes_say_why_they_were_excluded (test_context_pack.EntryPointRelevanceTests.test_related_routes_say_why_they_were_excluded) ... ok
+test_the_matching_route_wins_and_the_sibling_moves_to_related (test_context_pack.EntryPointRelevanceTests.test_the_matching_route_wins_and_the_sibling_moves_to_related) ... ok
+test_a_route_that_does_not_name_the_task_is_only_related (test_context_pack.FlaskBlueprintTests.test_a_route_that_does_not_name_the_task_is_only_related)
+Both routes live in app.py; only one is what "xuất báo cáo" is about. ... ok
 test_blueprint_route_is_an_entry_point (test_context_pack.FlaskBlueprintTests.test_blueprint_route_is_an_entry_point) ... ok
+test_a_file_level_test_still_reaches_the_pack (test_context_pack.RelatedTestsResolutionTests.test_a_file_level_test_still_reaches_the_pack) ... ok
+test_every_related_test_carries_a_path (test_context_pack.RelatedTestsResolutionTests.test_every_related_test_carries_a_path) ... ok
+test_test_evidence_is_labelled_file_level_not_line_level (test_context_pack.RelatedTestsResolutionTests.test_test_evidence_is_labelled_file_level_not_line_level) ... ok
 test_analysis_metadata_present (test_context_pack.WebContextPackTests.test_analysis_metadata_present) ... ok
 test_confidence_fields_are_split (test_context_pack.WebContextPackTests.test_confidence_fields_are_split) ... ok
 test_entry_points_carry_evidence_and_kind (test_context_pack.WebContextPackTests.test_entry_points_carry_evidence_and_kind) ... ok
@@ -116,7 +124,7 @@ test_fresh_artifacts_pass (test_knowledge.VerifyTests.test_fresh_artifacts_pass)
 test_missing_public_file_is_detected (test_knowledge.VerifyTests.test_missing_public_file_is_detected) ... ok
 test_no_artifact_means_blocked_not_pass (test_knowledge.VerifyTests.test_no_artifact_means_blocked_not_pass) ... ok
 test_engines_dsh_matches_manifest (test_knowledge_schema.EvidenceConsistencyTests.test_engines_dsh_matches_manifest) ... ok
-test_package_version_matches_manifest (test_knowledge_schema.EvidenceConsistencyTests.test_package_version_matches_manifest) ... ok
+test_package_version_matches_manifest (test_knowledge_schema.EvidenceConsistencyTests.test_package_version_matches_manifest) ... FAIL
 test_reports_quote_the_manifest_tarball_hash (test_knowledge_schema.EvidenceConsistencyTests.test_reports_quote_the_manifest_tarball_hash) ... ok
 test_reports_quote_the_manifest_test_counts (test_knowledge_schema.EvidenceConsistencyTests.test_reports_quote_the_manifest_test_counts) ... ok
 test_smoke_claims_match_recorded_evidence (test_knowledge_schema.EvidenceConsistencyTests.test_smoke_claims_match_recorded_evidence) ... ok
@@ -141,19 +149,48 @@ test_flow_from_repository_root (test_v04_regressions.CliFlowTests.test_flow_from
 test_invalid_repository_keeps_stable_code (test_v04_regressions.CliFlowTests.test_invalid_repository_keeps_stable_code) ... ok
 test_missing_request_keeps_stable_code (test_v04_regressions.CliFlowTests.test_missing_request_keeps_stable_code) ... ok
 test_conflict_metadata_is_written_and_read_back (test_v04_regressions.ConflictPersistenceTests.test_conflict_metadata_is_written_and_read_back) ... ok
+test_a_bare_def_main_is_structural (test_v04_regressions.EntryPointEvidenceTests.test_a_bare_def_main_is_structural) ... ok
+test_a_main_guard_is_observed (test_v04_regressions.EntryPointEvidenceTests.test_a_main_guard_is_observed) ... ok
+test_the_index_persists_the_evidence_quality (test_v04_regressions.EntryPointEvidenceTests.test_the_index_persists_the_evidence_quality) ... ok
+test_a_known_flow_filter_keeps_only_members (test_v04_regressions.FlowIdFilterTests.test_a_known_flow_filter_keeps_only_members) ... ok
+test_an_unknown_flow_filter_returns_nothing_and_says_why (test_v04_regressions.FlowIdFilterTests.test_an_unknown_flow_filter_returns_nothing_and_says_why) ... ok
+test_without_a_filter_results_are_not_restricted (test_v04_regressions.FlowIdFilterTests.test_without_a_filter_results_are_not_restricted) ... ok
+test_affected_flows_only_lists_real_members (test_v04_regressions.ImpactEvidenceTests.test_affected_flows_only_lists_real_members) ... ok
+test_downstream_path_is_the_downstream_file (test_v04_regressions.ImpactEvidenceTests.test_downstream_path_is_the_downstream_file) ... ok
+test_every_downstream_row_carries_line_and_evidence (test_v04_regressions.ImpactEvidenceTests.test_every_downstream_row_carries_line_and_evidence) ... ok
+test_related_tests_carry_path_and_evidence_kind (test_v04_regressions.ImpactEvidenceTests.test_related_tests_carry_path_and_evidence_kind) ... ok
+test_stale_artifacts_say_whether_they_are_affected (test_v04_regressions.ImpactEvidenceTests.test_stale_artifacts_say_whether_they_are_affected) ... ok
 test_deleted_and_renamed_still_work (test_v04_regressions.IncrementalCacheRepairTests.test_deleted_and_renamed_still_work) ... ok
 test_graph_is_equivalent_after_repair (test_v04_regressions.IncrementalCacheRepairTests.test_graph_is_equivalent_after_repair) ... ok
 test_malformed_cache_payload_is_repaired (test_v04_regressions.IncrementalCacheRepairTests.test_malformed_cache_payload_is_repaired) ... ok
 test_missing_cache_row_is_repaired (test_v04_regressions.IncrementalCacheRepairTests.test_missing_cache_row_is_repaired) ... ok
+test_placeholders_are_not_flagged (test_v04_regressions.PrivacyPatternTests.test_placeholders_are_not_flagged) ... ok
+test_workspace_style_roots_are_detected (test_v04_regressions.PrivacyPatternTests.test_workspace_style_roots_are_detected) ... ok
 test_hashing_backend_is_declared_lexical (test_v04_regressions.VectorContractTests.test_hashing_backend_is_declared_lexical) ... ok
 test_missing_vector_index_falls_back_with_warning (test_v04_regressions.VectorContractTests.test_missing_vector_index_falls_back_with_warning) ... ok
+test_rebuild_clears_the_stale_flag (test_v04_regressions.VectorContractTests.test_rebuild_clears_the_stale_flag) ... ok
+test_source_change_without_rebuild_marks_vectors_stale (test_v04_regressions.VectorContractTests.test_source_change_without_rebuild_marks_vectors_stale)
+T0: full+vectors -> edit -> incremental without vectors. ... ok
+test_touched_paths_lose_their_vector_rows (test_v04_regressions.VectorContractTests.test_touched_paths_lose_their_vector_rows) ... ok
+test_vector_hits_are_labelled_lexical_not_semantic (test_v04_regressions.VectorContractTests.test_vector_hits_are_labelled_lexical_not_semantic) ... ok
 test_vectors_are_off_by_default (test_v04_regressions.VectorContractTests.test_vectors_are_off_by_default) ... ok
 test_full_pass_requires_real_gate_evidence (test_v04_regressions.VerifyVerdictTests.test_full_pass_requires_real_gate_evidence) ... ok
 test_no_artifact_is_blocked_not_pass (test_v04_regressions.VerifyVerdictTests.test_no_artifact_is_blocked_not_pass) ... ok
 test_static_failure_is_overall_failure (test_v04_regressions.VerifyVerdictTests.test_static_failure_is_overall_failure) ... ok
 test_static_pass_ui_runtime_blocked_is_partial (test_v04_regressions.VerifyVerdictTests.test_static_pass_ui_runtime_blocked_is_partial) ... ok
 
+======================================================================
+FAIL: test_package_version_matches_manifest (test_knowledge_schema.EvidenceConsistencyTests.test_package_version_matches_manifest)
 ----------------------------------------------------------------------
-Ran 145 tests in 3.492s
+Traceback (most recent call last):
+  File "/home/hieupt/Documents/Agent-skills-main/project-flow-explainer/tests/test_knowledge_schema.py", line 63, in test_package_version_matches_manifest
+    self.assertEqual(manifest["package_version"], self.package()["version"])
+AssertionError: '0.6.4' != '0.7.0'
+- 0.6.4
++ 0.7.0
 
-OK
+
+----------------------------------------------------------------------
+Ran 169 tests in 4.337s
+
+FAILED (failures=1)
