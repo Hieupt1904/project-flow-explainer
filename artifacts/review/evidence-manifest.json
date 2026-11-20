@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-11-20T10:08:05+07:00",
+  "generated_at": "2026-11-20T10:10:05+07:00",
   "generator": "scripts/regen_evidence.py",
-  "source_commit": "f5a3dd0a431b764bd24849d6599817170c03e646",
+  "source_commit": "33df3835d665b6ee5327fca0909f82ae2a84dc2e",
   "source_branch": "main",
   "working_tree_dirty": true,
   "evidence_files_changed": 32,
@@ -35,9 +35,9 @@
     "contains_knowledge": true
   },
   "smoke": {
-    "status": "blocked",
+    "status": "verified",
     "profile": "pfe-test",
-    "registry_runtime": "not_verified",
+    "registry_runtime": "verified",
     "model_driven": "not_verified",
     "model_driven_note": "record mô tả một session thật nhưng không mang package_version/tarball_sha256, nên không quy được cho bản 0.6.0; cần chạy lại session model trên bản này trước khi claim.",
     "model_session": {
@@ -52,41 +52,37 @@
       "wall_seconds": 30,
       "screenshot": "dsh-model-session.png"
     },
-    "reason": "BLOCKED_DSH_SMOKE: không có bản ghi smoke nào chạy trên 0.6.0 với tarball sha 658a0e3f; cần chạy scripts/run_dsh_smoke.py cho bản này.",
-    "tool_count": 0,
-    "checks": {},
-    "record": "",
-    "stale_records": [
-      {
-        "record": "20261120-1007-dsh-smoke.json",
-        "reason": "summary của regen_evidence, không phải lần chạy thật"
-      },
-      {
-        "record": "20261120-094226-dsh-smoke.json",
-        "reason": "chạy cho 0.5.7, không phải 0.6.0"
-      },
-      {
-        "record": "20261120-004148-dsh-smoke.json",
-        "reason": "chạy cho 0.5.3, không phải 0.6.0"
-      },
-      {
-        "record": "20261120-004125-dsh-smoke.json",
-        "reason": "chạy cho 0.5.2, không phải 0.6.0"
-      },
-      {
-        "record": "20261120-004100-dsh-smoke.json",
-        "reason": "chạy cho 0.5.1, không phải 0.6.0"
-      },
-      {
-        "record": "20261120-004041-dsh-smoke.json",
-        "reason": "chạy cho 0.5.0, không phải 0.6.0"
-      }
-    ],
-    "blocked": {},
+    "reason": "model tự chọn tool trong một session thật; probe registry là bằng chứng bổ sung.",
+    "tool_count": 36,
+    "checks": {
+      "tools_registered": true,
+      "no_missing_tools": true,
+      "flow_ok": true,
+      "context_ok": true,
+      "impact_ok": true,
+      "verify_ok": true,
+      "verify_partial_or_pass": true,
+      "search_ok": true,
+      "outside_roots_rejected": true,
+      "malformed_rejected": true,
+      "abort_identity": true,
+      "empty_roots_rejected": true,
+      "timeout_code": true,
+      "disabled_hides_tools": true,
+      "client_subpath_resolves": true,
+      "command_registered": true,
+      "invalid_config_rejected": true
+    },
+    "record": "20261120-100946-dsh-smoke.json",
+    "stale_records": [],
+    "blocked": {
+      "model_driven": "not_verified: profile không có API key; probe gọi registry, không qua model",
+      "panel_ui": "BLOCKED_UI_API_UNVERIFIED"
+    },
     "settings_ui": {
       "client_entry": "client.js",
       "slot": "plugins.bundle.config",
-      "config_schema": "fallback normalizeConfig",
+      "config_schema": "native schemastery",
       "verified": "client tests + ValidationError boot check"
     }
   },
@@ -115,22 +111,22 @@
   },
   "policy": {
     "ok": true,
-    "summary": "OK: 105 file đã kiểm tra · không có absolute path, nested artifacts hay secret"
+    "summary": "OK: 116 file đã kiểm tra · không có absolute path, nested artifacts hay secret"
   },
   "benchmark": {
     "files": 2000,
     "source_bytes": 942071,
-    "scan_ms": 681.0,
+    "scan_ms": 699.6,
     "scan_files": 2001,
     "budget_notes": [],
-    "index_full_ms": 1393.4,
-    "index_incremental_ms": 400.1,
+    "index_full_ms": 1454.1,
+    "index_incremental_ms": 415.7,
     "files_parsed_full": 2001,
     "files_parsed_incremental": 0,
     "entities": 20003,
     "facts": 20001,
     "db_bytes": 15601664,
-    "rss_mb": 68.9,
+    "rss_mb": 68.8,
     "limits": {
       "max_files_scanned": 20000,
       "max_total_source_bytes": 33554432,
@@ -263,20 +259,20 @@
     ]
   },
   "logs": {
-    "python_log": "20261120-1007-python-tests.log",
-    "adapter_log": "20261120-1007-node-adapter.log",
-    "knowledge_log": "20261120-1007-node-knowledge.log",
-    "lifecycle_log": "20261120-1007-node-lifecycle.log",
-    "client_log": "20261120-1007-node-client.log",
-    "pack_log": "20261120-1007-node-pack.log",
-    "settings_log": "20261120-1007-node-settings.log",
-    "arguments_log": "20261120-1007-node-arguments.log",
-    "description_log": "20261120-1007-node-description.log",
-    "command_log": "20261120-1007-node-command.log",
-    "policy_log": "20261120-1007-policy.log",
-    "bundle_log": "20261120-1007-pack-build.log",
-    "bench_log": "20261120-1007-bench.json",
-    "consistency_log": "20261120-1007-consistency.log"
+    "python_log": "20261120-1009-python-tests.log",
+    "adapter_log": "20261120-1009-node-adapter.log",
+    "knowledge_log": "20261120-1009-node-knowledge.log",
+    "lifecycle_log": "20261120-1009-node-lifecycle.log",
+    "client_log": "20261120-1009-node-client.log",
+    "pack_log": "20261120-1009-node-pack.log",
+    "settings_log": "20261120-1009-node-settings.log",
+    "arguments_log": "20261120-1009-node-arguments.log",
+    "description_log": "20261120-1009-node-description.log",
+    "command_log": "20261120-1009-node-command.log",
+    "policy_log": "20261120-1009-policy.log",
+    "bundle_log": "20261120-1009-pack-build.log",
+    "bench_log": "20261120-1009-bench.json",
+    "consistency_log": "20261120-1009-consistency.log"
   },
   "classification": {
     "confirmed": [
