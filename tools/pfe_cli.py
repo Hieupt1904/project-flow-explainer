@@ -94,6 +94,8 @@ def cmd_search(args):
         filters["kind"] = args.kind
     if args.language:
         filters["language"] = args.language
+    if args.flow_id:
+        filters["flow_id"] = args.flow_id
     payload = retrieval.retrieve(root, args.query, top_k=args.top_k, filters=filters,
                                  use_vectors=not args.no_vectors)
     return _json(payload)
@@ -157,6 +159,8 @@ def build_parser():
     search.add_argument("--top-k", type=int, default=10, dest="top_k")
     search.add_argument("--kind", default=None)
     search.add_argument("--language", default=None)
+    search.add_argument("--flow-id", default=None, dest="flow_id",
+                        help="chỉ trả entity thuộc flow đã render (cần project_flow_explain)")
     search.add_argument("--no-vectors", action="store_true", dest="no_vectors")
     search.set_defaults(handler=cmd_search)
 

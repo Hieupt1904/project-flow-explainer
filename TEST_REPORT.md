@@ -243,6 +243,11 @@ Lý do phải mở từ dòng: trang bundle gọi `formFor(pkg.name)`, còn name
 
 ## 4g. Session model thật (ghi dưới 0.5.5)
 
+> **Chỉ là bản ghi lịch sử, không phải bằng chứng cho bản hiện tại.** Record này không
+> mang `package_version` và `tarball_sha256`, nên không quy được cho build nào đang phát
+> hành; `model_driven` trong manifest vì vậy là `not_verified`. Muốn claim mức này phải
+> chạy lại một session thật trên đúng tarball và ghi cả hai trường đó vào record.
+
 Chạy trên profile `pfe-webcheck` (bản sao của `web`, cổng 3099), model `deepseek-flash`,
 reasoning high. Prompt không nêu tên tool nào ngoài yêu cầu nghiệp vụ.
 
@@ -265,8 +270,8 @@ Manifest: `smoke.model_driven = verified`.
 
 | Hạng mục | Trạng thái | Lý do |
 |---|---|---|
-| Smoke registry 0.5.4 trong `pfe-test` | **ĐÃ CHẠY** — `artifacts/review/*-dsh-smoke.json` | 6 lần boot thật, 36 tool, 16/16 check pass |
-| Model tự chọn tool | **ĐÃ CHẠY** — mục 4g | model gọi đúng 2 tool, trả lời bằng số liệu thật |
+| Smoke registry trên `0.6.4` trong `pfe-test` | **ĐÃ CHẠY** — `artifacts/review/20261120-112353-dsh-smoke.json` | 17/17 check, 36 tool |
+| Model tự chọn tool | **CHƯA XÁC MINH** | record hiện có không mang `package_version`/`tarball_sha256` nên không quy được cho 0.6.4 (mục 4g là bản ghi cũ) |
 | Native `Config` | **ĐÃ XÁC MINH** | boot thật trả `ValidationError: $.allowedRoots expected array but got oops` |
 | Tool visibility | **BLOCKED_TOOL_VISIBILITY** | chưa xác minh cơ chế presentation/visibility |
 | Panel UI Harness | `BLOCKED_UI_API_UNVERIFIED` | panel riêng ngoài scope; settings card dùng slot `plugins.bundle.config` (đã có) |

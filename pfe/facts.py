@@ -147,7 +147,6 @@ COMMENT_LINE = re.compile(r"^\s*(?:#|//|/\*|\*|<!--)")
 ENTRY_POINT_PATTERNS = [
     (re.compile(r"^\s*if\s+__name__\s*==\s*['\"]__main__['\"]"), "main"),
     (re.compile(r"^\s*if\s+__name__\s*==\s*['\"]__main__['\"]\s*:"), "main"),
-    (re.compile(r"^\s*(?:async\s+)?def\s+(main)\s*\("), "main"),
     (re.compile(r"\.add_parser\s*\(\s*['\"]([\w.-]+)['\"]"), "cli_command"),
     (re.compile(r"^\s*@(?:click|typer)\.(?:command|group)\b"), "cli_command"),
     (re.compile(r"\bcommand\s*=\s*([A-Za-z_][\w.]*)"), "gui_event"),
@@ -165,13 +164,20 @@ ENTRY_POINT_PATTERNS = [
 PUBLIC_API_LINE = re.compile(r"^\s*__all__\s*=")
 
 
-def find_entry_points(lines):
-    """Return entry points with the line that proves them.
+BARE_MAIN_RE = re.compile(r"^\s*(?:async\s+)?def\s+(main)\s*\(")
+MAIN_GUARD_RE = re.compile(r"^\s*if\s+__name__\s*==\s*['\"]__main__['\"]")
 
-    Only registration syntax counts: a decorator, a binding, a parser
-    registration, an export list, a __main__ guard. Each result is 'observed'
-    because the line is present in the file.
+
+def find_entry_points(lines):
+    """Return entry points with the evidence quality that proves them.
+
+    Only registration syntax counts as `observed`: a decorator, a binding, a
+    parser registration, an export list, a `__main__` guard. A bare `def main()`
+    is *likely* an entry point — plenty of files define one and never call it, or
+    call it only from a guard that lives elsewhere — so it is reported as
+    `structural` unless the same file also has the guard.
     """
+    guarded = any(MAIN_GUARD_RE.search(line) for line in lines)
     found = []
     seen = set()
     for number, line in enumerate(lines, start=1):
@@ -188,9 +194,18 @@ def find_entry_points(lines):
             if key in seen:
                 continue
             seen.add(key)
-            found.append({"kind": kind, "line": number, "label": label})
+            found.append({"kind": kind, "line": number, "label": label,
+                          "evidence_kind": "observed"})
         if PUBLIC_API_LINE.search(line):
-            found.append({"kind": "public_api", "line": number, "label": ""})
+            found.append({"kind": "public_api", "line": number, "label": "",
+                          "evidence_kind": "observed"})
+        bare = BARE_MAIN_RE.search(line)
+        if bare:
+            key = ("main", number, bare.group(1) or "")
+            if key not in seen:
+                seen.add(key)
+                found.append({"kind": "main", "line": number, "label": "main",
+                              "evidence_kind": "observed" if guarded else "structural"})
     return found
 
 

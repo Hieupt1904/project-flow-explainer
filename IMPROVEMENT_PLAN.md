@@ -1,5 +1,10 @@
 # IMPROVEMENT_PLAN
 
+
+> **Snapshot lịch sử — không phải trạng thái hiện tại.**
+> Tài liệu này ghi lại thời điểm 0.3.0; số liệu bên dưới đúng ở thời điểm đó.
+> Trạng thái hiện tại của bản `0.6.4`: xem [artifacts/review/evidence-manifest.json](artifacts/review/evidence-manifest.json) (`package_version`, `smoke.registry_runtime`, `smoke.model_driven`, `classification`).
+
 Backlog sau 0.3.0. Không mục nào chặn việc dùng bản hiện tại.
 
 ## P0 — cần trước khi gọi 0.3.0 là phát hành đầy đủ

@@ -1,5 +1,10 @@
 # DSH_IMPLEMENTATION_PLAN — Hybrid Project Flow Explainer × DeepSeek Harness
 
+
+> **Snapshot lịch sử — không phải trạng thái hiện tại.**
+> Tài liệu này ghi lại thời điểm 0.3.0; số liệu bên dưới đúng ở thời điểm đó.
+> Trạng thái hiện tại của bản `0.6.4`: xem [artifacts/review/evidence-manifest.json](artifacts/review/evidence-manifest.json) (`package_version`, `smoke.registry_runtime`, `smoke.model_driven`, `classification`).
+
 Trạng thái 0.3.0: **core + adapter DONE; smoke registry 0.3.0 CHƯA CHẠY** (cần xin phép cài).
 
 Cập nhật: 2026-11-19 · commit nguồn `13a2c49e4942` + thay đổi chưa commit · nhánh `main`.

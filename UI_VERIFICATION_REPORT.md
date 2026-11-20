@@ -1,5 +1,10 @@
 # UI_VERIFICATION_REPORT — 0.4.0
 
+
+> **Snapshot lịch sử — không phải trạng thái hiện tại.**
+> Tài liệu này ghi lại thời điểm 0.4.0; số liệu bên dưới đúng ở thời điểm đó.
+> Trạng thái hiện tại của bản `0.6.4`: xem [artifacts/review/evidence-manifest.json](artifacts/review/evidence-manifest.json) (`package_version`, `smoke.registry_runtime`, `smoke.model_driven`, `classification`).
+
 Kiểm tra bằng trình duyệt thật (CDP), mở trực tiếp file://. Máy đọc:
 [artifacts/review/20261119-ui.json](artifacts/review/20261119-ui.json).
 

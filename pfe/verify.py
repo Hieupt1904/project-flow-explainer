@@ -17,6 +17,13 @@ ABSOLUTE_PATHS = [
     (re.compile(r"/Users/(?!<)([A-Za-z0-9._-]+)"), "macOS home path"),
     (re.compile(r"[A-Za-z]:\\Users\\"), "windows home path"),
     (re.compile(r"/tmp/(?!<)[A-Za-z0-9._-]+"), "tmp path"),
+    # Workspace-style roots: CI and containers mount work under these, so an
+    # artifact that hardcodes one leaks the runner's layout the same way /home
+    # does. `<…>` placeholders are the documented way to write an example path.
+    (re.compile(r"/(?:workspace|workspaces|mnt|srv|opt/app|var/tmp|private/var/folders)"
+                r"/(?!<)[A-Za-z0-9._-]+"), "workspace-style root"),
+    # A custom HOME is just a different absolute path with the same problem.
+    (re.compile(r"/(?:root|home/[A-Za-z0-9._-]+)/(?!<)[A-Za-z0-9._-]+"), "custom home path"),
 ]
 SECRET_SHAPES = [
     re.compile(r"gh[pousr]_[A-Za-z0-9]{20,}"),

@@ -402,9 +402,18 @@ def main(argv=None):
                           "index benchmark"],
             "manual_evidence": ["tarball sha256", "tarball entry count",
                                 "real-project run (path và tên repo đã scrub)"],
-            "unverified": ["DSH registry-runtime smoke cho 0.3.0",
-                           "model-driven tool selection",
-                           "Harness panel UI (BLOCKED_UI_API_UNVERIFIED)"],
+            # Derived, never typed: a hardcoded version outlives the build it
+            # names and makes the report claim a smoke nobody ran.
+            "unverified": ([]
+                           if verified else
+                           ["DSH registry-runtime smoke cho " + current_version])
+                          + ([] if model_session and verified else
+                             ["model-driven tool selection (cần trajectory của "
+                              + current_version + " kèm tarball hash)"])
+                          + ["Harness panel UI (BLOCKED_UI_API_UNVERIFIED)"],
+            "verified_for": current_version,
+            "registry_runtime": smoke.get("registry_runtime"),
+            "model_driven": smoke.get("model_driven"),
         },
     }
     manifest_path = REVIEW / "evidence-manifest.json"

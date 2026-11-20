@@ -9,6 +9,8 @@
  * never needs a model call.
  */
 import { writeFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
 
 export const name = 'pfe-smoke-probe'
 export const inject = ['tools']
@@ -44,6 +46,20 @@ export function apply(ctx) {
     argv1: process.argv[1] || '',
     exec_path: process.execPath,
     dsh_home: process.env.DSH_HOME || '',
+    // Requested profile comes from the harness on purpose. The *observed* identity
+    // is read from this process's own argv: the boot that mounted this plugin was
+    // launched with `--profile <name>`, and that is a fact about this boot. A
+    // DSH_PROFILE environment variable is not evidence — it describes the caller's
+    // shell, which reported "web" for every run before this check existed.
+    requested_profile: process.env.PFE_PROBE_PROFILE || '',
+    loader_profile: (() => {
+      const argv = process.argv
+      const index = argv.indexOf('--profile')
+      if (index !== -1 && argv[index + 1]) return argv[index + 1]
+      const flagged = argv.find((item) => item.startsWith('--profile='))
+      return flagged ? flagged.split('=')[1] : ''
+    })(),
+    probe_module_path: fileURLToPath(import.meta.url),
     profile_dir: process.env.DSH_PROFILE_DIR || '',
     mode: MODE,
     started_at: new Date().toISOString(),

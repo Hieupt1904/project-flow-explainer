@@ -109,10 +109,87 @@ class FlaskBlueprintTests(unittest.TestCase):
         pack = retrieval.context_pack(self.repo, "xuất báo cáo")
         routes = {item["route"] for item in pack["entry_points"]}
         self.assertIn("/reports/export", routes)
-        self.assertIn("/reports/status", routes)
         for item in pack["entry_points"]:
             self.assertEqual(item["kind"], "http_route")
             self.assertGreaterEqual(item["start_line"], 1)
+
+    def test_a_route_that_does_not_name_the_task_is_only_related(self):
+        """Both routes live in app.py; only one is what "xuất báo cáo" is about.
+
+        Sharing a file is not evidence of relevance, so `/reports/status` must be
+        reported as related context rather than presented as the entry point.
+        """
+        pack = retrieval.context_pack(self.repo, "xuất báo cáo")
+        entry = {item["route"] for item in pack["entry_points"]}
+        related = {item["label"] for item in pack.get("related_routes", [])}
+        self.assertNotIn("/reports/status", entry)
+        self.assertIn("/reports/status", related)
+
+
+class RelatedTestsResolutionTests(unittest.TestCase):
+    """T2: `tested_by` is a file -> test fact, but the pack ranks symbols.
+
+    Looking only at a symbol's direct neighbours therefore missed every test in
+    a repository that has one — `related_tests` came back empty while the fact
+    was sitting in the index.
+    """
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.repo = prepare(ROOT / "tests" / "fixtures" / "shop-app",
+                            Path(self._tmp.name) / "shop")
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def test_a_file_level_test_still_reaches_the_pack(self):
+        pack = retrieval.context_pack(self.repo, "export report")
+        paths = {item["path"] for item in pack["related_tests"]}
+        self.assertIn("tests/report_service.test.js", paths)
+
+    def test_test_evidence_is_labelled_file_level_not_line_level(self):
+        pack = retrieval.context_pack(self.repo, "export report")
+        for item in pack["related_tests"]:
+            self.assertEqual(item["evidence_kind"], "file_level")
+            self.assertEqual(item["via"], "file")
+            self.assertTrue(item["evidence_refs"])
+
+    def test_every_related_test_carries_a_path(self):
+        pack = retrieval.context_pack(self.repo, "export report")
+        self.assertTrue(pack["related_tests"])
+        for item in pack["related_tests"]:
+            self.assertTrue(item["path"])
+            self.assertGreaterEqual(item["start_line"], 1)
+
+
+class EntryPointRelevanceTests(unittest.TestCase):
+    """T2: a route must name the task to be the entry point."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.repo = prepare(ROOT / "tests" / "fixtures" / "shop-app",
+                            Path(self._tmp.name) / "shop")
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def test_the_matching_route_wins_and_the_sibling_moves_to_related(self):
+        pack = retrieval.context_pack(self.repo, "export report")
+        entry = {item["route"] for item in pack["entry_points"]}
+        related = {item["label"] for item in pack.get("related_routes", [])}
+        self.assertEqual(entry, {"/api/reports/export"})
+        self.assertIn("/api/reports/:id", related)
+
+    def test_related_routes_say_why_they_were_excluded(self):
+        pack = retrieval.context_pack(self.repo, "export report")
+        for item in pack.get("related_routes", []):
+            self.assertIn("không khớp task", item["why_excluded"])
+
+    def test_an_error_task_still_reaches_its_entry_point(self):
+        pack = retrieval.context_pack(self.repo, "lỗi khi xuất báo cáo")
+        self.assertTrue(pack["entry_points"])
+        self.assertTrue(any(item["path"].endswith("test.js")
+                            for item in pack["related_tests"]))
 
 
 class DesktopContextPackTests(unittest.TestCase):

@@ -13,7 +13,7 @@ Mọi con số đều có log/artifact tương ứng, sinh từ cùng một comm
 | Test | 145 Python · 16 adapter · 9 knowledge · 8 lifecycle · 10 client · 8 command · 5 settings · 9 arguments · 18 description · 2 pack — 0 fail |
 | Policy | `check_repo_policy.py` OK: không absolute path, nested artifact, secret-shape |
 | UI | 12 tổ hợp (3 sample × 4 viewport) sạch; tương tác search/click/zoom/fit chạy |
-| Trạng thái tổng | **PARTIAL**: code pass; registry-runtime 0.3.0 và model-driven **CHƯA CHẠY** |
+| Trạng thái tổng | registry-runtime: **verified** (20261120-112353-dsh-smoke.json) · model-driven: **not_verified** — không claim khi chưa có trajectory của đúng build |
 
 Số liệu máy đọc: [artifacts/review/evidence-manifest.json](artifacts/review/evidence-manifest.json).
 Sinh lại bằng một lệnh: `python3 scripts/regen_evidence.py`.

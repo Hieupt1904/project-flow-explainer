@@ -25,6 +25,75 @@ def changed_files_from_diff(diff):
     return sorted(set(DIFF_FILE_RE.findall(diff)))
 
 
+def _dedup_downstream(items):
+    """One row per (downstream file, relation); the first evidence wins.
+
+    Keyed on fields rather than the whole dict: `evidence_refs` is a list and
+    tuples of dict items are not hashable.
+    """
+    seen = set()
+    out = []
+    for item in items:
+        key = (item.get("path") or item.get("file"), item.get("relation"), item.get("symbol"))
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(item)
+    return out
+
+
+def _evidence_of(row):
+    """Parse a fact's evidence JSON, tolerating a missing or broken column."""
+    import json as _json
+    try:
+        raw = row["evidence"]
+    except (IndexError, KeyError):
+        return {}
+    if not raw:
+        return {}
+    try:
+        parsed = _json.loads(raw)
+    except (ValueError, TypeError):
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def _entity_location(connection, entity_id, fallback_line=0):
+    """(path, symbol, start_line) of an entity, or empty values when unknown.
+
+    A file entity has no meaningful start_line (it is 0), so the caller passes the
+    evidence line it already knows — a call site, an import line — instead of
+    reporting 0 as if it were a location.
+    """
+    row = connection.execute(
+        "SELECT path, symbol, name, start_line FROM entities WHERE id = ?",
+        (entity_id,)).fetchone()
+    if row is None:
+        return "", "", fallback_line
+    line = int(row["start_line"] or 0) or fallback_line
+    return (row["path"] or "",
+            row["symbol"] or row["name"] or "",
+            line)
+
+
+def _fact_ref(row, changed_rel):
+    evidence = {}
+    try:
+        import json as _json
+        evidence = _json.loads(row["evidence"]) if row["evidence"] else {}
+    except (ValueError, TypeError):
+        evidence = {}
+    predicate = ""
+    try:
+        predicate = row["predicate"]
+    except (IndexError, KeyError):
+        predicate = ""
+    return {"path": evidence.get("path") or changed_rel,
+            "start_line": evidence.get("start_line") or 1,
+            "relation": [predicate] if predicate else [],
+            "confidence": row["confidence"] or "structural"}
+
+
 def impact_analysis(root, changed_files=(), diff=None, max_items=25):
     root_path = root
     files = sorted({item.strip() for item in (changed_files or []) if str(item).strip()}
@@ -65,31 +134,70 @@ def impact_analysis(root, changed_files=(), diff=None, max_items=25):
                     symbols.append({"symbol": row["name"], "path": rel,
                                     "start_line": row["start_line"]})
             importers = connection.execute(
-                "SELECT subject, evidence FROM facts WHERE predicate = 'imports' AND object = ?",
+                "SELECT subject, evidence, confidence FROM facts"
+                " WHERE predicate = 'imports' AND object = ?",
                 ("module:" + _module_of(rel),)).fetchall()
             for row in importers:
-                downstream.append({"file": row["subject"].split(":", 1)[-1],
-                                   "relation": "imports", "path": rel})
+                # `path` is the DOWNSTREAM file's path, not the changed file's:
+                # reporting the changed path here told the reader nothing about
+                # where the blast radius actually lands.
+                ev = _evidence_of(row)
+                down_path, down_symbol, down_line = _entity_location(
+                    connection, row["subject"], fallback_line=ev.get("start_line") or 0)
+                downstream.append({
+                    "file": down_path or row["subject"].split(":", 1)[-1],
+                    "path": down_path or row["subject"].split(":", 1)[-1],
+                    "symbol": down_symbol,
+                    "relation": "imports",
+                    "start_line": down_line,
+                    "confidence": row["confidence"] or "structural",
+                    "evidence_refs": [_fact_ref(row, rel)],
+                    "changed_file": rel,
+                })
             if len(importers) >= 2:
                 high = True
             callers = connection.execute(
-                "SELECT DISTINCT subject FROM facts WHERE predicate = 'calls' AND object LIKE ?",
+                "SELECT DISTINCT subject, confidence, evidence FROM facts"
+                " WHERE predicate = 'calls' AND object LIKE ?",
                 ("symbol:" + rel + "#%",)).fetchall()
             for row in callers:
-                downstream.append({"file": row["subject"].split(":", 1)[-1],
-                                   "relation": "calls", "path": rel})
+                ev = _evidence_of(row)
+                down_path, down_symbol, down_line = _entity_location(
+                    connection, row["subject"], fallback_line=ev.get("start_line") or 0)
+                downstream.append({
+                    "file": down_path or row["subject"].split(":", 1)[-1],
+                    "path": down_path or row["subject"].split(":", 1)[-1],
+                    "symbol": down_symbol,
+                    "relation": "calls",
+                    "start_line": down_line,
+                    "confidence": row["confidence"] or "structural",
+                    "evidence_refs": [_fact_ref(row, rel)],
+                    "changed_file": rel,
+                })
             for row in connection.execute(
-                    "SELECT predicate, object, confidence FROM facts "
+                    "SELECT predicate, object, confidence, evidence FROM facts "
                     "WHERE subject = ? AND predicate IN ('belongs_to_flow', 'tested_by')",
                     (entity_id,)):
                 if row["predicate"] == "belongs_to_flow":
+                    # Only a flow this file actually belongs to: the report used
+                    # to append the first five flows in the repository instead,
+                    # which is a list of everything rather than a blast radius.
                     flows.append({"flow_id": row["object"].split(":", 1)[-1],
-                                  "confidence": row["confidence"], "path": rel})
+                                  "confidence": row["confidence"],
+                                  "path": rel,
+                                  "evidence_refs": [_fact_ref(row, rel)]})
                     high = True
                 else:
-                    tests.append({"test": row["object"].split(":", 1)[-1], "path": rel})
-        dedup = lambda items, key: list({tuple(sorted(item.items())): item for item in items}.values())
-        downstream = dedup(downstream, "file")[:max_items]
+                    test_path, _symbol, test_line = _entity_location(connection, row["object"])
+                    tests.append({"test": row["object"].split(":", 1)[-1],
+                                  "path": test_path or rel,
+                                  "start_line": test_line,
+                                  "evidence_kind": ("file_level"
+                                                    if not test_line or test_line <= 1
+                                                    else "line_level"),
+                                  "confidence": row["confidence"] or "structural",
+                                  "evidence_refs": [_fact_ref(row, rel)]})
+        downstream = _dedup_downstream(downstream)[:max_items]
         stale = index_mod.staleness(root_path)
         flow_rows = index_mod.list_flows(root_path)
 
@@ -121,8 +229,19 @@ def impact_analysis(root, changed_files=(), diff=None, max_items=25):
         "risk_level": risk,
         "risk_reasons": _risk_reasons(risk, routes, flows, downstream, symbols),
         "unknown_files": unknown,
-        "stale_artifacts": [{"flow_id": row["flow_id"], "generated_at": row["generated_at"],
-                             "artifact_dir": row["artifact_dir"]} for row in flow_rows[:5]],
+        "stale_artifacts": [
+            # Artifacts are informational unless the flow they render is in this
+            # blast radius; listing the first five regardless made a stale
+            # artifact look like a conclusion.
+            {"flow_id": row["flow_id"], "generated_at": row["generated_at"],
+             "artifact_dir": row["artifact_dir"],
+             "source_commit": row.get("source_commit") or "",
+             "relation": ("affected_flow"
+                          if row["flow_id"] in {item["flow_id"] for item in flows}
+                          else "informational"),
+             "stale": bool(commit and row.get("source_commit")
+                           and row["source_commit"] != commit)}
+            for row in flow_rows[:5]],
         "index_stale": stale["stale"],
         "stale_files": stale["files"][:20],
         "suggested_verification": verification,

@@ -96,7 +96,7 @@ Cài vào profile riêng (không dùng profile `web`):
 
 ```bash
 node dsh-plugin/scripts/pack.mjs
-dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.6.3.tgz"
+dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.6.4.tgz"
 ```
 
 Bundle đã tự insert row `project-flow-explainer`. Cấu hình bằng **override row**
@@ -130,6 +130,20 @@ giá trị sai kiểu bị từ chối ngay khi mount.
 
 Sau khi cài hoặc nâng cấp bundle, **khởi động lại DSH** để nạp module mới; đổi cấu hình
 trong UI thì không cần restart.
+
+## Provenance của bản phát hành
+
+Bốn khái niệm khác nhau, đừng dùng lẫn:
+
+| Khái niệm | Nghĩa | Giá trị hiện tại |
+|---|---|---|
+| `source_commit` | commit của **code** mà manifest mô tả | `a306dc1512bc` |
+| `evidence_commit` | commit **chứa manifest** này | `a306dc1512bc` |
+| `HEAD` khi ghi | HEAD lúc chạy `record_release.py` | `a306dc1512bc` |
+| `working_tree_dirty` | cây nguồn có file chưa commit | `False` |
+
+Hai cây chỉ khác nhau ở `artifacts/review/` — `record_release.py` chứng minh bằng
+`git diff --name-only` chứ không tự khai.
 
 ## Mô hình bằng chứng
 
@@ -202,7 +216,7 @@ artifacts/               bằng chứng: samples, review, ui-verification
 | Call graph đầy đủ (type-aware) | **CHƯA CÓ**; `calls` trong index chỉ là call site đọc theo lexical |
 | Vector ngữ nghĩa thật | **CHƯA CÓ**; backend mặc định là hashing lexical, chỉ tạo candidate |
 | Panel UI trong Harness | BLOCKED_UI_API_UNVERIFIED |
-| Smoke registry trong `pfe-test` | **ĐÃ CHẠY** trên 0.6.3: 17/17 check, 7/7 tool, `command_registered=true`, policy/abort/timeout đúng (`artifacts/review/*-dsh-smoke.json`) |
+| Smoke registry trong `pfe-test` | **ĐÃ CHẠY** trên 0.6.4: 17/17 check, 36 tool, `command_registered=True` (`artifacts/review/20261120-112353-dsh-smoke.json`) |
 | Model tự chọn tool | **CHƯA CHẠY**: profile không có API key; probe gọi registry, không qua model |
 | Ngôn ngữ ngoài danh sách pattern | Go, Rust, C#, Kotlin chỉ có symbol/route cơ bản |
 

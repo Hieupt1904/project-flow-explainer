@@ -109,6 +109,82 @@ def _chunk_text(entity):
     return " ".join(part for part in parts if part)[:2000]
 
 
+VECTORS_STALE_META = "vectors_stale"
+
+
+def mark_stale(connection, reason):
+    """Record that the stored vectors no longer describe the current entities.
+
+    Called when an index run re-parses files without rebuilding vectors. The
+    rows stay (a rebuild may be expensive and the user may never ask for one),
+    but they are explicitly untrusted: `search()` refuses them and reports why.
+    """
+    _set_meta(connection, VECTORS_STALE_META, reason)
+
+
+def clear_stale(connection):
+    _set_meta(connection, VECTORS_STALE_META, "")
+
+
+def stale_reason(connection):
+    return _meta(connection, VECTORS_STALE_META, "") or ""
+
+
+def purge_entities(connection, entity_ids):
+    """Delete vector rows for entities that no longer exist or were re-parsed."""
+    removed = 0
+    for entity_id in entity_ids:
+        removed += connection.execute(
+            "DELETE FROM vectors WHERE entity_id = ?", (entity_id,)).rowcount
+    return removed
+
+
+def purge_for_paths(connection, paths):
+    """Delete vector rows whose entity belonged to one of these files."""
+    removed = 0
+    for path in paths:
+        rows = connection.execute(
+            "SELECT id FROM entities WHERE path = ?", (path,)).fetchall()
+        removed += purge_entities(connection, [row["id"] for row in rows])
+    return removed
+
+
+def describe_state(connection, backend=None):
+    """One honest answer to "what is the vector state?".
+
+    Four distinct outcomes, because the caller acts differently for each:
+      disabled  - vectors were never built (or were turned off);
+      stale     - rows exist but no longer describe the entity set;
+      enabled   - rows match the current model/version and the entity set;
+      absent    - rows are gone but a model was recorded (needs a rebuild).
+    `semantic` is always reported so a hashing backend is never read as a real
+    semantic embedding.
+    """
+    backend = backend or DEFAULT_BACKEND()
+    stored_model = _meta(connection, "embedding_model")
+    stored_version = _meta(connection, "embedding_version")
+    rows = connection.execute("SELECT COUNT(*) AS c FROM vectors").fetchone()["c"]
+    reason = stale_reason(connection)
+    describe = backend.describe()
+    if not stored_model and rows == 0:
+        return {"state": "disabled", "rows": 0, "semantic": describe["semantic"],
+                "model": "", "version": "", "reason": "include_vectors=false"}
+    if reason:
+        return {"state": "stale", "rows": rows, "semantic": describe["semantic"],
+                "model": stored_model or "", "version": stored_version or "",
+                "reason": reason}
+    if stored_model != backend.name or stored_version != backend.version:
+        return {"state": "stale", "rows": rows, "semantic": describe["semantic"],
+                "model": stored_model or "", "version": stored_version or "",
+                "reason": "embedding_model_mismatch"}
+    if rows == 0:
+        return {"state": "absent", "rows": 0, "semantic": describe["semantic"],
+                "model": stored_model, "version": stored_version,
+                "reason": "vector_rows_missing"}
+    return {"state": "enabled", "rows": rows, "semantic": describe["semantic"],
+            "model": stored_model, "version": stored_version, "reason": ""}
+
+
 def ensure_index(connection, files, backend=None):
     """(Re)build vectors for the indexed entities. Returns a summary dict."""
     backend = backend or DEFAULT_BACKEND()
@@ -127,8 +203,10 @@ def ensure_index(connection, files, backend=None):
         "SELECT id, kind, name, symbol, path, doc, content_hash FROM entities").fetchall()
     chunks = [dict(row) for row in rows if row["kind"] in CHUNK_KINDS]
     if not chunks:
+        clear_stale(connection)
         return {"enabled": True, "model": backend.name, "version": backend.version,
-                "chunks": 0, "rebuilt": stale}
+                "chunks": 0, "rebuilt": stale, "state": "enabled",
+                "semantic": backend.semantic}
     texts = [_chunk_text(chunk) for chunk in chunks]
     vectors = backend.embed(texts)
     for chunk, vector in zip(chunks, vectors):
@@ -137,9 +215,10 @@ def ensure_index(connection, files, backend=None):
             " VALUES(?,?,?,?,?)",
             (chunk["id"], backend.name, backend.version, backend.dim,
              json.dumps([round(value, 5) for value in vector])))
+    clear_stale(connection)
     return {"enabled": True, "model": backend.name, "version": backend.version,
             "dim": backend.dim, "semantic": backend.semantic,
-            "chunks": len(chunks), "rebuilt": stale}
+            "chunks": len(chunks), "rebuilt": stale, "state": "enabled"}
 
 
 def search(connection, query, backend=None, top_k=20):
@@ -153,6 +232,14 @@ def search(connection, query, backend=None, top_k=20):
         return {"enabled": False, "reason": "embedding_model_mismatch",
                 "stored": {"model": stored_model, "version": stored_version},
                 "current": backend.describe(), "results": []}
+    # A source change without a vector rebuild leaves rows that describe the
+    # PREVIOUS entity set. Returning them would be silent stale data, so the
+    # channel is switched off and the caller is told to rebuild.
+    reason = stale_reason(connection)
+    if reason:
+        return {"enabled": False, "reason": "vector_stale", "detail": reason,
+                "hint": "Chạy lại index với include_vectors=true để dựng lại vector.",
+                "results": []}
     query_vector = backend.embed([query])[0]
     scored = []
     for row in connection.execute(
@@ -182,7 +269,7 @@ def search(connection, query, backend=None, top_k=20):
             "end_line": entity["end_line"] or entity["start_line"] or 1,
             "similarity": round(float(score), 4),
             "confidence": "inferred",
-            "relation": ["semantic_candidate"],
+            "relation": ["lexical_candidate"],
             "reason": "vector candidate (" + backend.name + " " + backend.version
                       + "); cần graph/exact xác nhận",
             "verified": False,

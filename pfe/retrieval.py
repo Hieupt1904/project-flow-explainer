@@ -21,6 +21,7 @@ from pathlib import Path
 
 from . import facts as facts_mod
 from . import index as index_mod
+from . import ontology
 from . import vectors as vectors_mod
 from .text import normalize_text
 
@@ -75,6 +76,13 @@ LEXICON = {
     "xoa": ["delete", "remove"],
     "sua": ["update", "edit"],
     "them": ["create", "add", "insert"],
+    # Recall expansion only: these add candidate words for retrieval, they never
+    # create a fact or a relation. "cap nhat" is how a Vietnamese task says
+    # update/refresh; without it an update task never meets `updateRecord`.
+    "cap nhat": ["update", "refresh", "reload", "sync"],
+    "du lieu": ["data", "record", "dataset", "repository"],
+    "chi tiet": ["detail", "get", "read", "find"],
+    "danh sach": ["list", "index", "all"],
 }
 
 
@@ -169,6 +177,29 @@ def _merge(bucket, entity, score, channel, reason, relation, evidence_quality):
     for item in relation:
         if item not in current["relation"]:
             current["relation"].append(item)
+
+
+def _flow_scope(connection, flow_id):
+    """Entities and paths that belong to one flow, or None when it is unknown.
+
+    Returned as a set of entity ids plus a set of paths, because a caller asking
+    for a flow wants the files it touches as well as the exact symbol rows.
+    """
+    wanted = "flow:" + str(flow_id)
+    exists = connection.execute("SELECT 1 FROM entities WHERE id = ?",
+                                (wanted,)).fetchone()
+    if exists is None:
+        return None
+    members = {row["subject"] for row in connection.execute(
+        "SELECT subject FROM facts WHERE predicate = 'belongs_to_flow' AND object = ?",
+        (wanted,))}
+    paths = set()
+    for member in members:
+        row = connection.execute("SELECT path FROM entities WHERE id = ?",
+                                 (member,)).fetchone()
+        if row is not None and row["path"]:
+            paths.add(row["path"])
+    return {"entities": members | {wanted}, "paths": paths}
 
 
 def retrieve(root, query, top_k=10, filters=None, backend=None, use_vectors=True,
@@ -268,11 +299,19 @@ def retrieve(root, query, top_k=10, filters=None, backend=None, use_vectors=True
                         "SELECT * FROM entities WHERE id = ?", (hit["entity"],)).fetchone()
                     if row is None:
                         continue
+                    # The backend is a hashing lexical generator, not a semantic
+                    # embedding: the relation name must say so, and the hit stays
+                    # a candidate the graph/exact layer has to confirm.
                     _merge(candidates, dict(row), 0.45 * float(hit["similarity"]),
-                           "vector", hit["reason"], ["semantic_candidate"], "inferred")
+                           "vector", hit["reason"], ["lexical_candidate"], "inferred")
             else:
+                reason = str(vector_hits.get("reason"))
+                # A stale vector index is not a missing one: say which, because
+                # the fix differs (rebuild vs turn it on).
+                detail = vector_hits.get("detail") or ""
                 diagnostics["warnings"].append(
-                    "vector: " + str(vector_hits.get("reason")) + " — dùng FTS + graph")
+                    "vector: " + reason + ((" — " + detail) if detail else "")
+                    + " — dùng FTS + graph")
                 diagnostics["vector"] = vector_hits
 
         # 3b. flow summaries: a Vietnamese request must reach a rendered flow
@@ -315,6 +354,31 @@ def retrieve(root, query, top_k=10, filters=None, backend=None, use_vectors=True
 
         flow_members = {row["subject"] for row in connection.execute(
             "SELECT subject FROM facts WHERE predicate = 'belongs_to_flow'")}
+
+        # A flow_id filter is a promise about the whole result set, not about one
+        # channel. Expansion, flow summaries and test linking all add candidates
+        # after FTS, so the filter is enforced once here, on the union — otherwise
+        # a caller asking for one flow gets rows the filter was meant to exclude.
+        if filters.get("flow_id"):
+            allowed = _flow_scope(connection, filters["flow_id"])
+            if allowed is None:
+                diagnostics["warnings"].append(
+                    "flow_id=" + str(filters["flow_id"])
+                    + ": không có flow này trong index (cần project_flow_explain trước).")
+                candidates.clear()
+            else:
+                kept = {}
+                for key, item in candidates.items():
+                    if item["entity"] in allowed["entities"]:
+                        kept[key] = item
+                        continue
+                    if item.get("path") and item["path"] in allowed["paths"]:
+                        item["channels"].append("flow_filter")
+                        kept[key] = item
+                diagnostics["flow_filter"] = {"flow_id": filters["flow_id"],
+                                              "members": len(allowed["entities"]),
+                                              "dropped": len(candidates) - len(kept)}
+                candidates = kept
 
         # 5. rerank
         for item in candidates.values():
@@ -469,11 +533,20 @@ def _relevance(result, error_intent):
     return score, why
 
 
-def _entry_points(connection, results, paths):
-    """Entry points that carry observed evidence, joined by file."""
+def _entry_points(connection, results, paths, task_terms=None, term_text=""):
+    """Entry points that carry observed evidence AND belong to this task.
+
+    Sharing a file is not evidence of relevance: a module with six routes made
+    every one of them an entry point, so the caller had to guess which route the
+    task was about. A route is promoted only when it matches the task itself
+    (route text, handler/symbol, or a flow it belongs to); the rest are returned
+    as `related_routes` by the caller and never shown as entry points.
+    """
     entries = []
+    related = []
     if not paths:
-        return entries
+        return entries, related
+    terms = [term for term in (task_terms or []) if term]
     placeholders = ",".join("?" for _ in paths)
     rows = connection.execute(
         "SELECT path, kind, label, start_line, evidence_kind, confidence FROM entry_points "
@@ -482,7 +555,8 @@ def _entry_points(connection, results, paths):
     for row in rows:
         if row["kind"] not in ENTRY_KINDS_EMITTED:
             continue
-        entries.append({
+        score = _entry_relevance(connection, row, terms, term_text)
+        item = {
             "path": row["path"],
             "kind": row["kind"],
             "label": row["label"] or "",
@@ -494,10 +568,74 @@ def _entry_points(connection, results, paths):
                                "relation": ["handles_route"] if row["kind"] == "http_route"
                                else ["registered_entry"],
                                "confidence": row["confidence"] or "observed"}],
-        })
-    entries.sort(key=lambda item: (ENTRY_KIND_ORDER.get(item["kind"], 99),
+        }
+        item["relevance_score"] = score
+        item["relevance_confidence"] = "observed" if score >= 2 else (
+            "structural" if score == 1 else "inferred")
+        # Over-inclusion is a *route* problem: one file declares many routes and
+        # only some of them are what the task is about, so a route needs to name
+        # the task (score >= 2) to be the entry point. Other registration kinds
+        # (gui_event, cli_command, worker, main, public_api, callback) have no
+        # label to disambiguate with — their file being in scope IS the evidence,
+        # and demoting them would hide the only entry point a desktop app has.
+        if row["kind"] == "http_route" and terms and score < 2:
+            related.append(item)
+        else:
+            entries.append(item)
+    entries.sort(key=lambda item: (-item["relevance_score"],
+                                   ENTRY_KIND_ORDER.get(item["kind"], 99),
                                    item["path"], item["start_line"]))
-    return entries
+    return entries, related
+
+
+def _entry_relevance(connection, row, terms, term_text):
+    """How strongly this registration line matches the task (0 = shares only a file).
+
+    Scoring is deliberately conservative: a route named by the task wins, a
+    handler whose name matches wins, a flow member counts, and sharing a file
+    counts for nothing.
+    """
+    score = 0
+    label = normalize_text(row["label"] or "")
+    hay = label + " " + normalize_text(row["path"] or "")
+    # Proportional, not first-match: two routes in the same file both contain
+    # "report", so a boolean match cannot tell "/api/reports/export" from
+    # "/api/reports/:id". The route that covers more of the task wins.
+    usable = [term for term in terms if term]
+    if usable:
+        covered = sum(1 for term in usable if term in hay)
+        score += 2 if covered == len(usable) else (1 if covered else 0)
+    if term_text and label and label in term_text:
+        score += 2
+    if row["kind"] == "http_route":
+        segments = [seg for seg in label.split("/") if seg and not seg.startswith(":")]
+        covered_segments = sum(1 for term in usable
+                               if any(term in seg for seg in segments))
+        if covered_segments:
+            score += 1 if covered_segments == len(usable) else 0
+            # Exact segment hit: the task names this specific route part.
+            score += sum(1 for seg in segments if seg in usable)
+    handler = None
+    if label:
+        # A gui_event or worker registration has no route label: skip the lookup
+        # rather than asking the ontology for an empty entity id.
+        try:
+            route_entity = ontology.entity_id("route", label)
+        except ontology.OntologyError:
+            route_entity = ""
+        if route_entity:
+            handler = connection.execute(
+                "SELECT subject FROM facts WHERE predicate = 'handles_route' AND object = ?"
+                " LIMIT 1", (route_entity,)).fetchone()
+    if handler is not None:
+        handler_row = connection.execute("SELECT name, symbol FROM entities WHERE id = ?",
+                                         (handler["subject"],)).fetchone()
+        if handler_row is not None:
+            name = normalize_text((handler_row["name"] or "") + " "
+                                  + (handler_row["symbol"] or ""))
+            if any(term and term in name for term in usable):
+                score += 2
+    return score
 
 
 def _route_entities(connection, results):
@@ -531,6 +669,64 @@ def _route_entities(connection, results):
                                    "confidence": hop["confidence"]}],
             })
     return routes
+
+
+def _file_of(connection, entity_id):
+    """The file path an entity lives in (a file entity is its own file)."""
+    row = connection.execute("SELECT path FROM entities WHERE id = ?",
+                             (entity_id,)).fetchone()
+    return (row["path"] or "") if row is not None else ""
+
+
+def _tests_for(connection, entity_id, error_intent):
+    """Every test that covers this entity, directly or through its file.
+
+    `tested_by` is written file -> test, while the ranked entity is often a
+    function or a route inside that file. Looking only at direct neighbours of
+    the symbol therefore misses every test the repository actually has — which
+    is how `related_tests` came back empty on a fixture with a test file.
+    Evidence stays `file_level` unless a line mapping exists; line 1 is not a
+    line-level observation and is not labelled as one.
+    """
+    found = []
+    seen = set()
+
+    def collect(source_id, via, kind_label):
+        for hop in index_mod.neighbours(connection, source_id, ["tested_by"], limit=40):
+            other = hop["object"] if hop["subject"] == source_id else hop["subject"]
+            if not other.startswith("test:") or other in seen:
+                continue
+            seen.add(other)
+            entity = index_mod.entity(connection, other)
+            if entity is None:
+                continue
+            evidence_kind = "file_level" if via == "file" else "symbol_level"
+            found.append({
+                "entity": entity["id"],
+                "path": entity["path"] or "",
+                "test": entity["symbol"] or entity["name"] or "",
+                "start_line": entity["start_line"] or 1,
+                "confidence": "structural" if hop["confidence"] != "observed" else "observed",
+                "evidence_kind": evidence_kind,
+                "via": via,
+                "why_included": ("test phủ " + source_id.split(":", 1)[-1]
+                                 + ("" if via == "symbol" else " (qua file)")),
+                "evidence_refs": [{
+                    "path": entity["path"] or "",
+                    "start_line": entity["start_line"] or 1,
+                    "relation": ["tested_by"],
+                    "confidence": hop["confidence"],
+                    "evidence_kind": evidence_kind,
+                }],
+            })
+
+    collect(entity_id, "symbol", "symbol_level")
+    path = _file_of(connection, entity_id)
+    if path:
+        file_entity = ontology.entity_id("file", path)
+        if file_entity != entity_id:
+            collect(file_entity, "file", "file_level")
+    return found
 
 
 def _dependency(connection, entity_id, source, error_intent):
@@ -654,7 +850,10 @@ def context_pack(root, task, max_files=12, include_snippets=False, backend=None)
                     "evidence_refs": add_evidence(result["evidence_refs"]),
                 })
 
-        entry_points = _entry_points(connection, ranked, list(seen_paths))
+        task_terms = expand_terms(parsed["folded"], parsed["terms"])
+        entry_points, related_entry_points = _entry_points(
+            connection, ranked, list(seen_paths), task_terms=task_terms,
+            term_text=parsed["folded"])
         routes = _route_entities(connection, ranked)
 
         dependencies, external = [], []
@@ -687,6 +886,16 @@ def context_pack(root, task, max_files=12, include_snippets=False, backend=None)
                 break
 
         tests = [item for item in dependencies if item["kind"] == "test"]
+        # Always resolve tested_by for the files/symbols the pack is about: a
+        # missing test list is the difference between "nothing covers this" and
+        # "the tool did not look", and the caller cannot tell them apart.
+        known_tests = {item["entity"] for item in tests}
+        for result in ranked[:max_files]:
+            for test in _tests_for(connection, result["entity"], error_intent):
+                if test["entity"] in known_tests:
+                    continue
+                known_tests.add(test["entity"])
+                tests.append(test)
         impacted = [item for item in likely_files
                     if item["kind"] in {"function", "class", "symbol"}]
         flows = index_mod.list_flows(root)
@@ -702,16 +911,26 @@ def context_pack(root, task, max_files=12, include_snippets=False, backend=None)
         "relevant_flows": [{"flow_id": row["flow_id"], "title": row["title"]}
                            for row in flows[:5]],
         "entry_points": entry_points[:max_files],
+        "related_routes": [{"path": item["path"], "kind": item["kind"],
+                            "label": item["label"], "start_line": item["start_line"],
+                            "why_excluded": "cùng file nhưng không khớp task",
+                            "confidence": item["confidence"]}
+                           for item in related_entry_points[:max_files]],
         "routes": routes[:max_files],
         "impacted_symbols": [{"symbol": item["symbol"], "path": item["path"],
                               "start_line": item["start_line"],
                               "kind": item["kind"],
                               "confidence": item["relevance_confidence"]}
                              for item in impacted[:max_files]],
-        "related_tests": [{"path": item["path"], "test": item["symbol"],
+        "related_tests": [{"path": item["path"],
+                           "test": item.get("test") or item.get("symbol"),
                            "start_line": item["start_line"],
-                           "confidence": item["relevance_confidence"],
-                           "why_included": item["why_included"]}
+                           "confidence": item.get("relevance_confidence")
+                                         or item.get("confidence"),
+                           "evidence_kind": item.get("evidence_kind", "file_level"),
+                           "via": item.get("via", "file"),
+                           "why_included": item["why_included"],
+                           "evidence_refs": item.get("evidence_refs", [])}
                           for item in tests[:max_files]],
         "likely_files": likely_files,
         "dependencies": dependencies,

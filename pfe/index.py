@@ -359,11 +359,15 @@ def build_index(root, mode="incremental", include_vectors=False, vector_backend=
                     (item.rel, "http_route", route["label"], route["label"],
                      route["line"], "observed", "observed"))
             for entry in item.entry_points:
+                # A bare `def main()` is `structural`: the line exists, but it does
+                # not prove control enters there. Persisting it as observed was the
+                # false positive this column is meant to prevent.
+                quality = entry.get("evidence_kind") or "observed"
                 connection.execute(
                     "INSERT OR REPLACE INTO entry_points(path, kind, label, symbol,"
                     " start_line, evidence_kind, confidence) VALUES(?,?,?,?,?,?,?)",
                     (item.rel, entry["kind"], entry.get("label") or "",
-                     entry.get("label") or "", entry["line"], "observed", "observed"))
+                     entry.get("label") or "", entry["line"], quality, quality))
 
         # Knowledge is rebuilt from the in-memory fact set: parse cache keeps
         # unchanged files out of the parser, not out of the graph.
@@ -430,12 +434,38 @@ def build_index(root, mode="incremental", include_vectors=False, vector_backend=
         tests = sum(1 for item in live_files if item.is_test)
         stale_after = staleness(root, connection=connection, entries=current)
 
+        from . import vectors as vectors_mod
         embedding = {"enabled": False, "reason": "include_vectors=false"}
+        touched = sorted(set(added) | set(changed) | set(removed)
+                         | {item["to"] for item in renamed}
+                         | {item["from"] for item in renamed})
         if include_vectors:
-            from . import vectors as vectors_mod
             embedding = vectors_mod.ensure_index(connection, live_files,
                                                  backend=vector_backend)
             connection.commit()
+        elif touched and vectors_mod.describe_state(
+                connection, backend=vector_backend)["state"] in {"enabled", "stale", "absent"}:
+            # Files were re-parsed or removed but vectors were not rebuilt: the
+            # stored rows describe an entity set that no longer exists. Keep the
+            # rows (a rebuild may be unwanted) but mark them untrusted so
+            # retrieval refuses them instead of silently mixing two generations.
+            # A first build that never had vectors has nothing to invalidate.
+            purged = vectors_mod.purge_for_paths(connection, touched)
+            vectors_mod.mark_stale(
+                connection,
+                "Source thay đổi (" + str(len(touched)) + " file: "
+                + ", ".join(touched[:3]) + ("…" if len(touched) > 3 else "")
+                + ") sau lần dựng vector gần nhất; cần rebuild để dùng lại.")
+            connection.commit()
+            embedding = {"enabled": False, "reason": "vector_stale",
+                         "state": "stale", "purged_rows": purged,
+                         "hint": "Chạy index với include_vectors=true để dựng lại vector."}
+        else:
+            state = vectors_mod.describe_state(connection, backend=vector_backend)
+            embedding = {"enabled": state["state"] == "enabled",
+                         "state": state["state"], "reason": state["reason"] or "no_source_change",
+                         "rows": state["rows"], "semantic": state["semantic"],
+                         "model": state["model"], "version": state["version"]}
 
         entity_total = connection.execute("SELECT COUNT(*) AS c FROM entities").fetchone()["c"]
         fact_total = connection.execute("SELECT COUNT(*) AS c FROM facts").fetchone()["c"]
@@ -530,6 +560,7 @@ def status(root):
             "stale_reason": quick["reason"],
             "embedding_model": _meta(connection, "embedding_model", ""),
             "embedding_version": _meta(connection, "embedding_version", ""),
+            "vectors_stale_reason": _meta(connection, "vectors_stale", ""),
             "warnings": [],
         }
 
@@ -607,6 +638,38 @@ def get_meta(root, key, default=None):
         return _meta(connection, key, default)
 
 
+def _in_flow(connection, entity_id, flow_id):
+    """Is this entity a member of that flow?
+
+    Membership is the `belongs_to_flow` fact written by `record_flow`, plus the
+    flow entity itself. A filter that cannot be satisfied returns False — never
+    "ignore the filter and return everything", which is how a caller ends up
+    trusting results the filter was meant to exclude.
+    """
+    wanted = "flow:" + str(flow_id)
+    if entity_id == wanted:
+        return True
+    if connection.execute("SELECT 1 FROM facts WHERE predicate = 'belongs_to_flow'"
+                          " AND subject = ? AND object = ?",
+                          (entity_id, wanted)).fetchone() is not None:
+        return True
+    # A file that contains a member is a member too: the caller asking for a flow
+    # wants the files it touches, not only the exact symbol rows.
+    path = connection.execute("SELECT path FROM entities WHERE id = ?",
+                              (entity_id,)).fetchone()
+    if path is None or not path["path"]:
+        return False
+    members = connection.execute(
+        "SELECT subject FROM facts WHERE predicate = 'belongs_to_flow' AND object = ?",
+        (wanted,)).fetchall()
+    for member in members:
+        row = connection.execute("SELECT path FROM entities WHERE id = ?",
+                                 (member["subject"],)).fetchone()
+        if row is not None and row["path"] == path["path"]:
+            return True
+    return False
+
+
 def exact_search(root, query, top_k=10, filters=None):
     """FTS5 exact search. Returns ranked candidates with source refs, no source."""
     filters = filters or {}
@@ -640,6 +703,9 @@ def exact_search(root, query, top_k=10, filters=None):
             if entity is None:
                 continue
             if filters.get("language") and entity["language"]                     and entity["language"] != filters["language"]:
+                continue
+            if filters.get("flow_id") and not _in_flow(
+                    connection, row["entity_id"], filters["flow_id"]):
                 continue
             related = connection.execute(
                 "SELECT predicate, object FROM facts WHERE subject = ? "

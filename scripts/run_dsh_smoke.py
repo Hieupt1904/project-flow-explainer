@@ -41,10 +41,24 @@ EXPECTED = [
 ]
 
 
+# Ambient profile selectors from the caller's shell are not evidence about the
+# profile this run boots: a person with DSH_PROFILE=web exported made every probe
+# report "web" while the command line said pfe-test. Strip them so the child sees
+# only what the smoke harness sets on purpose.
+AMBIENT_PROFILE_VARS = ("DSH_PROFILE", "DSH_PROFILE_DIR", "DSH_ACTIVE_PROFILE")
+
+
+def clean_env(extra=None):
+    base = {key: value for key, value in __import__("os").environ.items()
+            if key not in AMBIENT_PROFILE_VARS}
+    base.update(extra or {})
+    return base
+
+
 def run(argv, env=None, timeout=180, cwd=ROOT):
     started = time.time()
     completed = subprocess.run(argv, cwd=str(cwd), capture_output=True, text=True,
-                               env={**__import__("os").environ, **(env or {})},
+                               env=clean_env(env),
                                timeout=timeout, check=False)
     return {
         "argv": argv, "exit_code": completed.returncode,
@@ -204,6 +218,7 @@ def main(argv=None):
                          "smoke",
                          env={"PFE_PROBE_OUT": str(out), "PFE_PROBE_STEPS": steps,
                               "PFE_PROBE_REPO": str(repo),
+                              "PFE_PROBE_PROFILE": PROFILE,
                               "PFE_PROBE_WAIT_MS": str(wait)},
                          timeout=180)
             record = json.loads(out.read_text(encoding="utf-8")) if out.exists() else {}
@@ -222,7 +237,28 @@ def main(argv=None):
         e = report["steps"]["e"]["probe"]
         f = report["steps"]["f"]["probe"]
         g = report["steps"]["g"]["probe"]
+        # Profile identity: the report says pfe-test, so the boot must prove it.
+        # A run that actually booted another profile is not evidence for this one.
+        identity = []
+        for key in ("a", "b", "c", "d", "e", "f", "g"):
+            probe = ((report.get("steps") or {}).get(key) or {}).get("probe") or {}
+            requested = probe.get("requested_profile") or ""
+            # Observed identity = the profile directory this plugin was loaded
+            # from. That is a fact about the boot; DSH_PROFILE is a fact about
+            # the caller's shell and was wrong for every run before this check.
+            booted = probe.get("loader_profile") or ""
+            resolved = (probe.get("profile_dir") or "").replace(str(Path.home()), "<home>")
+            identity.append({"step": key, "requested": requested,
+                             "loader_profile": booted, "resolved_profile_dir": resolved,
+                             "match": bool(requested) and requested == booted})
+        report["profile_identity"] = identity
+        identity_ok = bool(identity) and all(item["match"] for item in identity)
+        report["requested_profile"] = PROFILE
+        report["loader_profile"] = next(
+            (item["loader_profile"] for item in identity if item["loader_profile"]), "")
+
         checks = {
+            "profile_identity": identity_ok,
             "tools_registered": len(a.get("registered_tools") or []) >= len(EXPECTED),
             "no_missing_tools": not (a.get("missing_tools") or []),
             "flow_ok": call_result(a, "flow")["status"] == "ok",
@@ -267,6 +303,11 @@ def main(argv=None):
         report["checks"] = checks
         report["tool_count"] = len(a.get("registered_tools") or [])
         report["status"] = "verified" if all(checks.values()) else "partial"
+        if not identity_ok:
+            report["blocked"] = dict(report.get("blocked") or {})
+            report["blocked"]["profile_identity"] = (
+                "Probe booted a profile different from the one the report names; "
+                "registry_runtime is not evidence for " + PROFILE + ".")
         if all(checks.values()):
             report["registry_runtime"] = "verified"
         else:
