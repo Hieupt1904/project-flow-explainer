@@ -177,15 +177,27 @@ export function knowledgeTools({ settings, core, inFlight }) {
             entities: { type: 'integer' },
             facts: { type: 'integer' },
             stale_files: { type: 'integer' },
+            // The vector state must survive the adapter intact: a caller that
+            // cannot see backend/semantic/label would have to infer whether a
+            // hit means anything from a model name, which is how a hashing
+            // backend gets treated as a semantic one.
             embedding: {
               type: 'object',
               properties: {
                 enabled: { type: 'boolean' },
+                state: { type: 'string' },
+                backend: { type: 'string' },
                 model: { type: 'string' },
                 version: { type: 'string' },
+                dim: { type: 'integer' },
+                semantic: { type: 'boolean' },
+                local: { type: 'boolean' },
+                label: { type: 'string' },
                 reason: { type: 'string' },
+                stale_reason: { type: 'string' },
               },
-              required: ['enabled'],
+              required: ['enabled', 'state', 'backend', 'model', 'version', 'dim',
+                'semantic', 'local', 'label', 'reason', 'stale_reason'],
               additionalProperties: false,
             },
             warnings: { type: 'array', items: { type: 'string' } },
@@ -208,9 +220,13 @@ export function knowledgeTools({ settings, core, inFlight }) {
           additionalProperties: false,
         },
         render(_args, value) {
-          const embedding = value.embedding?.enabled
-            ? `vector: ${value.embedding.model} v${value.embedding.version}`
-            : `vector: tắt (${value.embedding?.reason ?? 'không bật'})`
+          const vector = value.embedding
+          const embedding = vector.enabled
+            ? `vector: ${vector.backend || vector.model} v${vector.version}`
+              + ` · dim ${vector.dim} · semantic=${vector.semantic ? 'true' : 'false'}`
+              + ` · nhãn ${vector.label || 'không rõ'}`
+            : `vector: ${vector.state} (${vector.reason || 'không bật'})`
+              + (vector.stale_reason ? ` — ${vector.stale_reason}` : '')
           return TEXT([
             `Index ${value.mode}: ${value.files_indexed} file · ${value.entities} entity · ${value.facts} fact`,
             `Parse lại: ${value.files_parsed} · dùng lại cache: ${value.files_reused}`,
@@ -248,13 +264,23 @@ export function knowledgeTools({ settings, core, inFlight }) {
           entities: payload.entities ?? 0,
           facts: payload.facts ?? 0,
           stale_files: payload.stale_files ?? 0,
-          embedding: payload.embedding?.enabled
-            ? {
-              enabled: true,
-              model: String(payload.embedding.model ?? ''),
-              version: String(payload.embedding.version ?? ''),
+          embedding: (() => {
+            const raw = payload.embedding ?? {}
+            const enabled = raw.enabled === true
+            return {
+              enabled,
+              state: String(raw.state ?? (enabled ? 'enabled' : 'disabled')),
+              backend: String(raw.backend ?? ''),
+              model: String(raw.model ?? ''),
+              version: String(raw.version ?? ''),
+              dim: Number.isInteger(raw.dim) ? raw.dim : 0,
+              semantic: raw.semantic === true,
+              local: raw.local === true,
+              label: String(raw.label ?? ''),
+              reason: String(raw.reason ?? (enabled ? '' : 'không bật')),
+              stale_reason: String(raw.detail ?? raw.stale_reason ?? ''),
             }
-            : { enabled: false, reason: String(payload.embedding?.reason ?? 'không bật') },
+          })(),
           warnings: payload.warnings ?? [],
           changed: payload.changed ?? [],
           added: payload.added ?? [],
@@ -304,6 +330,51 @@ export function knowledgeTools({ settings, core, inFlight }) {
             stale: { type: 'boolean' },
             channels: { type: 'array', items: { type: 'string' } },
             warnings: { type: 'array', items: { type: 'string' } },
+            stale_warning: { type: 'string' },
+            filters_applied: {
+              type: 'object',
+              properties: {
+                kind: { type: 'string' },
+                language: { type: 'string' },
+                path_prefix: { type: 'string' },
+                flow_id: { type: 'string' },
+              },
+              additionalProperties: false,
+            },
+            // DSH validates schemas with a single `type` string: a union
+            // (`['object','null']`) is rejected and takes the whole plugin down
+            // with it. null is still a legal value for an object-typed field, so
+            // the count fields stay optional.
+            flow_filter: {
+              type: 'object',
+              properties: {
+                flow_id: { type: 'string' },
+                members: { type: 'integer' },
+                dropped: { type: 'integer' },
+                matched_flow: { type: 'boolean' },
+              },
+              additionalProperties: false,
+            },
+            vector: {
+              type: 'object',
+              properties: {
+                enabled: { type: 'boolean' },
+                backend: { type: 'string' },
+                semantic: { type: 'boolean' },
+                label: { type: 'string' },
+                reason: { type: 'string' },
+              },
+              additionalProperties: false,
+            },
+            flows: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: { flow_id: { type: 'string' }, title: { type: 'string' } },
+                required: ['flow_id', 'title'],
+                additionalProperties: false,
+              },
+            },
             results: {
               type: 'array',
               items: {
@@ -328,7 +399,9 @@ export function knowledgeTools({ settings, core, inFlight }) {
               },
             },
           },
-          required: ['query', 'intent', 'source_commit', 'stale', 'channels', 'warnings', 'results'],
+          required: ['query', 'intent', 'source_commit', 'stale', 'stale_warning',
+            'channels', 'warnings', 'filters_applied', 'flow_filter', 'vector', 'flows',
+            'results'],
           additionalProperties: false,
         },
         render(_args, value) {
@@ -359,14 +432,36 @@ export function knowledgeTools({ settings, core, inFlight }) {
         const argv = ['search', '--repo', root, '--query', query, '--top-k', String(topK)]
         if (filters.language) argv.push('--language', filters.language)
         if (filters.kind) argv.push('--kind', filters.kind)
+        // A field declared in the schema must reach the core. flow_id was
+        // advertised and then dropped here, so a caller filtered by flow got an
+        // unfiltered answer with no signal that the filter never applied.
+        if (filters.flow_id) argv.push('--flow-id', filters.flow_id)
         const payload = await invoke({ settings, core, inFlight, argv, exec, toolName: 'project_code_search' })
         return {
           query: payload.query ?? query,
           intent: payload.intent ?? 'locate',
           source_commit: payload.source_commit ?? '',
           stale: Boolean(payload.stale),
+          stale_warning: payload.stale_warning ?? '',
           channels: payload.channels ?? [],
           warnings: payload.warnings ?? [],
+          // Echo the filter that ran so a caller never has to guess whether the
+          // core honoured it; flow_filter carries the member/dropped counts.
+          filters_applied: payload.filters ?? {},
+          flow_filter: payload.flow_filter ?? null,
+          // Keep only what a caller can act on: the backend identity and why the
+          // channel was off. The raw candidate list is not part of this contract.
+          vector: (() => {
+            const raw = payload.vector ?? {}
+            return {
+              enabled: Boolean(raw.enabled),
+              backend: raw.backend ?? '',
+              semantic: raw.semantic === true,
+              label: raw.label ?? '',
+              reason: raw.reason ?? '',
+            }
+          })(),
+          flows: payload.flows ?? [],
           results: (payload.results ?? []).map((item) => ({
             entity: item.entity,
             kind: item.kind,
@@ -623,7 +718,10 @@ export function knowledgeTools({ settings, core, inFlight }) {
           const lines = [
             `Context: ${value.task}`,
             `Entry point: ${value.entry_points.length}`
-              + (value.routes.length ? ` · route: ${value.routes[0].route}` : '')
+              + (value.entry_points.length
+                ? ` · route: ${value.entry_points[0].route}` : '')
+              + (value.related_routes.length
+                ? ` · route cùng file nhưng không khớp task: ${value.related_routes.length}` : '')
               + ` · file nên đọc: ${value.likely_files.length}`,
           ]
           for (const item of value.likely_files.slice(0, 5)) {

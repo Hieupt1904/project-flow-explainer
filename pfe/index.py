@@ -462,6 +462,13 @@ def build_index(root, mode="incremental", include_vectors=False, vector_backend=
             connection.commit()
             embedding = {"enabled": False, "reason": "vector_stale",
                          "state": "stale", "purged_rows": purged,
+                         "detail": vectors_mod.stale_reason(connection),
+                         "backend": vectors_mod.DEFAULT_BACKEND().backend_kind(),
+                         "semantic": vectors_mod.DEFAULT_BACKEND().semantic,
+                         "local": True,
+                         "label": ("lexical_candidate"
+                                   if not vectors_mod.DEFAULT_BACKEND().semantic
+                                   else "semantic_candidate"),
                          "hint": "Chạy index với include_vectors=true để dựng lại vector."}
         else:
             state = vectors_mod.describe_state(connection, backend=vector_backend)

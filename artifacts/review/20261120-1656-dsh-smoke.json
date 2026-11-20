@@ -1,0 +1,78 @@
+{
+  "status": "blocked",
+  "profile": "pfe-test",
+  "registry_runtime": "not_verified",
+  "model_driven": "verified",
+  "model_driven_note": "session thật trên 0.7.5 (tarball 78b89f7b): model tự chọn 3 tool, thứ tự đúng, 0 lỗi.",
+  "model_session": {
+    "record": "20261120-165634-model-session.json",
+    "status": "verified",
+    "package_version": "0.7.5",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "session_sha256": "db04e3c756af5f5ef109ca559213944d6b13d4648287435f7d5c611e5cf71519",
+    "prompt_sha256": "68f4bd22526efaa0d54c8dd5c579da08d9c60e9ff591d88e3304983a470dcd6c",
+    "tools": [
+      "project_context_pack",
+      "project_impact_analysis",
+      "project_verify_flow"
+    ],
+    "order": {
+      "missing": [],
+      "ordered": true,
+      "observed": [
+        "project_context_pack",
+        "project_impact_analysis",
+        "project_verify_flow"
+      ]
+    },
+    "policy": {
+      "tool_errors": [],
+      "expected_tools_ran": true,
+      "order_respected": true,
+      "tools_outside_allowlist": []
+    },
+    "stop_reason": "completed",
+    "requested_profile": "pfe-model",
+    "installed_version": "0.7.5",
+    "wall_seconds": 8.6
+  },
+  "model_records_rejected": [],
+  "reason": "BLOCKED_DSH_SMOKE: không có bản ghi smoke nào chạy trên 0.7.5 với tarball sha 78b89f7b; cần chạy scripts/run_dsh_smoke.py cho bản này.",
+  "tool_count": 0,
+  "checks": {},
+  "record": "",
+  "stale_records": [
+    {
+      "record": "20261120-165502-dsh-smoke.json",
+      "reason": "tarball khác hash hiện tại"
+    },
+    {
+      "record": "20261120-141252-dsh-smoke.json",
+      "reason": "chạy cho 0.7.2, không phải 0.7.5"
+    },
+    {
+      "record": "20261120-134319-dsh-smoke.json",
+      "reason": "chạy cho 0.7.1, không phải 0.7.5"
+    },
+    {
+      "record": "20261120-134138-dsh-smoke.json",
+      "reason": "chạy cho 0.7.1, không phải 0.7.5"
+    },
+    {
+      "record": "20261120-125854-dsh-smoke.json",
+      "reason": "chạy cho 0.7.0, không phải 0.7.5"
+    },
+    {
+      "record": "20261120-125451-dsh-smoke.json",
+      "reason": "chạy cho 0.7.0, không phải 0.7.5"
+    }
+  ],
+  "blocked": {},
+  "settings_ui": {
+    "client_entry": "client.js",
+    "slot": "plugins.bundle.config",
+    "config_schema": "fallback normalizeConfig",
+    "verified": "client tests + ValidationError boot check"
+  }
+}

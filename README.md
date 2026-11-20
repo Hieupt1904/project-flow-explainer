@@ -96,7 +96,7 @@ Cài vào profile riêng (không dùng profile `web`):
 
 ```bash
 node dsh-plugin/scripts/pack.mjs
-dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.7.2.tgz"
+dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.7.5.tgz"
 ```
 
 Bundle đã tự insert row `project-flow-explainer`. Cấu hình bằng **override row**
@@ -166,6 +166,28 @@ Ba luật không thương lượng:
 2. Nhánh quyết định không được có cạnh success đi tắt.
 3. File chỉ khớp từ khoá nằm ở `meta.related`, không thành node của luồng.
 
+### Smoke model: khi nào một session là bằng chứng
+
+`scripts/run_model_smoke.py` chỉ ghi `status: verified` khi có quan sát dương tính.
+Thiếu lỗi **không** phải bằng chứng, vì ba trạng thái sau đều "không có lỗi":
+
+| Trạng thái | Dấu hiệu | Kết luận |
+|---|---|---|
+| Session bị chấm nhầm | `selected_tools` rỗng nhưng context vẫn "đủ" | `partial` — record chuyển sang `artifacts/review/attempts/` |
+| Harness không expose tool | probe in `HAS_PFE=không` hoặc `TOOLS=24` | `partial`, blocked ghi rõ probe |
+| Model thấy tool nhưng không gọi | probe `HAS_PFE=có` và vẫn không có `tool/call` | `partial`, quy cho model |
+
+Probe chạy trước session task và chỉ đọc danh sách tool. Một workspace có rule layer
+sinh sẵn (ví dụ `~/.dsh/AGENTS.md`) có thể khiến model trả lời "không có tool" dù
+harness đã expose; trong trường hợp đó `core` vẫn chạy được nhưng session không phải
+bằng chứng về việc model tự chọn tool.
+
+Luật định danh session:
+
+1. Session phải chứa marker trong event `user/message` của chính lần boot đó.
+2. Profile chỉ "khớp" khi event `session` hoặc `request/header` ghi tên profile;
+   không ghi tên thì ghi `ambiguous`, không đoán từ đĩa.
+
 ## Chính sách đọc, ghi, mạng, riêng tư
 
 | Chủ đề | Luật |
@@ -180,7 +202,7 @@ Ba luật không thương lượng:
 ## Kiểm thử
 
 ```bash
-python3 -m unittest discover -s tests -v                # core + knowledge + regression (174 test)
+python3 -m unittest discover -s tests -v                # core + knowledge + regression (195 test)
 node --test dsh-plugin/tests/plugin.test.mjs            # adapter (16 test)
 node --test dsh-plugin/tests/knowledge.test.mjs         # tool tri thức (9 test)
 node --test dsh-plugin/tests/lifecycle.test.mjs         # mount/dispose/remount + native Config (8 test)
@@ -205,7 +227,7 @@ tools/pfe_cli.py         CLI máy đọc cho 6 tool tri thức
 dsh-plugin/              adapter DSH (zero dependency)
 assets/                  template HTML offline
 references/              schema + prompt module + code-knowledge-schema.json
-tests/                   174 unittest + fixture web/desktop
+tests/                   195 unittest + fixture web/desktop
 artifacts/               bằng chứng: samples, review, ui-verification
 ```
 
@@ -216,7 +238,7 @@ artifacts/               bằng chứng: samples, review, ui-verification
 | Call graph đầy đủ (type-aware) | **CHƯA CÓ**; `calls` trong index chỉ là call site đọc theo lexical |
 | Vector ngữ nghĩa thật | **CHƯA CÓ**; backend mặc định là hashing lexical, chỉ tạo candidate |
 | Panel UI trong Harness | BLOCKED_UI_API_UNVERIFIED |
-| Smoke registry trong `pfe-test` | **ĐÃ CHẠY** trên 0.7.2: 0/0 check (gồm `profile_identity`), 0 tool (`artifacts/review/`) |
+| Smoke registry trong `pfe-test` | **ĐÃ CHẠY** trên 0.7.5: 0/0 check (gồm `profile_identity`), 0 tool (`artifacts/review/`) |
 | Model tự chọn tool | **CHƯA CHẠY**: profile không có API key; probe gọi registry, không qua model |
 | Ngôn ngữ ngoài danh sách pattern | Go, Rust, C#, Kotlin chỉ có symbol/route cơ bản |
 

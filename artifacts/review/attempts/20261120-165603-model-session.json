@@ -1,0 +1,98 @@
+{
+  "generated_at": "2026-11-20T16:55:51+07:00",
+  "kind": "model-session",
+  "package_version": "0.7.5",
+  "installed_version": "0.7.5",
+  "tarball_sha256": "78b89f7b267f7e789f8173a9ef8e3394ad89a0b5db9f962d399f13ad3a241b4d",
+  "requested_profile": "pfe-model",
+  "provider": "deepseek",
+  "model": "deepseek-flash",
+  "prompt_sha256": "d1e5c2584b228d0cfa96dd034355c5eb1ed664ece9605fa5240bdd5e810217a6",
+  "fixture": "tests/fixtures/shop-app",
+  "fixture_tree_hash": "01fcb1c9642f4347e1a5226c604e8df31648c4205eb6068795692b722cd38e29",
+  "fixture_file_count": 8,
+  "fixture_source": "tests/fixtures/shop-app",
+  "surface_probe": {
+    "exit_code": 0,
+    "tool_count": 29,
+    "has_pfe": true,
+    "answer": "TOOLS=29; HAS_PFE=có; FIRST=bash"
+  },
+  "wall_seconds": 9.0,
+  "exit_code": 0,
+  "stderr_tail": "",
+  "stop_reason": "completed",
+  "session_file": "session.v4.jsonl.zstd",
+  "session_dir_tag": "session-17a31639…",
+  "session_sha256": "28089cc9f00ff4b092fcf67c194f25db0ba15b37ec67a6e14d0d12aedbd5ab43",
+  "loader_profile": "pfe-model",
+  "profile_identity_ok": false,
+  "profile_identity_evidence": "tool_surface_in_request_header",
+  "tools_outside_allowlist": [],
+  "context_accuracy": {
+    "expected_paths_found": [
+      "services/report_service.js",
+      "tests/report_service.test.js"
+    ],
+    "expected_paths_missing": [
+      "server.js"
+    ],
+    "decoy_presented_as_direct": false,
+    "impact_has_downstream_and_test": true
+  },
+  "selected_tools": [
+    "project_code_index",
+    "project_context_pack",
+    "project_impact_analysis",
+    "project_verify_flow"
+  ],
+  "tool_sequence": [
+    {
+      "tool": "project_code_index",
+      "step": 1,
+      "call": "call_00_U2obagnVIUiAOUTRmqMm8226",
+      "outcome": "ok"
+    },
+    {
+      "tool": "project_context_pack",
+      "step": 1,
+      "call": "call_01_OgGO3aCEdOoQdgH0mc1H4765",
+      "outcome": "ok"
+    },
+    {
+      "tool": "project_impact_analysis",
+      "step": 2,
+      "call": "call_00_6lUjLXJvHVD2UE5xGriu9866",
+      "outcome": "ok"
+    },
+    {
+      "tool": "project_verify_flow",
+      "step": 3,
+      "call": "call_00_9naEAhCmghY5w47wQEuI0400",
+      "outcome": "ok"
+    }
+  ],
+  "order": {
+    "missing": [],
+    "ordered": true,
+    "observed": [
+      "project_code_index",
+      "project_context_pack",
+      "project_impact_analysis",
+      "project_verify_flow"
+    ]
+  },
+  "session_marker": "PFE-SMOKE-e9aa2b8be6427409",
+  "answer_excerpt": "Đã chạy xong ba bước, mã phiên ****.\n\n| Bước | Tool | Kết quả chính |\n|---|---|---|\n| 1. Gom context | `project_context_pack` (kèm `project_code_index`) | 4 file nên đọc: `services/report_service.js`, `db/report_repo.js`, `tests/report_service.test.js`, `routes/preview.js`; test liên quan `tests/report_service.test.js`; 0 entry point khớp task |\n| 2. Phân tích tác động | `project_impact_analysis` (changed_files = `services/report_service.js`) | Rủi ro `medium`; 2 file phụ thuộc, 2 symbol có thể bị gọi, 0 flow, 0 route, 1 test liên quan |\n| 3. Kiểm artifact/flow | `project_verify_flow` | `partial`, chưa pass; 0 flow artifact; gate `static`, `ui`, `runtime` chưa chạy |\n\nBổ sung về index: `project_code_index` chạy incremental trên 7 file, ra 36 entity, 32 fact, 5 symbol, 3 route, 1 test, `sta",
+  "policy": {
+    "tool_errors": [],
+    "expected_tools_ran": true,
+    "order_respected": true,
+    "tools_outside_allowlist": []
+  },
+  "workflow_order_verified": false,
+  "context_accuracy_verified": false,
+  "status": "partial",
+  "blocked": "không chứng minh được boot bằng pfe-model (bằng chứng: tool_surface_in_request_header); context thiếu: server.js",
+  "updated_at": "2026-11-20T16:56:03+07:00"
+}

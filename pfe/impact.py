@@ -247,6 +247,21 @@ def impact_analysis(root, changed_files=(), diff=None, max_items=25):
                            and row["source_commit"] != commit)}
             for row in flow_rows[:5]],
         "index_stale": stale["stale"],
+        # A blast radius computed from a stale index describes the code as it was
+        # at the last index, not as it is now. Saying "stale: true" while still
+        # presenting risk_level and downstream as current invites a reader to act
+        # on yesterday's graph, so the whole payload carries the qualification.
+        "needs_refresh": stale["stale"],
+        "currentness": "stale" if stale["stale"] else "current",
+        "currentness_note": (
+            ("Index được xây ở " + (commit[:12] or "lần chạy trước")
+             + (", HEAD đã đổi. " if commit else ", source đã đổi. ")
+             + "Blast radius dưới đây mô tả code tại lần index gần nhất, không phải "
+             + "hiện tại. Chạy project_knowledge_refresh rồi phân tích lại.")
+            if stale["stale"] else
+            "Index khớp HEAD; blast radius phản ánh code hiện tại."),
+        "next_action": ("project_knowledge_refresh" if stale["stale"]
+                        else "chạy test trong related_tests"),
         "stale_files": stale["files"][:20],
         "suggested_verification": verification,
         "warnings": warnings,

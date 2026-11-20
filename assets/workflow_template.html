@@ -99,6 +99,15 @@
     .aside-title { margin: 6px 0 0; font-size:16px; font-weight:800; line-height:1.35; }
     .aside-subtitle { margin:6px 0 0; color:#718198; font-size:11.5px; line-height:1.6; }
     #details { padding: 17px 20px 18px; flex:1; overflow-y:auto; font-size:12px; line-height:1.65; }
+    .status-banner { display:flex; flex-wrap:wrap; gap:6px; align-items:baseline; margin:10px 0 0; padding:9px 13px; border-radius:9px; font-size:11.5px; line-height:1.6; }
+    .status-banner.verified { background:#eefaf1; color:#1f6b3f; border:1px solid #bfe3cd; }
+    .status-banner.partial { background:#fff8e8; color:#8a6114; border:1px solid #f0dca8; }
+    .status-banner.unknown { background:#fdf0f0; color:#8a2c2c; border:1px solid #efc9c9; }
+    .status-action { opacity:.85; }
+    .search-empty { margin:12px 0; padding:16px; border:1px dashed #c8d6e8; border-radius:10px; background:#f7fafd; text-align:center; color:#5b6c85; font-size:12px; }
+    .search-empty p { margin:0 0 10px; }
+    .search-reset { border:1px solid #b9cbe4; background:#fff; color:#3d5680; border-radius:8px; padding:6px 14px; font-size:12px; cursor:pointer; }
+    .search-reset:hover { background:#eef4ff; }
     .empty-detail { margin-top:30px; text-align:center; color:#91a0b2; }
     .empty-detail .illustration { margin:0 auto 12px; background:#eef4ff; color:#7094cc; border-radius:20px; width:58px; height:58px; display:grid; place-items:center; font-size:30px; }
     .empty-detail h3 { margin:8px 0; color:#506583; font-size:13px; }
@@ -172,6 +181,7 @@
     </section>
     <aside class="aside" aria-label="Thông tin bước xử lý">
       <div class="aside-head"><div class="aside-eyebrow">DIỄN GIẢI THEO TỪNG BƯỚC</div><h2 class="aside-title" id="aside-title">Hiểu quy trình trong vài phút</h2><p class="aside-subtitle" id="aside-subtitle">Chọn một node trên sơ đồ để xem bước đó làm gì, đi tiếp khi nào và dựa trên mã nguồn nào.</p></div>
+      <div id="status-banner" class="status-banner verified" role="status"></div>
       <div id="details"><div class="empty-detail"><div class="illustration">↗</div><h3>Bắt đầu từ node xanh lá</h3><p>Các mũi tên thể hiện thứ tự xử lý. Mỗi nút rẽ nhánh có nhãn điều kiện. Nhấn vào một ô để xem chi tiết.</p></div></div>
       <div class="aside-bottom"><p class="legend-title">CHÚ GIẢI LOẠI BƯỚC</p><div id="legend" class="legend"></div></div>
     </aside>
@@ -201,6 +211,7 @@ function ellipsis(s,n=34){s=String(s||'');return s.length>n?s.slice(0,n-1)+'…'
 function createChip(label,value){const c=add($('meta'),'span','chip');add(c,'span',null,label);add(c,'b',null,value);}
 function setupHeader(){document.title=graph.title+' | Project Flow';$('flow-title').textContent=graph.title;$('flow-id').textContent=graph.flow_id.toUpperCase();$('flow-description').textContent=graph.description;
   createChip('Bắt đầu',nodeMap.get(graph.entry_node).title);createChip('Số bước',graph.nodes.length);if(graph.audience)createChip('Độc giả',graph.audience);if(graph.scope)createChip('Phạm vi',ellipsis(graph.scope,55));
+  renderStatusBanner();
   if(graph.nodes.some(n=>n.confidence==='illustrative')){$('page-note').textContent='BẢN DEMO MINH HỌA · Không phải kết quả đọc mã nguồn thực tế. Với project thật, từng bước sẽ có mức xác minh và file nguồn.';}
 }
 function createNode(n,i){let btn=make('button','node-card');btn.type='button';btn.setAttribute('data-type',n.type);btn.dataset.id=n.id;btn.style.left=n.x+'px';btn.style.top=n.y+'px';btn.title='Xem chi tiết bước: '+n.title;
@@ -266,11 +277,52 @@ function bindNavigation(){
   $('zoom-out').addEventListener('click',()=>zoomCenter(scale/1.17));$('zoom-in').addEventListener('click',()=>zoomCenter(scale*1.17));$('fit').addEventListener('click',()=>{selected=null;nodesDOM.forEach(e=>e.classList.remove('selected','dimmed'));edgeDOM.forEach(o=>o.element.classList.remove('dimmed'));fitView();showPlaceholder();});
   $('search').addEventListener('input',()=>{const q=$('search').value.trim().toLocaleLowerCase();let count=0;for(const n of graph.nodes){const hay=[n.title,n.summary,n.details,n.technical,(n.source_refs||[]).map(x=>x.path).join(' ')].join(' ').toLocaleLowerCase();const match=!q||hay.includes(q);if(q&&match)count++;nodesDOM.get(n.id).classList.toggle('search-muted',!match);}
     const stages=[...document.querySelectorAll('#simple-view .stage')];let stageHits=0;for(const el of stages){const match=!q||(el.dataset.hay||'').includes(q);el.hidden=!match;if(q&&match)stageHits++;}
-    if(q&&stageHits===0){for(const el of stages)el.hidden=false;}
-    $('search-count').textContent=q?(viewMode==='simple'?(stageHits?('Tìm thấy '+stageHits+'/'+stages.length):'Không có bước khớp — hiện tất cả'):'Tìm thấy '+count+'/'+graph.nodes.length):'';});
+    // A search that matches nothing must show that it matched nothing. Restoring
+    // every card made the empty result look identical to "no search", which is
+    // the one reading a reader cannot correct for.
+    if(q&&stageHits===0&&viewMode==='simple')showSearchEmpty(q);
+    else if(q&&count===0&&viewMode!=='simple')showSearchEmpty(q);
+    else hideSearchEmpty();
+    $('search-count').textContent=q?(viewMode==='simple'?(stageHits?('Tìm thấy '+stageHits+'/'+stages.length):'Không có bước khớp'):(count?('Tìm thấy '+count+'/'+graph.nodes.length):'Không có bước khớp')):'';});
+  function showSearchEmpty(q){let box=$('search-empty');if(!box){box=document.createElement('div');box.id='search-empty';box.className='search-empty';const reset=document.createElement('button');reset.type='button';reset.className='search-reset';reset.textContent='Xoá tìm kiếm';reset.addEventListener('click',()=>{const input=$('search');input.value='';input.dispatchEvent(new Event('input'));input.focus();});box.append(document.createElement('p'),reset);$('details').before(box);}box.firstChild.textContent='Không có bước nào khớp “'+q+'”.';box.hidden=false;}
+  function hideSearchEmpty(){const box=$('search-empty');if(box)box.hidden=true;}
   window.addEventListener('resize',()=>{if(!selected)initialView();});
 }
 let viewMode='simple';
+// Aggregate status of the whole diagram, shown once at the top. A reader who only
+// looks at the picture must still learn that parts of it are inferred, and what to
+// run to improve that.
+function renderStatusBanner(){
+  // `partial` counts as not-yet-fully-evidenced. Leaving it out made the banner
+  // say "every step has source evidence" while a stage card right below said
+  // "Một phần" — the two must agree because they read the same nodes.
+  const levels=(graph.nodes||[]).map(n=>n.confidence||'inferred');
+  const unknown=levels.filter(x=>x==='unknown').length;
+  const inferred=levels.filter(x=>x==='inferred').length;
+  const partial=levels.filter(x=>x==='partial').length;
+  const illustrative=levels.filter(x=>x==='illustrative').length;
+  const total=levels.length||1;
+  let kind='verified', label='Tất cả bước có bằng chứng nguồn';
+  if(illustrative||unknown>=total/2){kind='unknown';label='Phần lớn sơ đồ chưa có bằng chứng nguồn';}
+  else if(inferred||unknown||partial){
+    kind='partial';
+    label=[inferred?'inferred '+inferred:'',unknown?'unknown '+unknown:'',
+           partial?'partial '+partial:''].filter(Boolean).join(' · ')
+          + ' bước chưa đủ bằng chứng';
+  }
+  const box=$('status-banner');
+  box.className='status-banner '+kind;
+  box.replaceChildren();
+  const strong=document.createElement('strong');strong.textContent=label;
+  const detail=document.createElement('span');
+  detail.textContent=' · '+total+' bước · unknown '+unknown+' · inferred '+inferred
+    + (illustrative?' · illustrative '+illustrative:'');
+  const action=document.createElement('span');action.className='status-action';
+  action.textContent = kind==='verified'
+    ? 'Kiểm lại bằng project_verify_flow.'
+    : 'Chạy project_knowledge_refresh rồi project_verify_flow để nâng mức bằng chứng.';
+  box.append(strong,detail,action);
+}
 function stageConfidence(list){
   if(list.some(n=>n.confidence==='unknown'))return 'unknown';
   if(list.some(n=>n.confidence==='inferred'))return 'inferred';

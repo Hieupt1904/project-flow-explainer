@@ -1,18 +1,18 @@
 {
-  "generated_at": "2026-11-20T14:13:07+07:00",
+  "generated_at": "2026-11-20T16:56:55+07:00",
   "generator": "scripts/regen_evidence.py",
-  "source_commit": "0bc4b78e7218e61de7a795e35152815afe526f0e",
+  "source_commit": "ab7560d54fac94eae67730086782d134bc23a0d9",
   "source_branch": "main",
-  "working_tree_dirty": false,
-  "evidence_files_changed": 15,
+  "working_tree_dirty": true,
+  "evidence_files_changed": 36,
   "dirty_semantics": "working_tree_dirty chỉ tính file ngoài artifacts/review; evidence_files_changed là số file bằng chứng do lần chạy này sinh.",
-  "package_version": "0.7.2",
+  "package_version": "0.7.5",
   "engines_dsh": "0.2.2-rc.2",
   "dsh_version": "0.2.2-rc.2",
   "python_version": "3.12.3",
   "node_version": "v24.22.3",
   "tests": {
-    "python": 174,
+    "python": 195,
     "adapter": 16,
     "knowledge_tools": 9,
     "lifecycle": 8,
@@ -22,34 +22,33 @@
     "arguments": 9,
     "description": 18,
     "command": 12,
-    "failures": 0,
+    "failures": 1,
     "adapter_engine_failures": 0
   },
   "tarball": {
-    "filename": "dsh-project-flow-explainer-0.7.2.tgz",
-    "path": "dist/dsh-project-flow-explainer-0.7.2.tgz",
-    "bytes": 114175,
-    "sha256": "522d87ba41561030a2c1788a9288821838843c7a8ae8eace34c1ee8a27b5f72c",
+    "filename": "dsh-project-flow-explainer-0.7.5.tgz",
+    "path": "dist/dsh-project-flow-explainer-0.7.5.tgz",
+    "bytes": 116319,
+    "sha256": "78b89f7b267f7e789f8173a9ef8e3394ad89a0b5db9f962d399f13ad3a241b4d",
     "entry_count": 27,
     "contains_cli": true,
     "contains_knowledge": true
   },
   "smoke": {
-    "status": "verified",
+    "status": "blocked",
     "profile": "pfe-test",
-    "registry_runtime": "verified",
+    "registry_runtime": "not_verified",
     "model_driven": "verified",
-    "model_driven_note": "session thật trên 0.7.2 (tarball 522d87ba): model tự chọn 4 tool, thứ tự đúng, 0 lỗi.",
+    "model_driven_note": "session thật trên 0.7.5 (tarball 78b89f7b): model tự chọn 3 tool, thứ tự đúng, 0 lỗi.",
     "model_session": {
-      "record": "20261120-141107-model-session.json",
+      "record": "20261120-165634-model-session.json",
       "status": "verified",
-      "package_version": "0.7.2",
+      "package_version": "0.7.5",
       "provider": "deepseek",
       "model": "deepseek-flash",
-      "session_sha256": "51d56c54bda1d3285ae365a9e353b36eeced3a7afc0b136ed6985e80168da902",
-      "prompt_sha256": "3f7f40f8d3bb097b98d09b4e6b7d4285abcef1c8d91b15cb7732a63cf6a9f81e",
+      "session_sha256": "db04e3c756af5f5ef109ca559213944d6b13d4648287435f7d5c611e5cf71519",
+      "prompt_sha256": "68f4bd22526efaa0d54c8dd5c579da08d9c60e9ff591d88e3304983a470dcd6c",
       "tools": [
-        "project_code_index",
         "project_context_pack",
         "project_impact_analysis",
         "project_verify_flow"
@@ -58,7 +57,6 @@
         "missing": [],
         "ordered": true,
         "observed": [
-          "project_code_index",
           "project_context_pack",
           "project_impact_analysis",
           "project_verify_flow"
@@ -67,46 +65,50 @@
       "policy": {
         "tool_errors": [],
         "expected_tools_ran": true,
-        "order_respected": true
+        "order_respected": true,
+        "tools_outside_allowlist": []
       },
       "stop_reason": "completed",
       "requested_profile": "pfe-model",
-      "installed_version": "0.7.2",
-      "wall_seconds": 14.3
+      "installed_version": "0.7.5",
+      "wall_seconds": 8.6
     },
     "model_records_rejected": [],
-    "reason": "model tự chọn tool trong một session thật; probe registry là bằng chứng bổ sung.",
-    "tool_count": 36,
-    "checks": {
-      "profile_identity": true,
-      "tools_registered": true,
-      "no_missing_tools": true,
-      "flow_ok": true,
-      "context_ok": true,
-      "impact_ok": true,
-      "verify_ok": true,
-      "verify_partial_or_pass": true,
-      "search_ok": true,
-      "outside_roots_rejected": true,
-      "malformed_rejected": true,
-      "abort_identity": true,
-      "empty_roots_rejected": true,
-      "timeout_code": true,
-      "disabled_hides_tools": true,
-      "client_subpath_resolves": true,
-      "command_registered": true,
-      "invalid_config_rejected": true
-    },
-    "record": "20261120-141252-dsh-smoke.json",
-    "stale_records": [],
-    "blocked": {
-      "model_driven": "not_verified: profile không có API key; probe gọi registry, không qua model",
-      "panel_ui": "BLOCKED_UI_API_UNVERIFIED"
-    },
+    "reason": "BLOCKED_DSH_SMOKE: không có bản ghi smoke nào chạy trên 0.7.5 với tarball sha 78b89f7b; cần chạy scripts/run_dsh_smoke.py cho bản này.",
+    "tool_count": 0,
+    "checks": {},
+    "record": "",
+    "stale_records": [
+      {
+        "record": "20261120-165502-dsh-smoke.json",
+        "reason": "tarball khác hash hiện tại"
+      },
+      {
+        "record": "20261120-141252-dsh-smoke.json",
+        "reason": "chạy cho 0.7.2, không phải 0.7.5"
+      },
+      {
+        "record": "20261120-134319-dsh-smoke.json",
+        "reason": "chạy cho 0.7.1, không phải 0.7.5"
+      },
+      {
+        "record": "20261120-134138-dsh-smoke.json",
+        "reason": "chạy cho 0.7.1, không phải 0.7.5"
+      },
+      {
+        "record": "20261120-125854-dsh-smoke.json",
+        "reason": "chạy cho 0.7.0, không phải 0.7.5"
+      },
+      {
+        "record": "20261120-125451-dsh-smoke.json",
+        "reason": "chạy cho 0.7.0, không phải 0.7.5"
+      }
+    ],
+    "blocked": {},
     "settings_ui": {
       "client_entry": "client.js",
       "slot": "plugins.bundle.config",
-      "config_schema": "native schemastery",
+      "config_schema": "fallback normalizeConfig",
       "verified": "client tests + ValidationError boot check"
     }
   },
@@ -135,22 +137,22 @@
   },
   "policy": {
     "ok": true,
-    "summary": "OK: 127 file đã kiểm tra · không có absolute path, nested artifacts hay secret"
+    "summary": "OK: 126 file đã kiểm tra · không có absolute path, nested artifacts hay secret"
   },
   "benchmark": {
     "files": 2000,
     "source_bytes": 942071,
-    "scan_ms": 696.3,
+    "scan_ms": 703.1,
     "scan_files": 2001,
     "budget_notes": [],
-    "index_full_ms": 1447.6,
-    "index_incremental_ms": 456.0,
+    "index_full_ms": 1516.1,
+    "index_incremental_ms": 414.9,
     "files_parsed_full": 2001,
     "files_parsed_incremental": 0,
     "entities": 20003,
     "facts": 20001,
     "db_bytes": 15601664,
-    "rss_mb": 68.8,
+    "rss_mb": 68.6,
     "limits": {
       "max_files_scanned": 20000,
       "max_total_source_bytes": 33554432,
@@ -283,20 +285,20 @@
     ]
   },
   "logs": {
-    "python_log": "20261120-1412-python-tests.log",
-    "adapter_log": "20261120-1412-node-adapter.log",
-    "knowledge_log": "20261120-1412-node-knowledge.log",
-    "lifecycle_log": "20261120-1412-node-lifecycle.log",
-    "client_log": "20261120-1412-node-client.log",
-    "pack_log": "20261120-1412-node-pack.log",
-    "settings_log": "20261120-1412-node-settings.log",
-    "arguments_log": "20261120-1412-node-arguments.log",
-    "description_log": "20261120-1412-node-description.log",
-    "command_log": "20261120-1412-node-command.log",
-    "policy_log": "20261120-1412-policy.log",
-    "bundle_log": "20261120-1412-pack-build.log",
-    "bench_log": "20261120-1412-bench.json",
-    "consistency_log": "20261120-1412-consistency.log"
+    "python_log": "20261120-1656-python-tests.log",
+    "adapter_log": "20261120-1656-node-adapter.log",
+    "knowledge_log": "20261120-1656-node-knowledge.log",
+    "lifecycle_log": "20261120-1656-node-lifecycle.log",
+    "client_log": "20261120-1656-node-client.log",
+    "pack_log": "20261120-1656-node-pack.log",
+    "settings_log": "20261120-1656-node-settings.log",
+    "arguments_log": "20261120-1656-node-arguments.log",
+    "description_log": "20261120-1656-node-description.log",
+    "command_log": "20261120-1656-node-command.log",
+    "policy_log": "20261120-1656-policy.log",
+    "bundle_log": "20261120-1656-pack-build.log",
+    "bench_log": "20261120-1656-bench.json",
+    "consistency_log": "20261120-1656-consistency.log"
   },
   "classification": {
     "confirmed": [
@@ -319,33 +321,16 @@
       "real-project run (path và tên repo đã scrub)"
     ],
     "unverified": [
+      "DSH registry-runtime smoke cho 0.7.5",
       "Harness panel UI (BLOCKED_UI_API_UNVERIFIED)"
     ],
-    "verified_for": "0.7.2",
-    "registry_runtime": "verified",
+    "verified_for": "0.7.5",
+    "registry_runtime": "not_verified",
     "model_driven": "verified"
   },
   "consistency_recheck": {
-    "ok": true,
+    "ok": false,
     "note": "chạy lại toàn bộ unittest sau khi manifest được ghi",
-    "ran": 174
-  },
-  "provenance": {
-    "source_commit": "0bc4b78e7218e61de7a795e35152815afe526f0e",
-    "evidence_commit": "a6cceb4",
-    "head_at_record": "a6cceb4bc37fd1fd8ec483feb6df4655e4e99c2e",
-    "source_tree_equals_evidence_tree_except": "artifacts/review",
-    "non_evidence_diff": [],
-    "clean_source_tree": true,
-    "recorded_at": "2026-11-20T14:14:09+07:00",
-    "note": "source_commit là commit của code được mô tả; evidence_commit là commit chứa manifest này. Hai cây chỉ khác nhau ở artifacts/review/, đã kiểm bằng git diff."
-  },
-  "ci": {
-    "run_id": "44693370600",
-    "commit": "a6cceb4",
-    "conclusion": "success",
-    "jobs": 4,
-    "url": "https://github.com/Hieupt1904/project-flow-explainer/actions/runs/44693370600",
-    "recorded_at": "2026-11-20T14:14:09+07:00"
+    "ran": 195
   }
 }

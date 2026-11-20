@@ -147,6 +147,36 @@ _KIND_PRIORITY = {"function": 4, "class": 4, "route": 3, "test": 3, "flow": 2,
                   "file": 1, "module": 1, "symbol": 2}
 
 
+RELEVANCE_BY_CHANNEL = {
+    # An exact identifier match is evidence the candidate is about the task.
+    "exact_symbol": "observed",
+    # The task named this file or route itself, so it is not a guess.
+    "exact_file": "observed",
+    "exact_route": "observed",
+    # A graph hop means "related through a real relation", not "same subject".
+    "graph": "structural",
+    "flow_summary": "structural",
+    # Keyword overlap and vector similarity are recall devices: they widen the
+    # candidate set and never establish relevance on their own.
+    "fts": "inferred",
+    "vector": "inferred",
+}
+
+
+def relevance_confidence_of(channels):
+    """How strongly the retrieval channels support "this is about the task".
+
+    Kept separate from location_confidence (does the path exist) and from the
+    relation confidence of an individual hop. Collapsing them let a lexical hit
+    inherit `observed` from the fact that its file exists.
+    """
+    for channel in ("exact_symbol", "exact_file", "exact_route", "graph",
+                    "flow_summary", "fts", "vector"):
+        if channel in channels:
+            return RELEVANCE_BY_CHANNEL[channel]
+    return "inferred"
+
+
 def _merge(bucket, entity, score, channel, reason, relation, evidence_quality):
     """Record a candidate and keep the strongest base score per channel.
 
@@ -164,6 +194,7 @@ def _merge(bucket, entity, score, channel, reason, relation, evidence_quality):
         "end_line": entity.get("end_line") or entity.get("start_line") or 1,
         "base": score, "channels": [channel], "reasons": [reason],
         "relation": list(relation), "confidence": evidence_quality,
+        "relation_confidence": evidence_quality,
         "verified": False,
     }
     if current is None:
@@ -366,6 +397,9 @@ def retrieve(root, query, top_k=10, filters=None, backend=None, use_vectors=True
                 diagnostics["warnings"].append(
                     "flow_id=" + str(filters["flow_id"])
                     + ": không có flow này trong index (cần project_flow_explain trước).")
+                diagnostics["flow_filter"] = {"flow_id": filters["flow_id"],
+                                              "members": 0, "dropped": len(candidates),
+                                              "matched_flow": False}
                 candidates.clear()
             else:
                 kept = {}
@@ -378,7 +412,8 @@ def retrieve(root, query, top_k=10, filters=None, backend=None, use_vectors=True
                         kept[key] = item
                 diagnostics["flow_filter"] = {"flow_id": filters["flow_id"],
                                               "members": len(allowed["entities"]),
-                                              "dropped": len(candidates) - len(kept)}
+                                              "dropped": len(candidates) - len(kept),
+                                              "matched_flow": True}
                 candidates = kept
 
         # 5. rerank
@@ -439,6 +474,15 @@ def retrieve(root, query, top_k=10, filters=None, backend=None, use_vectors=True
     for item in ranked:
         entry = dict(item)
         entry.pop("reasons", None)
+        # Relevance is derived here, before the channel list is dropped, so a
+        # lexical-only candidate can never inherit `observed` from the fact that
+        # its file exists on disk.
+        entry["location_confidence"] = ("observed"
+                                        if entry.get("path") and entry.get("start_line")
+                                        else "unknown")
+        entry["relevance_confidence"] = relevance_confidence_of(item.get("channels") or [])
+        entry["relation_confidence"] = item.get("relation_confidence",
+                                                item.get("confidence") or "structural")
         entry.pop("channels", None)
         results.append(entry)
 
@@ -457,6 +501,7 @@ def retrieve(root, query, top_k=10, filters=None, backend=None, use_vectors=True
         "warnings": diagnostics["warnings"],
         "flows": [{"flow_id": row["flow_id"], "title": row["title"]} for row in flows[:5]],
         "filters": filters,
+        "flow_filter": diagnostics.get("flow_filter"),
     }
     if include_snippets:
         payload["snippets"] = _snippets(root, results)
@@ -651,14 +696,19 @@ def _entry_relevance(connection, row, terms, term_text):
     return score
 
 
-def _route_entities(connection, results):
+def _route_entities(connection, results, task_terms=None, term_text=""):
     """Real route entities reachable from a result by handles_route.
 
     Never uses result['symbol'] as a route: a symbol is a function or file name
     unless a handles_route fact points at an actual route entity.
+
+    `routes` is the task-relevant set. A route that merely shares a file with a
+    match is real context but not what the task is about, so it is dropped here
+    and reported by `_entry_points` as a related route.
     """
     routes = []
     seen = set()
+    terms = [term for term in (task_terms or []) if term]
     for result in results:
         for hop in index_mod.neighbours(connection, result["entity"], ["handles_route"], limit=10):
             target = hop["object"] if hop["predicate"] == "handles_route" else None
@@ -670,6 +720,12 @@ def _route_entities(connection, results):
             entity = index_mod.entity(connection, target)
             if entity is None:
                 continue
+            if terms:
+                score = _entry_relevance(connection,
+                                         {"label": entity["name"], "path": entity["path"],
+                                          "kind": "http_route"}, terms, term_text)
+                if score < 2:
+                    continue
             routes.append({
                 "route": entity["name"],
                 "path": entity["path"] or "",
@@ -855,13 +911,13 @@ def context_pack(root, task, max_files=12, include_snippets=False, backend=None)
                     "kind": result["kind"],
                     "start_line": result["start_line"],
                     "end_line": result["end_line"],
-                    "confidence": result["confidence"],
-                    "location_confidence": ("observed" if result["path"] and result["start_line"]
-                                            else "unknown"),
-                    "relevance_confidence": result["confidence"],
+                    "confidence": result["relevance_confidence"],
+                    "location_confidence": result["location_confidence"],
+                    "relation_confidence": result["relation_confidence"],
+                    "relevance_confidence": result["relevance_confidence"],
                     "why_matched": result["why_matched"],
                     "why_included": result["why_matched"] or "khớp truy hồi",
-                    "evidence_kind": ("observed" if result["confidence"] == "observed"
+                    "evidence_kind": ("observed" if result["location_confidence"] == "observed"
                                       else "structural"),
                     "relevance_why": result["relevance_why"],
                     "relation": result["relation"],
@@ -872,7 +928,8 @@ def context_pack(root, task, max_files=12, include_snippets=False, backend=None)
         entry_points, related_entry_points = _entry_points(
             connection, ranked, list(seen_paths), task_terms=task_terms,
             term_text=parsed["folded"])
-        routes = _route_entities(connection, ranked)
+        routes = _route_entities(connection, ranked, task_terms=task_terms,
+                                 term_text=parsed["folded"])
 
         dependencies, external = [], []
         for result in ranked[:max_files]:
