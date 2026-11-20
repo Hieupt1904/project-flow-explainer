@@ -161,10 +161,15 @@ Nếu muốn đúng chuẩn tuyệt đối, thêm `@deepseek-ai/dsh-tools` vào 
 
 ### Chi phí prompt của 7 tool
 
-Mô tả tool được tính vào system prompt **mỗi bước** của model. Sau khi rút gọn còn 4 dòng/tool,
-tổng `description` giảm từ 3 492 xuống 2 586 ký tự (−26%); cả `description` + `parameters` là
-5 219 ký tự (khoảng 1 500 token). Thêm tool mới thì phải trả chi phí này mỗi bước — ưu tiên gộp
-tool hơn là thêm tool.
+Mô tả tool được tính vào system prompt **mỗi bước** của model, nên mỗi dòng phải trả lại giá trị
+định tuyến của nó. Bảy tool hiện tốn **3 517 ký tự `description` + 2 633 ký tự `parameters` =
+6 150 ký tự (~1 757 token)** mỗi bước.
+
+Đã thử cắt xuống 4 dòng/tool (bỏ `ĐIỀU KIỆN` và `TIẾP THEO`) để giảm còn 5 219 ký tự, nhưng
+`dsh-plugin/tests/description.test.mjs` chứng minh đó là đánh đổi sai: model mất thông tin tiên
+quyết và bước kế tiếp nên chọn sai tool, và chi phí của một lần chọn sai lớn hơn 900 ký tự tiết
+kiệm được. Sáu dòng là mức giữ lại đủ. Thêm tool mới thì phải trả chi phí này mỗi bước — ưu tiên
+gộp tool hơn là thêm tool.
 
 ### Hợp đồng id của settings
 

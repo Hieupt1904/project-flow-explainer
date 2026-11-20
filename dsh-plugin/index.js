@@ -294,9 +294,10 @@ export function apply(ctx, config = {}) {
         'Dựng sơ đồ quy trình từ một repository và một câu mô tả luồng bằng tiếng Việt.',
         'DÙNG KHI: cần hiểu một luồng trước khi sửa, hoặc giải thích cho người không đọc code. '
           + 'KHÔNG DÙNG KHI: chỉ tra một hàm/route (dùng project_code_search).',
+        'ĐIỀU KIỆN: repository_path tuyệt đối trong allowedRoots; flow_request mô tả luồng cụ thể.',
         'KẾT QUẢ: flow.html (offline, có chế độ Đơn giản), flow.json, overview.md, run.json nội bộ.',
-        'GIỚI HẠN: phân tích tĩnh, không chạy code; verified = vị trí + quan hệ, không phải runtime; '
-          + 'repository_path tuyệt đối trong allowedRoots.',
+        'TIẾP THEO: project_context_pack để biết file nào cần đọc trước khi sửa.',
+        'GIỚI HẠN: phân tích tĩnh, không chạy code; verified = vị trí + quan hệ, không phải runtime.',
       ].join('\n'),
     parameters: {
       type: 'object',

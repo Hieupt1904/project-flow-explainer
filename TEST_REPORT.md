@@ -8,7 +8,7 @@ Môi trường: Ubuntu 24.04 · Python 3.12.3 · Node v24.22.3 · DSH 0.2.2-rc.2
 
 | Lệnh | Kết quả | Log |
 |---|---|---|
-| `python3 -m unittest discover -s tests` | **143 test OK** | `artifacts/review/*-python-tests.log` |
+| `python3 -m unittest discover -s tests` | **145 test OK** | `artifacts/review/*-python-tests.log` |
 | `node --test dsh-plugin/tests/plugin.test.mjs` | **16 pass** | `*-node-adapter.log` |
 | `node --test dsh-plugin/tests/knowledge.test.mjs` | **9 pass** | `*-node-knowledge.log` |
 | `node --test dsh-plugin/tests/lifecycle.test.mjs` | **7 pass** | `*-node-lifecycle.log` |
@@ -16,6 +16,7 @@ Môi trường: Ubuntu 24.04 · Python 3.12.3 · Node v24.22.3 · DSH 0.2.2-rc.2
 | `node --test dsh-plugin/tests/pack.test.mjs` | **2 pass** | `*-node-pack.log` |
 | `node --test dsh-plugin/tests/settings.test.mjs` | **5 pass** | `*-node-settings.log` |
 | `node --test dsh-plugin/tests/arguments.test.mjs` | **9 pass** | `*-node-arguments.log` |
+| `node --test dsh-plugin/tests/description.test.mjs` | **18 pass** | `*-node-description.log` |
 | `python3 -m compileall -q scripts tests pfe tools` | OK | `*-compileall.log` |
 | `python3 scripts/check_repo_policy.py` | OK | `*-policy.log` |
 | UI (trình duyệt thật) | 12 tổ hợp × 2 chế độ, 0 lỗi | [20261119-ui.json](artifacts/review/20261119-ui.json) |
@@ -26,10 +27,10 @@ Tarball phát hành:
 
 | Mục | Giá trị |
 |---|---|
-| Tên | `dsh-project-flow-explainer-0.5.6.tgz` |
-| Byte | 101633 |
+| Tên | `dsh-project-flow-explainer-0.5.7.tgz` |
+| Byte | 102785 |
 | Entry | 26 (gồm `client.js` và `vendor/core/{scripts,assets,tools,pfe}`) |
-| SHA-256 | `3e2ce8ce098112a07d8a91157bb2fe52ab6d283e6cf8ee73cc1b8ba7825ec44a` |
+| SHA-256 | `16a40726bad1e1fe29b1231904c7018dd51b56882276ac96721bb0583bb7932b` |
 
 ## 2. Lỗi tái hiện được và đã sửa trong 0.4.x
 

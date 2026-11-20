@@ -48,7 +48,6 @@ def verify_repository(root, artifact_subdir=("artifacts", "flows"),
     A green static scan is not a rendered page and not an executed test, so it
     must not read as an unqualified pass.
     """
-    """Run every verification that does not need a model or a network."""
     root = Path(os.path.realpath(str(root)))
     flows_root = root.joinpath(*artifact_subdir)
     checks = []

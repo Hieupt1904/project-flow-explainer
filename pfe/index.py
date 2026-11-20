@@ -727,7 +727,23 @@ def list_entities(connection, kind=None, path=None, limit=200):
 
 
 def record_flow(root, flow, artifact_dir):
-    """Persist a rendered flow projection so search/impact can use it."""
+    """Persist a rendered flow projection so search/impact can use it.
+
+    `artifact_dir` is stored repository-relative. An absolute path would leak
+    the workstation layout into every later impact analysis, and the index is
+    the one place that outlives the run that wrote it.
+    """
+    root_path = Path(os.path.realpath(str(root)))
+    artifact_text = str(artifact_dir or "")
+    if os.path.isabs(artifact_text):
+        # Resolve symlinks before relativising so the stored value names the
+        # directory the reader will actually find. A path outside the repository
+        # keeps only its tail: an absolute host prefix must never be stored.
+        try:
+            artifact_text = Path(os.path.realpath(artifact_text)).relative_to(root_path).as_posix()
+        except (ValueError, OSError):
+            artifact_text = artifact_text.replace(str(root_path) + os.sep, "").strip("/")
+    artifact_text = artifact_text.strip("/")
     counts = {}
     for node in flow.get("nodes", []):
         counts[node["confidence"]] = counts.get(node["confidence"], 0) + 1
@@ -737,7 +753,7 @@ def record_flow(root, flow, artifact_dir):
             "INSERT OR REPLACE INTO flows(flow_id, title, request, entry_node,"
             " artifact_dir, generated_at, confidence, counts) VALUES(?,?,?,?,?,?,?,?)",
             (flow["flow_id"], flow.get("title", ""), flow.get("meta", {}).get("request", ""),
-             flow.get("entry_node", ""), artifact_dir,
+             flow.get("entry_node", ""), artifact_text,
              flow.get("meta", {}).get("generated_at", ""),
              "partial" if counts.get("inferred") or counts.get("unknown") else "verified",
              json.dumps(counts, ensure_ascii=False)))

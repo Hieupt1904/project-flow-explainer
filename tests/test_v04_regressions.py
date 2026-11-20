@@ -259,5 +259,49 @@ class VectorContractTests(unittest.TestCase):
             self.assertIn("fts", payload["channels"])
 
 
+class ArtifactPathPrivacyTests(unittest.TestCase):
+    """T7 privacy: the model-facing impact result must not carry host paths.
+
+    `record_flow` used to store the absolute artifact directory in the index, so
+    one earlier flow run made every later `impact` reply leak the workstation
+    layout (`/home/<user>/...`) through `stale_artifacts`.
+    """
+
+    def test_artifact_dir_is_stored_repository_relative(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = copy_repo(Path(tmp) / "repo")
+            index.build_index(repo, mode="full")
+            flow = {
+                "flow_id": "privacy-check",
+                "entry_node": "start",
+                "nodes": [{"id": "start", "confidence": "verified"}],
+                "meta": {"generated_at": "2026-01-01T00:00:00+00:00", "request": "privacy"},
+            }
+            index.record_flow(repo, flow, str(repo / "artifacts" / "flows" / "privacy-check"))
+            payload = index.list_flows(repo, limit=5)
+            stored = [row["artifact_dir"] for row in payload
+                      if row["flow_id"] == "privacy-check"]
+            self.assertEqual(stored, ["artifacts/flows/privacy-check"])
+
+    def test_impact_never_returns_an_absolute_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = copy_repo(Path(tmp) / "repo")
+            index.build_index(repo, mode="full")
+            flow = {
+                "flow_id": "privacy-check",
+                "entry_node": "start",
+                "nodes": [{"id": "start", "confidence": "verified"}],
+                "meta": {"generated_at": "2026-01-01T00:00:00+00:00", "request": "privacy"},
+            }
+            index.record_flow(repo, flow, str(repo / "artifacts" / "flows" / "privacy-check"))
+            from pfe import impact
+            payload = impact.impact_analysis(repo, changed_files=["services/report_service.js"])
+            blob = json.dumps(payload, ensure_ascii=False)
+            self.assertNotIn(str(repo), blob, "impact leaked the repository's absolute path")
+            for item in payload["stale_artifacts"]:
+                self.assertFalse(Path(item["artifact_dir"]).is_absolute(),
+                                 "stale_artifacts.artifact_dir must be repository-relative")
+
+
 if __name__ == "__main__":
     unittest.main()

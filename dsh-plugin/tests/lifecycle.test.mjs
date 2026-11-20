@@ -129,3 +129,31 @@ test('invalid config fails before any tool is registered', () => {
   assert.throws(() => plugin.apply(built.ctx, { allowedRoots: [CORPUS], timeoutMs: 0 }), /timeoutMs/)
   assert.equal(built.tools.size, 0)
 })
+test('native Config resolves when the installation anchor is reachable', async () => {
+  // loadSchemaModule() anchors on process.argv[1] -> the dsh package, whose
+  // node_modules holds the Loader's own schemastery. A fresh import with that
+  // argv must produce a real schema (not the undefined fallback), and the
+  // schema must carry the volatile fields settings.describe() needs.
+  const { spawnSync } = await import('node:child_process')
+  const probe = path.join(HERE, 'fixtures', 'config-probe.mjs')
+  const result = spawnSync(process.execPath, [probe], { encoding: 'utf8' })
+  const line = (result.stdout || '').trim().split('\n').pop() ?? ''
+  let parsed
+  try {
+    parsed = JSON.parse(line)
+  } catch {
+    assert.fail(`probe did not return JSON: ${result.stdout} ${result.stderr}`)
+  }
+  if (parsed.anchorFound === false) {
+    // No installation on this machine: the fallback is the only honest answer.
+    assert.equal(parsed.config, 'fallback',
+      'without a resolvable installation the Config export must stay undefined')
+    return
+  }
+  assert.equal(parsed.config, 'native', 'argv-anchored schemastery must produce a real Config')
+  assert.equal(parsed.hasObject, true)
+  // Five volatile fields is what settings.describe() needs to render the form:
+  // allowedRoots, pythonPath, coreRoot, timeoutMs, maxOutputBytes.
+  assert.equal(parsed.volatileFields, 5,
+    `Config must expose 5 volatile fields, saw ${parsed.volatileFields}`)
+})

@@ -44,10 +44,19 @@ jobs:
           for file in dsh-plugin/index.js dsh-plugin/lib/*.js dsh-plugin/scripts/pack.mjs; do
             node --check "$file"
           done
+      # Every adapter test file runs here. Running a subset let the lifecycle,
+      # settings, argument and description contracts rot unnoticed: they existed
+      # and passed locally while CI stayed green on three files.
       - name: adapter tests
-        run: node --test dsh-plugin/tests/plugin.test.mjs
-      - name: knowledge tool tests
-        run: node --test dsh-plugin/tests/knowledge.test.mjs
+        run: |
+          node --test \
+            dsh-plugin/tests/plugin.test.mjs \
+            dsh-plugin/tests/knowledge.test.mjs \
+            dsh-plugin/tests/lifecycle.test.mjs \
+            dsh-plugin/tests/client.test.mjs \
+            dsh-plugin/tests/settings.test.mjs \
+            dsh-plugin/tests/arguments.test.mjs \
+            dsh-plugin/tests/description.test.mjs
       - name: pack + independent install
         run: node --test dsh-plugin/tests/pack.test.mjs
 

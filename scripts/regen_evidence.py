@@ -149,6 +149,11 @@ def main(argv=None):
     evidence["arguments_log"] = write_log(stamp, "node-arguments", arguments).name
     evidence["arguments"] = parse_node_tests(arguments["stdout"])
 
+    description = run(["node", "--test", "dsh-plugin/tests/description.test.mjs"],
+                      "tool description contract tests")
+    evidence["description_log"] = write_log(stamp, "node-description", description).name
+    evidence["description"] = parse_node_tests(description["stdout"])
+
     policy = run([python, "scripts/check_repo_policy.py"], "repo policy")
     evidence["policy_log"] = write_log(stamp, "policy", policy).name
     evidence["policy"] = {"ok": policy["exit_code"] == 0,
@@ -312,18 +317,20 @@ def main(argv=None):
             "pack": evidence["pack"]["pass"],
             "settings": evidence["settings"]["pass"],
             "arguments": evidence["arguments"]["pass"],
+            "description": evidence["description"]["pass"],
             "failures": (0 if evidence["python"]["ok"] else 1)
                         + evidence["adapter"]["fail"] + evidence["knowledge"]["fail"]
                         + evidence["lifecycle"]["fail"] + evidence["client"]["fail"]
                         + evidence["pack"]["fail"] + evidence["settings"]["fail"]
-                        + evidence["arguments"]["fail"],
+                        + evidence["arguments"]["fail"] + evidence["description"]["fail"],
             "adapter_engine_failures": (evidence["adapter"]["fail"]
                                         + evidence["knowledge"]["fail"]
                                         + evidence["lifecycle"]["fail"]
                                         + evidence["client"]["fail"]
                                         + evidence["pack"]["fail"]
                                         + evidence["settings"]["fail"]
-                                        + evidence["arguments"]["fail"]),
+                                        + evidence["arguments"]["fail"]
+                                        + evidence["description"]["fail"]),
         },
         "tarball": evidence["tarball"],
         "smoke": smoke,
@@ -338,6 +345,7 @@ def main(argv=None):
         "classification": {
             "confirmed": ["python tests", "adapter tests", "knowledge tool tests",
                           "settings binding tests", "argument contract tests",
+                          "tool description contract tests",
                           "pack tests", "policy", "tarball manifest", "UI layout",
                           "index benchmark"],
             "manual_evidence": ["tarball sha256", "tarball entry count",

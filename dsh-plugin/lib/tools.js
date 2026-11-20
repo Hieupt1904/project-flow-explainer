@@ -23,14 +23,17 @@ const TEXT = (value) => [{ type: 'text', text: value }]
  * One description shape for every tool, so the model can choose without
  * reading the source. Keep each line short: the model pays for every token.
  */
-function describe({ what, use, notUse, output, limits }) {
-  // Four lines, not seven. Every tool description is paid on every model step:
-  // the label lines were ~40% of this plugin's prompt footprint. `prereq` and
-  // `next` moved into `limits` and into README, which costs nothing per step.
+function describe({ what, use, notUse, prereq, output, next, limits }) {
+  // Six lines: what / when (+when not) / prerequisite / output meaning / next
+  // action / limits. The model pays for this on every step, so each line stays
+  // one clause — but dropping a line costs a wrong tool choice, which is more
+  // expensive than the tokens. See README "Chi phí prompt".
   return [
     what,
     `DÙNG KHI: ${use} · KHÔNG DÙNG KHI: ${notUse}`,
+    `ĐIỀU KIỆN: ${prereq}`,
     `KẾT QUẢ: ${output}`,
+    `TIẾP THEO: ${next}`,
     `GIỚI HẠN: ${limits}`,
   ].join('\n')
 }
@@ -135,11 +138,13 @@ export function knowledgeTools({ settings, core, inFlight }) {
     {
       name: 'project_code_index',
       description: describe({
-    what: 'Xây/cập nhật index cục bộ tại <repo>/.pfe/index/.',
+    what: 'Xây/cập nhật index cục bộ tại <repo>/.pfe/index/ (maintenance).',
     use: 'lần đầu vào repo, hoặc sau khi pull/đổi nhiều file.',
     notUse: 'chỉ cần đọc một file đã biết đường dẫn.',
+    prereq: 'repository_path tuyệt đối trong allowedRoots.',
     output: 'số file/symbol/route/test đã index; không trả source.',
-    limits: 'phân tích tĩnh, không chạy code; vector mặc định tắt; cần trước khi search/context-pack/impact.',
+    next: 'project_context_pack (hoặc project_code_search nếu biết tên).',
+    limits: 'phân tích tĩnh, không chạy code; vector mặc định tắt.',
   }),
       parameters: {
         type: 'object',
@@ -207,6 +212,7 @@ export function knowledgeTools({ settings, core, inFlight }) {
             `Parse lại: ${value.files_parsed} · dùng lại cache: ${value.files_reused}`,
             `Symbol: ${value.symbols_indexed} · route: ${value.routes_indexed} · test: ${value.tests_indexed}`,
             `Commit nguồn: ${value.source_commit || 'không có git'} · stale: ${value.stale_files}`,
+            `Tiếp theo: project_context_pack (gom context trước khi sửa).`,
             embedding,
             value.warnings.length > 0 ? `Cảnh báo: ${value.warnings.length}` : 'Không có cảnh báo.',
           ].join('\n'))
@@ -257,11 +263,13 @@ export function knowledgeTools({ settings, core, inFlight }) {
     {
       name: 'project_code_search',
       description: describe({
-    what: 'Tìm context: exact (FTS5) + graph + vector tùy chọn, xếp hạng lại.',
+    what: 'Tìm context: exact (FTS5) + graph + vector tùy chọn (maintenance).',
     use: 'biết tên hàm/lớp/route/từ khoá ngắn.',
-    notUse: 'câu mô tả nghiệp vụ dài (dùng project_flow_explain hoặc project_context_pack).',
+    notUse: 'câu mô tả nghiệp vụ dài (dùng project_context_pack).',
+    prereq: 'đã chạy project_code_index (nếu chưa: mã index_missing).',
     output: 'path, symbol, line range, relation, confidence, lý do khớp; không trả source.',
-    limits: 'cần project_code_index trước (nếu chưa: index_missing); khớp theo từ khoá.',
+    next: 'mở đúng path:line, hoặc project_context_pack để gom theo task.',
+    limits: 'khớp theo từ khoá; vector (nếu bật) chỉ là candidate lexical, không phải semantic.',
   }),
       parameters: {
         type: 'object',
@@ -328,6 +336,8 @@ export function knowledgeTools({ settings, core, inFlight }) {
             lines.push(`- [${item.kind}] ${item.symbol || item.entity} — ${item.path}:${item.start_line}`
               + ` (${item.confidence}) · ${item.why_matched}`)
           }
+          if (!value.results.length) lines.push('Không có kết quả: thử project_context_pack với mô tả nghiệp vụ.')
+          else lines.push('Tiếp theo: mở path:line ở trên; cần gom theo task thì project_context_pack.')
           if (value.warnings.length > 0) lines.push(`Cảnh báo: ${value.warnings.join('; ')}`)
           return TEXT(lines.join('\n'))
         },
@@ -382,9 +392,11 @@ export function knowledgeTools({ settings, core, inFlight }) {
         what: 'Gom context trước khi sửa: entry point, file nên đọc, dependency, test.',
         use: 'MẶC ĐỊNH trước khi sửa code — tool đầu tiên nên gọi.',
         notUse: 'chỉ cần kiểm artifact đã sinh (dùng project_verify_flow).',
-        output: 'entry_points theo loại (http_route/cli_command/gui_event/...), likely_files, '
-          + 'dependencies path+line, related_tests.',
-        limits: 'cần project_code_index trước; entry point chỉ từ dòng đăng ký thật; chưa chạy test.',
+        prereq: 'đã chạy project_code_index.',
+        output: 'entry_points theo loại (http_route/cli_command/gui_event/callback/button_click/'
+          + 'worker/main/public_api), likely_files, dependencies có path+line, related_tests.',
+        next: 'sửa file trong likely_files, rồi project_impact_analysis.',
+        limits: 'entry point chỉ từ dòng đăng ký thật; chưa chạy test; không trả source.',
       }),
       parameters: {
         type: 'object',
@@ -646,8 +658,10 @@ export function knowledgeTools({ settings, core, inFlight }) {
     what: 'Phân tích tác động của các file vừa sửa.',
     use: 'SAU KHI sửa, trước khi commit.',
     notUse: 'trước khi sửa (dùng project_context_pack).',
-    output: 'flow/route/symbol bị ảnh hưởng, test liên quan, module phụ thuộc, risk.',
-    limits: 'cần index + changed_files hoặc diff; file mới chưa index báo unknown_files.',
+    prereq: 'đã chạy project_code_index; truyền changed_files hoặc diff.',
+    output: 'flow/route/symbol bị ảnh hưởng, test liên quan, module phụ thuộc, risk_level.',
+    next: 'chạy test trong related_tests, rồi project_verify_flow.',
+    limits: 'chỉ thấy quan hệ có trong index; file mới chưa index báo unknown_files.',
   }),
       parameters: {
         type: 'object',
@@ -761,6 +775,7 @@ export function knowledgeTools({ settings, core, inFlight }) {
             `Flow: ${value.affected_flows.length} · route: ${value.affected_routes.length} · `
               + `symbol: ${value.affected_symbols.length} · test: ${value.related_tests.length}`,
             `Kiểm chứng: ${value.suggested_verification.join(' · ')}`,
+            'Tiếp theo: chạy test ở trên, rồi project_verify_flow.',
           ].join('\n'))
         },
       },
@@ -808,8 +823,11 @@ export function knowledgeTools({ settings, core, inFlight }) {
     what: 'Kiểm artifact/flow: schema, bằng chứng, HTML tĩnh, privacy, test mapping.',
     use: 'bước cuối, sau khi sửa và render lại flow.',
     notUse: 'thay cho việc chạy test hoặc mở trình duyệt.',
-    output: 'static_verdict, overall_verdict, gates, checks, next_action.',
-    limits: 'cần artifact trong <repo>/artifacts/flows/; ui/runtime blocked nếu thiếu bằng chứng ngoài.',
+    prereq: 'đã có artifact trong <repo>/artifacts/flows/.',
+    output: 'static_verdict (đã kiểm tĩnh) tách khỏi overall_verdict (cần cả UI + runtime), '
+      + 'gates, checks, next_action.',
+    next: 'overall=partial thì mở flow.html và chạy test liên quan; không đọc là "đã pass".',
+    limits: 'quét HTML tĩnh KHÔNG phải kiểm trình duyệt; test mapping KHÔNG phải đã chạy test.',
   }),
       parameters: {
         type: 'object',
@@ -862,10 +880,17 @@ export function knowledgeTools({ settings, core, inFlight }) {
           additionalProperties: false,
         },
         render(_args, value) {
+          // The two verdicts mean different things and a reader who conflates
+          // them thinks the page was rendered and the tests were run. Say which
+          // is which, then which checks did run.
+          const STATIC_PLAIN = 'chỉ đọc file, chưa mở trang'
           const lines = [
-            `Tĩnh: ${value.static_verdict} · Tổng: ${value.overall_verdict}`
-              + ` · ${value.flow_artifacts} flow artifact`,
-            `Gate chưa xác minh: ${value.not_verified.join(', ') || 'không có'}`,
+            `Kiểm tĩnh: ${value.static_verdict} (${STATIC_PLAIN})`,
+            `Kết luận tổng: ${value.overall_verdict}`
+              + (value.overall_verdict === 'partial'
+                ? ' — chưa đủ bằng chứng để coi là đã pass' : ''),
+            `Artifact: ${value.flow_artifacts} flow · gate chưa chạy: `
+              + `${value.not_verified.join(', ') || 'không có'}`,
           ]
           const failed = value.checks.filter((c) => c.status === 'fail')
           for (const check of failed.slice(0, 3)) lines.push(`- FAIL ${check.check}: ${check.detail}`)
@@ -907,11 +932,13 @@ export function knowledgeTools({ settings, core, inFlight }) {
     {
       name: 'project_knowledge_refresh',
       description: describe({
-    what: 'Refresh index tăng dần sau khi sửa code.',
+    what: 'Refresh index tăng dần sau khi sửa code (maintenance).',
     use: 'sau khi sửa file, trước khi search/impact lần nữa.',
     notUse: 'khi index chưa tồn tại (dùng project_code_index mode=full).',
+    prereq: 'index đã tồn tại.',
     output: 'file parse lại/dùng lại, changed/added/deleted/renamed, stale.',
-    limits: 'cần index sẵn có; rename nhận qua content hash.',
+    next: 'project_code_search hoặc project_impact_analysis.',
+    limits: 'rename nhận qua content hash; không rebuild toàn bộ nếu không cần.',
   }),
       parameters: {
         type: 'object',
@@ -956,6 +983,7 @@ export function knowledgeTools({ settings, core, inFlight }) {
             `changed ${value.changed.length} · added ${value.added.length} · `
               + `deleted ${value.deleted.length} · renamed ${value.renamed.length}`,
             `Rebuild toàn bộ: ${value.no_full_rebuild ? 'không' : 'có'}`,
+            'Tiếp theo: project_code_search hoặc project_impact_analysis.',
           ].join('\n'))
         },
       },
