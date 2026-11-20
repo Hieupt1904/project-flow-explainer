@@ -332,12 +332,20 @@
   },
   "provenance": {
     "source_commit": "0bc4b78e7218e61de7a795e35152815afe526f0e",
-    "evidence_commit": "0bc4b78e7218e61de7a795e35152815afe526f0e",
-    "head_at_record": "0bc4b78e7218e61de7a795e35152815afe526f0e",
+    "evidence_commit": "a6cceb4",
+    "head_at_record": "a6cceb4bc37fd1fd8ec483feb6df4655e4e99c2e",
     "source_tree_equals_evidence_tree_except": "artifacts/review",
     "non_evidence_diff": [],
     "clean_source_tree": true,
-    "recorded_at": "2026-11-20T14:13:22+07:00",
+    "recorded_at": "2026-11-20T14:14:09+07:00",
     "note": "source_commit là commit của code được mô tả; evidence_commit là commit chứa manifest này. Hai cây chỉ khác nhau ở artifacts/review/, đã kiểm bằng git diff."
+  },
+  "ci": {
+    "run_id": "44693370600",
+    "commit": "a6cceb4",
+    "conclusion": "success",
+    "jobs": 4,
+    "url": "https://github.com/Hieupt1904/project-flow-explainer/actions/runs/44693370600",
+    "recorded_at": "2026-11-20T14:14:09+07:00"
   }
 }
