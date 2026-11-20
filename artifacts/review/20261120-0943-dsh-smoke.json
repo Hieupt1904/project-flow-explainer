@@ -2,7 +2,8 @@
   "status": "verified",
   "profile": "pfe-test",
   "registry_runtime": "verified",
-  "model_driven": "verified",
+  "model_driven": "not_verified",
+  "model_driven_note": "record mô tả một session thật nhưng không mang package_version/tarball_sha256, nên không quy được cho bản 0.5.7; cần chạy lại session model trên bản này trước khi claim.",
   "model_session": {
     "record": "20261120-005100-model-session.json",
     "model": "deepseek-flash",
@@ -35,7 +36,13 @@
     "client_subpath_resolves": true,
     "invalid_config_rejected": true
   },
-  "record": "20261120-0120-dsh-smoke.json",
+  "record": "20261120-094226-dsh-smoke.json",
+  "stale_records": [
+    {
+      "record": "20261120-0943-dsh-smoke.json",
+      "reason": "summary của regen_evidence, không phải lần chạy thật"
+    }
+  ],
   "blocked": {
     "model_driven": "not_verified: profile không có API key; probe gọi registry, không qua model",
     "panel_ui": "BLOCKED_UI_API_UNVERIFIED"

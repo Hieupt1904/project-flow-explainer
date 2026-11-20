@@ -1,6 +1,6 @@
 $ /usr/bin/python3 -m unittest discover -s tests -v
 exit_code: 0
-duration_ms: 3031.5
+duration_ms: 3261.8
 
 --- stdout ---
 
@@ -134,6 +134,8 @@ test_invalid_dangling_edge (test_render_flow.RenderFlowTests.test_invalid_dangli
 test_invalid_unmarked_cycle (test_render_flow.RenderFlowTests.test_invalid_unmarked_cycle) ... ok
 test_invalid_verified_without_source (test_render_flow.RenderFlowTests.test_invalid_verified_without_source) ... ok
 test_sample_graph_valid (test_render_flow.RenderFlowTests.test_sample_graph_valid) ... ok
+test_artifact_dir_is_stored_repository_relative (test_v04_regressions.ArtifactPathPrivacyTests.test_artifact_dir_is_stored_repository_relative) ... ok
+test_impact_never_returns_an_absolute_path (test_v04_regressions.ArtifactPathPrivacyTests.test_impact_never_returns_an_absolute_path) ... ok
 test_flow_from_another_working_directory (test_v04_regressions.CliFlowTests.test_flow_from_another_working_directory) ... ok
 test_flow_from_repository_root (test_v04_regressions.CliFlowTests.test_flow_from_repository_root) ... ok
 test_invalid_repository_keeps_stable_code (test_v04_regressions.CliFlowTests.test_invalid_repository_keeps_stable_code) ... ok
@@ -152,6 +154,6 @@ test_static_failure_is_overall_failure (test_v04_regressions.VerifyVerdictTests.
 test_static_pass_ui_runtime_blocked_is_partial (test_v04_regressions.VerifyVerdictTests.test_static_pass_ui_runtime_blocked_is_partial) ... ok
 
 ----------------------------------------------------------------------
-Ran 143 tests in 2.950s
+Ran 145 tests in 3.179s
 
 OK
