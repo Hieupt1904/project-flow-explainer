@@ -244,6 +244,9 @@ def main(argv=None):
             # profile carries no client-modules service, so the resolver check is
             # the evidence here; the browser page itself is verified separately.
             "client_subpath_resolves": bool(report.get("client_subpath", {}).get("resolved")),
+            # The slash command must be in the real commands registry, not just
+            # in the plugin source: a command nobody can type is not a feature.
+            "command_registered": "project-flow-explainer" in (a.get("commands") or []),
             "invalid_config_rejected": (
                 "ValidationError" in (report["steps"]["g"]["stderr"] or "")
                 and not any(name.startswith("project_")

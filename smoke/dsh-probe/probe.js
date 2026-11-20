@@ -62,6 +62,20 @@ export function apply(ctx) {
     const names = (ctx.tools.definitions?.() || []).map((item) => item.name).sort()
     record.registered_tools = names
     record.missing_tools = record.expected_tools.filter((tool) => !names.includes(tool))
+    // The human entry point: does the real commands registry carry our command?
+    // A headless profile has no command adapter wired to a UI, but the service
+    // exists, so the registration is observable here. Reading `list()` is the
+    // evidence; nothing is executed through the UI.
+    try {
+      const commands = ctx.get?.('commands')
+      if (commands && typeof commands.list === 'function') {
+        record.commands = commands.list().map((item) => item.name).sort()
+      } else {
+        record.commands = { unavailable: typeof commands }
+      }
+    } catch (error) {
+      record.commands = { error: String(error?.message || error) }
+    }
     // The standard settings page comes from the Host's settings service: a
     // loader entry with a real Config is described there and the UI may
     // generate a page. Reading the descriptor is the evidence, not writing.
