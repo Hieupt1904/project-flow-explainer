@@ -17,7 +17,7 @@ Môi trường: Ubuntu 24.04 · Python 3.12.3 · Node v24.22.3 · DSH 0.2.2-rc.2
 | `node --test dsh-plugin/tests/settings.test.mjs` | **5 pass** | `*-node-settings.log` |
 | `node --test dsh-plugin/tests/arguments.test.mjs` | **9 pass** | `*-node-arguments.log` |
 | `node --test dsh-plugin/tests/description.test.mjs` | **18 pass** | `*-node-description.log` |
-| `node --test dsh-plugin/tests/command.test.mjs` | **8 pass** | `*-node-command.log` |
+| `node --test dsh-plugin/tests/command.test.mjs` | **9 pass** | `*-node-command.log` |
 | `python3 -m compileall -q scripts tests pfe tools` | OK | `*-compileall.log` |
 | `python3 scripts/check_repo_policy.py` | OK | `*-policy.log` |
 | UI (trình duyệt thật) | 12 tổ hợp × 2 chế độ, 0 lỗi | [20261119-ui.json](artifacts/review/20261119-ui.json) |
@@ -28,10 +28,10 @@ Tarball phát hành:
 
 | Mục | Giá trị |
 |---|---|
-| Tên | `dsh-project-flow-explainer-0.6.3.tgz` |
-| Byte | 105331 |
+| Tên | `dsh-project-flow-explainer-0.6.4.tgz` |
+| Byte | 105516 |
 | Entry | 27 (gồm `client.js` và `vendor/core/{scripts,assets,tools,pfe}`) |
-| SHA-256 | `e60220a591f3c18fdfebcd6e98c01442c3143051c5103593421c31a37c063f10` |
+| SHA-256 | `306f220bdff271d1498eb6f3ffc36c60496ac9ab104561320e74fb79efc02e70` |
 
 ## 2. Lỗi tái hiện được và đã sửa trong 0.4.x
 

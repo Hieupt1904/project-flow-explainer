@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-11-20T10:21:49+07:00",
+  "generated_at": "2026-11-20T11:24:09+07:00",
   "generator": "scripts/regen_evidence.py",
-  "source_commit": "6079d6e8765ec33a460e9d6a6908d877bed08fcf",
+  "source_commit": "73daf5ce1efd90d828dc5979dd9adc8922c6d432",
   "source_branch": "main",
   "working_tree_dirty": true,
-  "evidence_files_changed": 32,
+  "evidence_files_changed": 34,
   "dirty_semantics": "working_tree_dirty chỉ tính file ngoài artifacts/review; evidence_files_changed là số file bằng chứng do lần chạy này sinh.",
-  "package_version": "0.6.3",
+  "package_version": "0.6.4",
   "engines_dsh": "0.2.2-rc.2",
   "dsh_version": "0.2.2-rc.2",
   "python_version": "3.12.3",
@@ -21,15 +21,15 @@
     "settings": 5,
     "arguments": 9,
     "description": 18,
-    "command": 8,
+    "command": 9,
     "failures": 0,
     "adapter_engine_failures": 0
   },
   "tarball": {
-    "filename": "dsh-project-flow-explainer-0.6.3.tgz",
-    "path": "dist/dsh-project-flow-explainer-0.6.3.tgz",
-    "bytes": 105331,
-    "sha256": "e60220a591f3c18fdfebcd6e98c01442c3143051c5103593421c31a37c063f10",
+    "filename": "dsh-project-flow-explainer-0.6.4.tgz",
+    "path": "dist/dsh-project-flow-explainer-0.6.4.tgz",
+    "bytes": 105516,
+    "sha256": "306f220bdff271d1498eb6f3ffc36c60496ac9ab104561320e74fb79efc02e70",
     "entry_count": 27,
     "contains_cli": true,
     "contains_knowledge": true
@@ -39,7 +39,7 @@
     "profile": "pfe-test",
     "registry_runtime": "verified",
     "model_driven": "not_verified",
-    "model_driven_note": "record mô tả một session thật nhưng không mang package_version/tarball_sha256, nên không quy được cho bản 0.6.3; cần chạy lại session model trên bản này trước khi claim.",
+    "model_driven_note": "record mô tả một session thật nhưng không mang package_version/tarball_sha256, nên không quy được cho bản 0.6.4; cần chạy lại session model trên bản này trước khi claim.",
     "model_session": {
       "record": "20261120-005100-model-session.json",
       "model": "deepseek-flash",
@@ -73,7 +73,7 @@
       "command_registered": true,
       "invalid_config_rejected": true
     },
-    "record": "20261120-102133-dsh-smoke.json",
+    "record": "20261120-112353-dsh-smoke.json",
     "stale_records": [],
     "blocked": {
       "model_driven": "not_verified: profile không có API key; probe gọi registry, không qua model",
@@ -111,22 +111,22 @@
   },
   "policy": {
     "ok": true,
-    "summary": "OK: 117 file đã kiểm tra · không có absolute path, nested artifacts hay secret"
+    "summary": "OK: 109 file đã kiểm tra · không có absolute path, nested artifacts hay secret"
   },
   "benchmark": {
     "files": 2000,
     "source_bytes": 942071,
-    "scan_ms": 689.0,
+    "scan_ms": 683.6,
     "scan_files": 2001,
     "budget_notes": [],
-    "index_full_ms": 1490.5,
-    "index_incremental_ms": 413.7,
+    "index_full_ms": 1584.6,
+    "index_incremental_ms": 431.5,
     "files_parsed_full": 2001,
     "files_parsed_incremental": 0,
     "entities": 20003,
     "facts": 20001,
     "db_bytes": 15601664,
-    "rss_mb": 68.7,
+    "rss_mb": 68.8,
     "limits": {
       "max_files_scanned": 20000,
       "max_total_source_bytes": 33554432,
@@ -259,20 +259,20 @@
     ]
   },
   "logs": {
-    "python_log": "20261120-1021-python-tests.log",
-    "adapter_log": "20261120-1021-node-adapter.log",
-    "knowledge_log": "20261120-1021-node-knowledge.log",
-    "lifecycle_log": "20261120-1021-node-lifecycle.log",
-    "client_log": "20261120-1021-node-client.log",
-    "pack_log": "20261120-1021-node-pack.log",
-    "settings_log": "20261120-1021-node-settings.log",
-    "arguments_log": "20261120-1021-node-arguments.log",
-    "description_log": "20261120-1021-node-description.log",
-    "command_log": "20261120-1021-node-command.log",
-    "policy_log": "20261120-1021-policy.log",
-    "bundle_log": "20261120-1021-pack-build.log",
-    "bench_log": "20261120-1021-bench.json",
-    "consistency_log": "20261120-1021-consistency.log"
+    "python_log": "20261120-1123-python-tests.log",
+    "adapter_log": "20261120-1123-node-adapter.log",
+    "knowledge_log": "20261120-1123-node-knowledge.log",
+    "lifecycle_log": "20261120-1123-node-lifecycle.log",
+    "client_log": "20261120-1123-node-client.log",
+    "pack_log": "20261120-1123-node-pack.log",
+    "settings_log": "20261120-1123-node-settings.log",
+    "arguments_log": "20261120-1123-node-arguments.log",
+    "description_log": "20261120-1123-node-description.log",
+    "command_log": "20261120-1123-node-command.log",
+    "policy_log": "20261120-1123-policy.log",
+    "bundle_log": "20261120-1123-pack-build.log",
+    "bench_log": "20261120-1123-bench.json",
+    "consistency_log": "20261120-1123-consistency.log"
   },
   "classification": {
     "confirmed": [
@@ -304,15 +304,5 @@
     "ok": true,
     "note": "chạy lại toàn bộ unittest sau khi manifest được ghi",
     "ran": 145
-  },
-  "provenance": {
-    "source_commit": "6079d6e8765ec33a460e9d6a6908d877bed08fcf",
-    "evidence_commit": "25dc9328b864062889dcd0d458a06528d21bdf83",
-    "head_at_record": "25dc9328b864062889dcd0d458a06528d21bdf83",
-    "source_tree_equals_evidence_tree_except": "artifacts/review",
-    "non_evidence_diff": [],
-    "clean_source_tree": true,
-    "recorded_at": "2026-11-20T10:22:08+07:00",
-    "note": "source_commit là commit của code được mô tả; evidence_commit là commit chứa manifest này. Hai cây chỉ khác nhau ở artifacts/review/, đã kiểm bằng git diff."
   }
 }
