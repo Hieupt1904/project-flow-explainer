@@ -67,7 +67,20 @@ Mỗi lệnh in đúng một object JSON. Lỗi có mã ổn định, không rơ
 
 ## Tích hợp DeepSeek Harness
 
-Plugin đăng ký 7 tool và gọi lại core qua subprocess (không shell, không network):
+### Dùng nhanh: `/project-flow-explainer`
+
+Người dùng gõ thẳng trong Web UI, không cần nhờ model chọn tool:
+
+```text
+/project-flow-explainer từ lúc bấm xuất báo cáo đến khi nhận được file
+/project-flow-explainer xuất Excel --repo /duong/dan/khac
+```
+
+Lệnh chạy cùng core, cùng `allowedRoots`, cùng chỗ ghi artifact; kết quả hiện trong UI và
+**không vào lịch sử model** nên không tốn token. Cài đặt và chi tiết:
+[dsh-plugin/README.md](dsh-plugin/README.md#lệnh-người-dùng-project-flow-explainer).
+
+Plugin cũng đăng ký 7 tool và gọi lại core qua subprocess (không shell, không network):
 
 | Tool | Việc nó làm |
 |---|---|
@@ -83,7 +96,7 @@ Cài vào profile riêng (không dùng profile `web`):
 
 ```bash
 node dsh-plugin/scripts/pack.mjs
-dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.4.1.tgz"
+dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.6.3.tgz"
 ```
 
 Bundle đã tự insert row `project-flow-explainer`. Cấu hình bằng **override row**
@@ -189,7 +202,7 @@ artifacts/               bằng chứng: samples, review, ui-verification
 | Call graph đầy đủ (type-aware) | **CHƯA CÓ**; `calls` trong index chỉ là call site đọc theo lexical |
 | Vector ngữ nghĩa thật | **CHƯA CÓ**; backend mặc định là hashing lexical, chỉ tạo candidate |
 | Panel UI trong Harness | BLOCKED_UI_API_UNVERIFIED |
-| Smoke registry 0.4.1 trong `pfe-test` | **ĐÃ CHẠY** 2026-11-20: 6 lần boot thật, 7/7 tool gọi được, policy/abort/timeout đúng (`artifacts/review/*-dsh-smoke.json`) |
+| Smoke registry trong `pfe-test` | **ĐÃ CHẠY** trên 0.6.3: 17/17 check, 7/7 tool, `command_registered=true`, policy/abort/timeout đúng (`artifacts/review/*-dsh-smoke.json`) |
 | Model tự chọn tool | **CHƯA CHẠY**: profile không có API key; probe gọi registry, không qua model |
 | Ngôn ngữ ngoài danh sách pattern | Go, Rust, C#, Kotlin chỉ có symbol/route cơ bản |
 
