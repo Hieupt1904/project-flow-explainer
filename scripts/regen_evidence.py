@@ -258,9 +258,40 @@ def main(argv=None):
     dsh = run(["dsh", "--version"], "dsh version")
     dsh_version = dsh["stdout"].strip().splitlines()[-1] if dsh["stdout"].strip() else ""
 
+    # A smoke record only describes the build it ran against. This script writes
+    # a *summary* file into the same glob, so "the newest *-dsh-smoke.json" is
+    # usually this summary from an earlier run and proves nothing. Accept a
+    # record only when it carries the version and tarball hash of the package
+    # being released; anything else is BLOCKED, not inherited.
+    current_version = manifest_pkg["version"]
+    current_sha = evidence["tarball"]["sha256"]
     smoke_candidates = sorted(REVIEW.glob("*-dsh-smoke.json"))
-    smoke_record = (json.loads(smoke_candidates[-1].read_text(encoding="utf-8"))
-                    if smoke_candidates else {})
+    smoke_record = {}
+    smoke_record_name = ""
+    stale_records = []
+    for candidate in reversed(smoke_candidates):
+        try:
+            parsed = json.loads(candidate.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        # A summary written by this script has no tarball hash: skip it.
+        if not parsed.get("tarball_sha256"):
+            stale_records.append({"record": candidate.name,
+                                  "reason": "summary của regen_evidence, không phải lần chạy thật"})
+            continue
+        if parsed.get("package_version") != current_version:
+            stale_records.append({"record": candidate.name,
+                                  "reason": "chạy cho "
+                                  + str(parsed.get("package_version")) + ", không phải "
+                                  + current_version})
+            continue
+        if parsed.get("tarball_sha256") != current_sha:
+            stale_records.append({"record": candidate.name,
+                                  "reason": "tarball khác hash hiện tại"})
+            continue
+        smoke_record = parsed
+        smoke_record_name = candidate.name
+        break
     smoke_path = REVIEW / (stamp + "-dsh-smoke.json")
     model_records = sorted(REVIEW.glob("*-model-session.json"))
     model_session = (json.loads(model_records[-1].read_text(encoding="utf-8"))
@@ -270,7 +301,11 @@ def main(argv=None):
         "status": "verified" if verified else "blocked",
         "profile": "pfe-test",
         "registry_runtime": "verified" if verified else "not_verified",
-        "model_driven": ("verified" if model_session else "not_verified"),
+        # A model session proves selection only for the build it ran on. The
+        # record does not carry a version, so it can be claimed only when the
+        # matching smoke run for THIS build is verified as well; otherwise the
+        # honest answer is not_verified.
+        "model_driven": ("verified" if (verified and model_session) else "not_verified"),
         "model_session": {
             "record": model_records[-1].name if model_records else "",
             "model": model_session.get("model", ""),
@@ -280,10 +315,15 @@ def main(argv=None):
             "wall_seconds": model_session.get("wall_seconds"),
             "screenshot": model_session.get("screenshot", ""),
         },
-        "reason": ("model tự chọn tool trong một session thật; probe registry là bằng chứng bổ sung."),
+        "reason": (("model tự chọn tool trong một session thật; probe registry là bằng chứng bổ sung.")
+                   if verified else
+                   ("BLOCKED_DSH_SMOKE: không có bản ghi smoke nào chạy trên "
+                    + current_version + " với tarball sha " + current_sha[:8]
+                    + "; cần chạy scripts/run_dsh_smoke.py cho bản này.")),
         "tool_count": smoke_record.get("tool_count", 0),
         "checks": smoke_record.get("checks", {}),
-        "record": smoke_candidates[-1].name if smoke_candidates else "",
+        "record": smoke_record_name,
+        "stale_records": stale_records[:6],
         "blocked": smoke_record.get("blocked", {}),
         "settings_ui": {
             "client_entry": "client.js",
