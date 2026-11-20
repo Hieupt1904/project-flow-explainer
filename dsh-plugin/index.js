@@ -271,11 +271,23 @@ export function apply(ctx, config = {}) {
   // PFE_CORE_ROOT may come from the project `.env` or `$DSH_HOME/.env`, not only
   // from the raw process environment.
   const env = launchEnv(ctx)
-  const core = resolveCoreRoot({
-    coreRoot: settings.coreRoot,
-    packageRoot: PACKAGE_ROOT,
-    env,
-  })
+  // Resolved lazily and re-resolved when coreRoot changes: reading it once at
+  // mount meant a corrected Settings value was ignored until the host restarted,
+  // which reads as "the setting does nothing".
+  let coreCache = null
+  let coreKey = null
+  const coreOf = () => {
+    const key = String(settings.coreRoot ?? '') + '|' + String(env.PFE_CORE_ROOT ?? '')
+    if (coreCache !== null && coreKey === key) return coreCache
+    coreCache = resolveCoreRoot({
+      coreRoot: settings.coreRoot,
+      packageRoot: PACKAGE_ROOT,
+      env,
+    })
+    coreKey = key
+    return coreCache
+  }
+  const core = coreOf()
   const inFlight = new Set()
 
   ctx.effect(() => () => {
@@ -441,8 +453,8 @@ export function apply(ctx, config = {}) {
       try {
         run = await runCore({
           pythonPath: settings.pythonPath,
-          coreRoot: core.root,
-          script: core.script,
+          coreRoot: coreOf().root,
+          script: coreOf().script,
           repository: repository.root,
           request,
           outputDirectory,
@@ -529,7 +541,7 @@ export function apply(ctx, config = {}) {
   })
 
   // Knowledge layer: same path policy, same core subprocess, separate tools.
-  for (const definition of knowledgeTools({ settings, core, inFlight })) {
+  for (const definition of knowledgeTools({ settings, core: coreOf, inFlight })) {
     ctx.tools.register(definition)
   }
 
@@ -538,7 +550,7 @@ export function apply(ctx, config = {}) {
   // mount there (the tools are what that composition needs).
   try {
     ctx.inject(['commands'], (scoped) => {
-      scoped.commands.register(flowCommand({ ctx: scoped, settings, core }))
+      scoped.commands.register(flowCommand({ ctx: scoped, settings, core: coreOf }))
     })
   } catch {
     // no command service in this composition: tools remain the entry point

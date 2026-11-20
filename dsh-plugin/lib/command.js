@@ -24,13 +24,27 @@ const USAGE = 'Cách dùng: /project-flow-explainer <mô tả luồng>'
   + '\nThiếu gì: cần repository hiện tại nằm trong allowedRoots của plugin.'
 
 /** Split `<request>` from optional `--repo <path>` so a person can target another repo. */
-function parseInput(rawInput) {
+/**
+ * Split `<request> [--repo <path>]`, accepting the three shapes a person types.
+ *
+ * A path with a space is the normal case on macOS and common on Linux, so the
+ * value must be readable as `--repo "a b"`, `--repo='a b'` or a bare `--repo a`
+ * (single token). The first version used `\S+` and silently swallowed only the
+ * first word, which then failed as "not an absolute path" — a confusing error
+ * about a path the user never typed.
+ * @param {string} rawInput - exact text after the command name.
+ * @returns {{request: string, repository: string|undefined}}
+ */
+export function parseInput(rawInput) {
   let text = String(rawInput ?? '').trim()
   let repo
-  const match = text.match(/(?:^|\s)--repo(?:=|\s+)(\S+)/)
+  const match = text.match(/(?:^|\s)--repo(?:=("([^"]*)"|'([^']*)'|(\S+))|\s+("([^"]*)"|'([^']*)'|(\S+)))/)
   if (match !== null) {
-    repo = match[1]
-    text = (text.slice(0, match.index) + text.slice(match.index + match[0].length)).trim()
+    const quoted = match[2] ?? match[3] ?? match[6] ?? match[7]
+    repo = quoted !== undefined ? quoted : (match[4] ?? match[8])
+    text = (text.slice(0, match.index) + text.slice(match.index + match[0].length))
+      .replace(/\s{2,}/g, ' ')
+      .trim()
   }
   return { request: text, repository: repo }
 }
@@ -112,8 +126,8 @@ export function flowCommand({ ctx, settings, core }) {
       try {
         run = await runCore({
           pythonPath: settings.pythonPath,
-          coreRoot: core.root,
-          script: core.script,
+          coreRoot: (typeof core === 'function' ? core() : core).root,
+          script: (typeof core === 'function' ? core() : core).script,
           repository: root,
           request,
           outputDirectory,

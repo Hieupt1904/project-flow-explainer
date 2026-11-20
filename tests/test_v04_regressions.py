@@ -441,6 +441,47 @@ class EntryPointEvidenceTests(unittest.TestCase):
         self.assertEqual(rows.get("app/cli.py"), "structural")
         self.assertEqual(rows.get("app/__main__.py"), "observed")
 
+    def test_deleting_a_file_leaves_no_orphan_vector_rows(self):
+        """T0/0.6.5: remove a file, then incremental without vectors.
+
+        Path-based purge cannot see the rows: the entities were deleted first.
+        Without an orphan sweep they survive as candidates pointing at nothing.
+        """
+        import sqlite3
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = copy_repo(Path(tmp) / "repo")
+            index.build_index(repo, mode="full", include_vectors=True)
+            (repo / "services" / "report_service.js").unlink()
+            summary = index.build_index(repo, mode="incremental", include_vectors=False)
+            self.assertEqual(summary["embedding"]["state"], "stale")
+            self.assertGreaterEqual(summary["embedding"]["purged_rows"], 1)
+            connection = sqlite3.connect(str(index.db_path(repo)))
+            try:
+                orphan = connection.execute(
+                    "SELECT COUNT(*) FROM vectors v LEFT JOIN entities e ON e.id = v.entity_id"
+                    " WHERE e.id IS NULL").fetchone()[0]
+            finally:
+                connection.close()
+            self.assertEqual(orphan, 0)
+
+    def test_changing_a_symbol_invalidates_the_vectors_for_that_file(self):
+        import sqlite3
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = copy_repo(Path(tmp) / "repo")
+            index.build_index(repo, mode="full", include_vectors=True)
+            target = repo / "services" / "report_service.js"
+            target.write_text(target.read_text(encoding="utf-8")
+                              .replace("exportReport", "exportReportV3"), encoding="utf-8")
+            index.build_index(repo, mode="incremental", include_vectors=False)
+            connection = sqlite3.connect(str(index.db_path(repo)))
+            try:
+                rows = connection.execute(
+                    "SELECT COUNT(*) FROM vectors v JOIN entities e ON e.id = v.entity_id"
+                    " WHERE e.path = ?", ("services/report_service.js",)).fetchone()[0]
+            finally:
+                connection.close()
+            self.assertEqual(rows, 0, "a symbol rename must invalidate its file's vectors")
+
 
 class FlowIdFilterTests(unittest.TestCase):
     """T1: `filters.flow_id` was advertised in the tool schema and silently ignored.
@@ -555,6 +596,53 @@ class ArtifactPathPrivacyTests(unittest.TestCase):
             for item in payload["stale_artifacts"]:
                 self.assertFalse(Path(item["artifact_dir"]).is_absolute(),
                                  "stale_artifacts.artifact_dir must be repository-relative")
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+class ContextItemContractTests(unittest.TestCase):
+    """0.6.5: every item the pack returns is explainable on its own."""
+
+    REQUIRED = {"why_included", "evidence_kind", "confidence"}
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.repo = copy_repo(Path(self._tmp.name) / "repo")
+        index.build_index(self.repo, mode="full")
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def test_every_kind_of_item_carries_the_contract_fields(self):
+        from pfe import retrieval
+        pack = retrieval.context_pack(self.repo, "export report")
+        for key in ("entry_points", "likely_files", "dependencies", "related_tests",
+                    "impacted_symbols"):
+            for item in pack.get(key) or []:
+                missing = self.REQUIRED - set(item)
+                self.assertEqual(missing, set(), f"{key} item missing {missing}")
+
+    def test_a_bare_main_is_flagged_as_possible_not_certain(self):
+        from pfe import retrieval
+        pack = retrieval.context_pack(self.repo, "export report")
+        for item in pack["entry_points"]:
+            if item["evidence_kind"] != "observed":
+                self.assertTrue(item["possible_entry_point"],
+                                "a structural registration cannot be a certain entry point")
+                self.assertEqual(item["confidence"], "structural")
+
+    def test_vector_metadata_says_lexical_and_not_semantic(self):
+        from pfe import retrieval
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = copy_repo(Path(tmp) / "repo")
+            index.build_index(repo, mode="full", include_vectors=True)
+            payload = retrieval.retrieve(repo, "export report")
+            vector = payload.get("vector") or {}
+            self.assertEqual(vector.get("backend"), "hashing_lexical")
+            self.assertFalse(vector.get("semantic"))
+            self.assertEqual(vector.get("label"), "lexical_candidate")
+
 
 
 if __name__ == "__main__":

@@ -61,7 +61,8 @@ function parsePayload(run) {
 async function invoke(ctx) {
   const { settings, core, argv, exec, toolName, timeoutMs, inFlight } = ctx
   if (exec?.signal?.aborted) throw abortError(exec.signal.reason)
-  if (!core.cli) {
+  const resolvedCore = typeof core === 'function' ? core() : core
+  if (!resolvedCore.cli) {
     throw new InputError('core_cli_not_found',
       `${toolName}: bản core này không có tools/pfe_cli.py.`,
       'Cài bundle đã pack (có vendor/core) hoặc đặt config.coreRoot trỏ tới checkout của repo.')
@@ -76,8 +77,8 @@ async function invoke(ctx) {
   try {
     run = await runCli({
       pythonPath: settings.pythonPath,
-      coreRoot: core.root,
-      script: core.cli,
+      coreRoot: resolvedCore.root,
+      script: resolvedCore.cli,
       args: argv,
       signal: controller.signal,
       timeoutMs: timeoutMs ?? settings.timeoutMs,

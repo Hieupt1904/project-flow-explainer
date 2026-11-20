@@ -38,8 +38,19 @@ class EmbeddingBackend:
         raise NotImplementedError
 
     def describe(self):
-        return {"name": self.name, "version": self.version, "dim": self.dim,
+        """Machine-readable identity: what this backend IS, not what it resembles.
+
+        `backend` and `semantic` are the two fields a caller must read before
+        treating a hit as meaning anything: a hashing backend is a lexical
+        candidate generator and `semantic=false` says so in the payload, so no
+        downstream consumer has to infer it from the name.
+        """
+        return {"backend": self.backend_kind(), "name": self.name,
+                "version": self.version, "dim": self.dim,
                 "local": self.local, "semantic": self.semantic}
+
+    def backend_kind(self):
+        return "abstract"
 
 
 class HashingEmbedding(EmbeddingBackend):
@@ -53,6 +64,9 @@ class HashingEmbedding(EmbeddingBackend):
     """
 
     name = "hashing-lexical"
+
+    def backend_kind(self):
+        return "hashing_lexical"
     version = "2"
     description = "lexical hash fallback; semantic=False"
     local = True
@@ -139,6 +153,19 @@ def purge_entities(connection, entity_ids):
     return removed
 
 
+def purge_orphans(connection):
+    """Delete vector rows whose entity no longer exists.
+
+    Necessary because deletion order matters: entities for a removed file are
+    gone before `purge_for_paths` can look them up, so a path-based purge finds
+    nothing and the rows survive as candidates pointing at nothing. An orphan
+    row is worse than a stale one — the similarity search cannot even name what
+    it matched.
+    """
+    return connection.execute(
+        "DELETE FROM vectors WHERE entity_id NOT IN (SELECT id FROM entities)").rowcount
+
+
 def purge_for_paths(connection, paths):
     """Delete vector rows whose entity belonged to one of these files."""
     removed = 0
@@ -166,23 +193,26 @@ def describe_state(connection, backend=None):
     rows = connection.execute("SELECT COUNT(*) AS c FROM vectors").fetchone()["c"]
     reason = stale_reason(connection)
     describe = backend.describe()
+    kind = describe.get("backend", "abstract")
     if not stored_model and rows == 0:
         return {"state": "disabled", "rows": 0, "semantic": describe["semantic"],
-                "model": "", "version": "", "reason": "include_vectors=false"}
+                "backend": kind, "model": "", "version": "",
+                "reason": "include_vectors=false"}
     if reason:
         return {"state": "stale", "rows": rows, "semantic": describe["semantic"],
-                "model": stored_model or "", "version": stored_version or "",
-                "reason": reason}
+                "backend": kind, "model": stored_model or "",
+                "version": stored_version or "", "reason": reason}
     if stored_model != backend.name or stored_version != backend.version:
         return {"state": "stale", "rows": rows, "semantic": describe["semantic"],
-                "model": stored_model or "", "version": stored_version or "",
-                "reason": "embedding_model_mismatch"}
+                "backend": kind, "model": stored_model or "",
+                "version": stored_version or "", "reason": "embedding_model_mismatch"}
     if rows == 0:
         return {"state": "absent", "rows": 0, "semantic": describe["semantic"],
-                "model": stored_model, "version": stored_version,
+                "backend": kind, "model": stored_model, "version": stored_version,
                 "reason": "vector_rows_missing"}
     return {"state": "enabled", "rows": rows, "semantic": describe["semantic"],
-            "model": stored_model, "version": stored_version, "reason": ""}
+            "backend": kind, "model": stored_model, "version": stored_version,
+            "reason": ""}
 
 
 def ensure_index(connection, files, backend=None):
@@ -204,9 +234,12 @@ def ensure_index(connection, files, backend=None):
     chunks = [dict(row) for row in rows if row["kind"] in CHUNK_KINDS]
     if not chunks:
         clear_stale(connection)
-        return {"enabled": True, "model": backend.name, "version": backend.version,
+        return {"enabled": True, "backend": backend.backend_kind(),
+                "model": backend.name, "version": backend.version,
                 "chunks": 0, "rebuilt": stale, "state": "enabled",
-                "semantic": backend.semantic}
+                "semantic": backend.semantic, "local": backend.local,
+                "label": ("lexical_candidate" if not backend.semantic
+                          else "semantic_candidate")}
     texts = [_chunk_text(chunk) for chunk in chunks]
     vectors = backend.embed(texts)
     for chunk, vector in zip(chunks, vectors):
@@ -216,9 +249,12 @@ def ensure_index(connection, files, backend=None):
             (chunk["id"], backend.name, backend.version, backend.dim,
              json.dumps([round(value, 5) for value in vector])))
     clear_stale(connection)
-    return {"enabled": True, "model": backend.name, "version": backend.version,
+    return {"enabled": True, "backend": backend.backend_kind(),
+            "model": backend.name, "version": backend.version,
             "dim": backend.dim, "semantic": backend.semantic,
-            "chunks": len(chunks), "rebuilt": stale, "state": "enabled"}
+            "local": backend.local, "chunks": len(chunks), "rebuilt": stale,
+            "state": "enabled",
+            "label": ("lexical_candidate" if not backend.semantic else "semantic_candidate")}
 
 
 def search(connection, query, backend=None, top_k=20):
@@ -240,6 +276,9 @@ def search(connection, query, backend=None, top_k=20):
         return {"enabled": False, "reason": "vector_stale", "detail": reason,
                 "hint": "Chạy lại index với include_vectors=true để dựng lại vector.",
                 "results": []}
+    meta = {"backend": backend.backend_kind(), "model": backend.name,
+            "version": backend.version, "semantic": backend.semantic,
+            "local": backend.local}
     query_vector = backend.embed([query])[0]
     scored = []
     for row in connection.execute(
@@ -274,8 +313,9 @@ def search(connection, query, backend=None, top_k=20):
                       + "); cần graph/exact xác nhận",
             "verified": False,
         })
-    return {"enabled": True, "model": backend.name, "version": backend.version,
-            "results": results, "channel": "vector"}
+    return {"enabled": True, "results": results, "channel": "vector",
+            "label": ("lexical_candidate" if not backend.semantic else "semantic_candidate"),
+            **meta}
 
 
 def _meta(connection, key, default=None):

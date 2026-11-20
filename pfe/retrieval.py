@@ -294,6 +294,7 @@ def retrieve(root, query, top_k=10, filters=None, backend=None, use_vectors=True
                                              top_k=max(top_k * 2, 10))
             if vector_hits.get("enabled"):
                 diagnostics["channels"].append("vector")
+                diagnostics["vector"] = vector_hits
                 for hit in vector_hits["results"]:
                     row = connection.execute(
                         "SELECT * FROM entities WHERE id = ?", (hit["entity"],)).fetchone()
@@ -452,6 +453,7 @@ def retrieve(root, query, top_k=10, filters=None, backend=None, use_vectors=True
                           + "; chạy project_knowledge_refresh.") if stale else "",
         "results": results,
         "channels": sorted(set(diagnostics["channels"])),
+        "vector": diagnostics.get("vector", {}),
         "warnings": diagnostics["warnings"],
         "flows": [{"flow_id": row["flow_id"], "title": row["title"]} for row in flows[:5]],
         "filters": filters,
@@ -564,6 +566,12 @@ def _entry_points(connection, results, paths, task_terms=None, term_text=""):
             "start_line": row["start_line"],
             "confidence": row["confidence"] or "observed",
             "evidence_kind": row["evidence_kind"] or "observed",
+            "why_included": ("dòng đăng ký khớp task: " + (row["label"] or row["kind"])),
+            # A registration line that exists but proves nothing about control
+            # flow (`def main()` with no guard) is a *possible* entry point. The
+            # flag keeps it visible while stopping a reader from treating it as
+            # the place the program starts.
+            "possible_entry_point": (row["evidence_kind"] or "observed") != "observed",
             "evidence_refs": [{"path": row["path"], "start_line": row["start_line"],
                                "relation": ["handles_route"] if row["kind"] == "http_route"
                                else ["registered_entry"],
@@ -572,6 +580,11 @@ def _entry_points(connection, results, paths, task_terms=None, term_text=""):
         item["relevance_score"] = score
         item["relevance_confidence"] = "observed" if score >= 2 else (
             "structural" if score == 1 else "inferred")
+        if item["possible_entry_point"]:
+            # Two independent axis: is the location real (evidence_kind) and is it
+            # about this task (relevance). A structural location can never be a
+            # stronger claim than "possible".
+            item["confidence"] = "structural"
         # Over-inclusion is a *route* problem: one file declares many routes and
         # only some of them are what the task is about, so a route needs to name
         # the task (score >= 2) to be the entry point. Other registration kinds
@@ -767,6 +780,8 @@ def _dependency(connection, entity_id, source, error_intent):
         "location_confidence": "observed" if entity["path"] and entity["start_line"] else "unknown",
         "relevance_confidence": relevance,
         "why_included": why,
+        "evidence_kind": ("line_level" if has_location and entity["start_line"]
+                          else "file_level"),
         "has_location": has_location,
         "evidence_refs": [{
             "path": entity["path"] or "",
@@ -845,6 +860,9 @@ def context_pack(root, task, max_files=12, include_snippets=False, backend=None)
                                             else "unknown"),
                     "relevance_confidence": result["confidence"],
                     "why_matched": result["why_matched"],
+                    "why_included": result["why_matched"] or "khớp truy hồi",
+                    "evidence_kind": ("observed" if result["confidence"] == "observed"
+                                      else "structural"),
                     "relevance_why": result["relevance_why"],
                     "relation": result["relation"],
                     "evidence_refs": add_evidence(result["evidence_refs"]),
@@ -920,7 +938,11 @@ def context_pack(root, task, max_files=12, include_snippets=False, backend=None)
         "impacted_symbols": [{"symbol": item["symbol"], "path": item["path"],
                               "start_line": item["start_line"],
                               "kind": item["kind"],
-                              "confidence": item["relevance_confidence"]}
+                              "confidence": item["relevance_confidence"],
+                              "evidence_kind": item.get("evidence_kind", "observed"),
+                              "why_included": item.get("why_included")
+                                              or item.get("why_matched")
+                                              or "symbol trong file khớp task"}
                              for item in impacted[:max_files]],
         "related_tests": [{"path": item["path"],
                            "test": item.get("test") or item.get("symbol"),

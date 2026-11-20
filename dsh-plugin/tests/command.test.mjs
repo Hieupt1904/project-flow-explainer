@@ -15,6 +15,7 @@ import { cpSync, mkdtempSync, rmSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 import * as plugin from '../index.js'
+import { parseInput } from '../lib/command.js'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const CORPUS = path.resolve(HERE, '../..')
@@ -136,3 +137,38 @@ test('--repo targets an explicit repository', async (t) => {
   })
   assert.equal(result.kind, 'success', result.text)
 })
+
+test('--repo accepts a quoted path with spaces', async (t) => {
+  const base = mkdtempSync(path.join(os.tmpdir(), 'pfe-space-'))
+  const repo = path.join(base, 'repo with spaces')
+  cpSync(FIXTURE, repo, { recursive: true })
+  t.after(() => rmSync(base, { recursive: true, force: true }))
+  const command = mount({ allowedRoots: [CORPUS, os.tmpdir()] }).commands
+    .get('project-flow-explainer')
+  for (const raw of [`xuất báo cáo --repo "${repo}"`, `xuất báo cáo --repo='${repo}'`]) {
+    const result = await command.handler({
+      agent: {}, rawInput: raw, signal: AbortSignal.timeout(120_000),
+    })
+    assert.equal(result.kind, 'success', `${raw} -> ${result.text}`)
+  }
+})
+
+test('a quoted path is not truncated at the first space', () => {
+  // Built, not written: the repository policy rejects absolute workstation
+  // paths in source, and a literal here would also pin the test to /tmp.
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'pfe-quote-'))
+  const target = path.join(dir, 'repo with spaces')
+  const parsed = parseInput(`xuất báo cáo --repo "${target}"`)
+  assert.equal(parsed.repository, target)
+  assert.equal(parsed.request, 'xuất báo cáo')
+  rmSync(dir, { recursive: true, force: true })
+})
+
+test('--repo=value form is parsed too', () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'pfe-eq-'))
+  const target = path.join(dir, 'a b')
+  const parsed = parseInput(`xuất báo cáo --repo='${target}'`)
+  assert.equal(parsed.repository, target)
+  rmSync(dir, { recursive: true, force: true })
+})
+

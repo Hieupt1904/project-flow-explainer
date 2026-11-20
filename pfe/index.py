@@ -451,6 +451,9 @@ def build_index(root, mode="incremental", include_vectors=False, vector_backend=
             # retrieval refuses them instead of silently mixing two generations.
             # A first build that never had vectors has nothing to invalidate.
             purged = vectors_mod.purge_for_paths(connection, touched)
+            # A removed file's entities are already gone, so the path lookup above
+            # cannot see them; sweep the rows they left behind.
+            purged += vectors_mod.purge_orphans(connection)
             vectors_mod.mark_stale(
                 connection,
                 "Source thay đổi (" + str(len(touched)) + " file: "

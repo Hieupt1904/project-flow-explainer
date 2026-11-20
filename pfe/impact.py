@@ -134,7 +134,7 @@ def impact_analysis(root, changed_files=(), diff=None, max_items=25):
                     symbols.append({"symbol": row["name"], "path": rel,
                                     "start_line": row["start_line"]})
             importers = connection.execute(
-                "SELECT subject, evidence, confidence FROM facts"
+                "SELECT subject, predicate, evidence, confidence FROM facts"
                 " WHERE predicate = 'imports' AND object = ?",
                 ("module:" + _module_of(rel),)).fetchall()
             for row in importers:
@@ -149,6 +149,8 @@ def impact_analysis(root, changed_files=(), diff=None, max_items=25):
                     "path": down_path or row["subject"].split(":", 1)[-1],
                     "symbol": down_symbol,
                     "relation": "imports",
+                    "target": _module_of(rel) or rel,
+                    "target_kind": "module",
                     "start_line": down_line,
                     "confidence": row["confidence"] or "structural",
                     "evidence_refs": [_fact_ref(row, rel)],
@@ -157,7 +159,7 @@ def impact_analysis(root, changed_files=(), diff=None, max_items=25):
             if len(importers) >= 2:
                 high = True
             callers = connection.execute(
-                "SELECT DISTINCT subject, confidence, evidence FROM facts"
+                "SELECT DISTINCT subject, predicate, confidence, evidence, object FROM facts"
                 " WHERE predicate = 'calls' AND object LIKE ?",
                 ("symbol:" + rel + "#%",)).fetchall()
             for row in callers:
@@ -169,6 +171,8 @@ def impact_analysis(root, changed_files=(), diff=None, max_items=25):
                     "path": down_path or row["subject"].split(":", 1)[-1],
                     "symbol": down_symbol,
                     "relation": "calls",
+                    "target": (row["object"] or "").split("#")[-1] if "object" in row.keys() else "",
+                    "target_kind": "symbol",
                     "start_line": down_line,
                     "confidence": row["confidence"] or "structural",
                     "evidence_refs": [_fact_ref(row, rel)],

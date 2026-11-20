@@ -57,8 +57,8 @@ dsh plugin --profile pfe-test add /duong/dan/project-flow-explainer/dsh-plugin
 ### Từ tarball (độc lập, không cần checkout)
 
 ```bash
-node dsh-plugin/scripts/pack.mjs                                  # -> dist/dsh-project-flow-explainer-0.7.0.tgz
-dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.7.0.tgz"
+node dsh-plugin/scripts/pack.mjs                                  # -> dist/dsh-project-flow-explainer-0.7.1.tgz
+dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.7.1.tgz"
 ```
 
 Tarball chứa `vendor/core/{scripts,assets,tools,pfe}` do script pack sinh ra từ checkout.
