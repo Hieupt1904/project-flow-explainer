@@ -7,8 +7,8 @@ Mọi con số đều có log/artifact tương ứng, sinh từ cùng một comm
 |---|---|
 | Repo | `https://github.com/Hieupt1904/project-flow-explainer` |
 | Commit nguồn | `bd02147` (code 0.3.0); commit kế tiếp chỉ chứa bằng chứng |
-| Package version | `0.7.1` (`engines.dsh: 0.2.2-rc.2`) |
-| Tarball | `dsh-project-flow-explainer-0.7.1.tgz` · 113 836 byte · sha256 `b4a13008…c9be10` |
+| Package version | `0.7.2` (`engines.dsh: 0.2.2-rc.2`) |
+| Tarball | `dsh-project-flow-explainer-0.7.2.tgz` · 114 175 byte · sha256 `522d87ba…b5f72c` |
 | Tarball trước | `dsh-project-flow-explainer-0.3.0.tgz` (lịch sử) |
 | Test | 174 Python · 16 adapter · 9 knowledge · 8 lifecycle · 10 client · 12 command · 5 settings · 9 arguments · 18 description · 2 pack — 0 fail |
 | Policy | `check_repo_policy.py` OK: không absolute path, nested artifact, secret-shape |

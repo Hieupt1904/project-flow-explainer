@@ -96,7 +96,7 @@ Cài vào profile riêng (không dùng profile `web`):
 
 ```bash
 node dsh-plugin/scripts/pack.mjs
-dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.7.1.tgz"
+dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.7.2.tgz"
 ```
 
 Bundle đã tự insert row `project-flow-explainer`. Cấu hình bằng **override row**
@@ -216,7 +216,7 @@ artifacts/               bằng chứng: samples, review, ui-verification
 | Call graph đầy đủ (type-aware) | **CHƯA CÓ**; `calls` trong index chỉ là call site đọc theo lexical |
 | Vector ngữ nghĩa thật | **CHƯA CÓ**; backend mặc định là hashing lexical, chỉ tạo candidate |
 | Panel UI trong Harness | BLOCKED_UI_API_UNVERIFIED |
-| Smoke registry trong `pfe-test` | **ĐÃ CHẠY** trên 0.7.1: 0/0 check (gồm `profile_identity`), 0 tool (`artifacts/review/`) |
+| Smoke registry trong `pfe-test` | **ĐÃ CHẠY** trên 0.7.2: 0/0 check (gồm `profile_identity`), 0 tool (`artifacts/review/`) |
 | Model tự chọn tool | **CHƯA CHẠY**: profile không có API key; probe gọi registry, không qua model |
 | Ngôn ngữ ngoài danh sách pattern | Go, Rust, C#, Kotlin chỉ có symbol/route cơ bản |
 
