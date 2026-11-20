@@ -1,0 +1,75 @@
+{
+  "status": "verified",
+  "profile": "pfe-test",
+  "registry_runtime": "verified",
+  "model_driven": "verified",
+  "model_driven_note": "session thật trên 0.7.6 (tarball 7d420deb): model tự chọn 3 tool, thứ tự đúng, 0 lỗi.",
+  "model_session": {
+    "record": "20261120-171127-model-session.json",
+    "status": "verified",
+    "package_version": "0.7.6",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "session_sha256": "6b2300c3ed3b0b740b7bf4de3f83a1c6dba2d5d59090d31edbd2364e1e8db3c6",
+    "prompt_sha256": "67e68f7ef539e009a5fae6c397690f1b8b84e2af880f4293cf6b030a41ab53c5",
+    "tools": [
+      "project_context_pack",
+      "project_impact_analysis",
+      "project_verify_flow"
+    ],
+    "order": {
+      "missing": [],
+      "ordered": true,
+      "observed": [
+        "project_context_pack",
+        "project_impact_analysis",
+        "project_verify_flow"
+      ]
+    },
+    "policy": {
+      "tool_errors": [],
+      "expected_tools_ran": true,
+      "order_respected": true,
+      "tools_outside_allowlist": []
+    },
+    "stop_reason": "completed",
+    "requested_profile": "pfe-model",
+    "installed_version": "0.7.6",
+    "wall_seconds": 10.0
+  },
+  "model_records_rejected": [],
+  "reason": "model tự chọn tool trong một session thật; probe registry là bằng chứng bổ sung.",
+  "tool_count": 36,
+  "checks": {
+    "profile_identity": true,
+    "tools_registered": true,
+    "no_missing_tools": true,
+    "flow_ok": true,
+    "context_ok": true,
+    "impact_ok": true,
+    "verify_ok": true,
+    "verify_partial_or_pass": true,
+    "search_ok": true,
+    "outside_roots_rejected": true,
+    "malformed_rejected": true,
+    "abort_identity": true,
+    "empty_roots_rejected": true,
+    "timeout_code": true,
+    "disabled_hides_tools": true,
+    "client_subpath_resolves": true,
+    "command_registered": true,
+    "invalid_config_rejected": true
+  },
+  "record": "20261120-171109-dsh-smoke.json",
+  "stale_records": [],
+  "blocked": {
+    "model_driven": "not_verified: profile không có API key; probe gọi registry, không qua model",
+    "panel_ui": "BLOCKED_UI_API_UNVERIFIED"
+  },
+  "settings_ui": {
+    "client_entry": "client.js",
+    "slot": "plugins.bundle.config",
+    "config_schema": "native schemastery",
+    "verified": "client tests + ValidationError boot check"
+  }
+}

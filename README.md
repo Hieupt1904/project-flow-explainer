@@ -96,7 +96,7 @@ Cài vào profile riêng (không dùng profile `web`):
 
 ```bash
 node dsh-plugin/scripts/pack.mjs
-dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.7.5.tgz"
+dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.7.6.tgz"
 ```
 
 Bundle đã tự insert row `project-flow-explainer`. Cấu hình bằng **override row**
@@ -202,7 +202,7 @@ Luật định danh session:
 ## Kiểm thử
 
 ```bash
-python3 -m unittest discover -s tests -v                # core + knowledge + regression (195 test)
+python3 -m unittest discover -s tests -v                # core + knowledge + regression (201 test)
 node --test dsh-plugin/tests/plugin.test.mjs            # adapter (16 test)
 node --test dsh-plugin/tests/knowledge.test.mjs         # tool tri thức (9 test)
 node --test dsh-plugin/tests/lifecycle.test.mjs         # mount/dispose/remount + native Config (8 test)
@@ -227,7 +227,7 @@ tools/pfe_cli.py         CLI máy đọc cho 6 tool tri thức
 dsh-plugin/              adapter DSH (zero dependency)
 assets/                  template HTML offline
 references/              schema + prompt module + code-knowledge-schema.json
-tests/                   195 unittest + fixture web/desktop
+tests/                   201 unittest + fixture web/desktop
 artifacts/               bằng chứng: samples, review, ui-verification
 ```
 
@@ -238,7 +238,7 @@ artifacts/               bằng chứng: samples, review, ui-verification
 | Call graph đầy đủ (type-aware) | **CHƯA CÓ**; `calls` trong index chỉ là call site đọc theo lexical |
 | Vector ngữ nghĩa thật | **CHƯA CÓ**; backend mặc định là hashing lexical, chỉ tạo candidate |
 | Panel UI trong Harness | BLOCKED_UI_API_UNVERIFIED |
-| Smoke registry trong `pfe-test` | **ĐÃ CHẠY** trên 0.7.5: 0/0 check (gồm `profile_identity`), 0 tool (`artifacts/review/`) |
+| Smoke registry trong `pfe-test` | **ĐÃ CHẠY** trên 0.7.6: 0/0 check (gồm `profile_identity`), 0 tool (`artifacts/review/`) |
 | Model tự chọn tool | **CHƯA CHẠY**: profile không có API key; probe gọi registry, không qua model |
 | Ngôn ngữ ngoài danh sách pattern | Go, Rust, C#, Kotlin chỉ có symbol/route cơ bản |
 

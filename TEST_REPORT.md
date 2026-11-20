@@ -28,10 +28,10 @@ Tarball phát hành:
 
 | Mục | Giá trị |
 |---|---|
-| Tên | `dsh-project-flow-explainer-0.7.5.tgz` |
-| Byte | 116319 |
+| Tên | `dsh-project-flow-explainer-0.7.6.tgz` |
+| Byte | 118886 |
 | Entry | 27 (gồm `client.js` và `vendor/core/{scripts,assets,tools,pfe}`) |
-| SHA-256 | `78b89f7b267f7e789f8173a9ef8e3394ad89a0b5db9f962d399f13ad3a241b4d` |
+| SHA-256 | `7d420debf763b23dae19310fd8baf130f63c720ba7fa5fef8d5ed6141425bb5c` |
 
 ## 2. Lỗi tái hiện được và đã sửa trong 0.4.x
 
@@ -47,7 +47,7 @@ Tarball phát hành:
 
 ### 3.1 CLI và core (T0)
 
-| Test | 195 Python · 16 adapter · 9 knowledge · 8 lifecycle · 10 client · 12 command · 5 settings · 9 arguments · 18 description · 2 pack — 0 fail |
+| Test | 201 Python · 16 adapter · 9 knowledge · 8 lifecycle · 10 client · 13 command · 5 settings · 9 arguments · 18 description · 2 pack — 0 fail |
 |---|---|
 | `test_flow_from_repository_root` | chạy từ repo root, exit 0, đúng một JSON object, không có `ModuleNotFoundError` |
 | `test_flow_from_another_working_directory` | chạy từ `/tmp` bằng đường dẫn tuyệt đối |
@@ -270,8 +270,8 @@ Manifest: `smoke.model_driven = verified`.
 
 | Hạng mục | Trạng thái | Lý do |
 |---|---|---|
-| Smoke registry trên `0.7.5` trong `pfe-test` | **ĐÃ CHẠY** — `artifacts/review/20261120-112353-dsh-smoke.json` | 17/17 check, 36 tool |
-| Model tự chọn tool | **CHƯA XÁC MINH** | record hiện có không mang `package_version`/`tarball_sha256` nên không quy được cho 0.7.5 (mục 4g là bản ghi cũ) |
+| Smoke registry trên `0.7.6` trong `pfe-test` | **ĐÃ CHẠY** — `artifacts/review/20261120-112353-dsh-smoke.json` | 17/17 check, 36 tool |
+| Model tự chọn tool | **CHƯA XÁC MINH** | record hiện có không mang `package_version`/`tarball_sha256` nên không quy được cho 0.7.6 (mục 4g là bản ghi cũ) |
 | Native `Config` | **ĐÃ XÁC MINH** | boot thật trả `ValidationError: $.allowedRoots expected array but got oops` |
 | Tool visibility | **BLOCKED_TOOL_VISIBILITY** | chưa xác minh cơ chế presentation/visibility |
 | Panel UI Harness | `BLOCKED_UI_API_UNVERIFIED` | panel riêng ngoài scope; settings card dùng slot `plugins.bundle.config` (đã có) |

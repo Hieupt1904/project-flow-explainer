@@ -696,6 +696,18 @@ def _entry_relevance(connection, row, terms, term_text):
     return score
 
 
+def _dedup_paths(items, already):
+    """One row per path, skipping paths the pack already shows elsewhere."""
+    out, seen = [], set(already)
+    for item in items:
+        path = item.get("path") or ""
+        if not path or path in seen:
+            continue
+        seen.add(path)
+        out.append(item)
+    return out
+
+
 def _route_entities(connection, results, task_terms=None, term_text=""):
     """Real route entities reachable from a result by handles_route.
 
@@ -900,8 +912,104 @@ def context_pack(root, task, max_files=12, include_snippets=False, backend=None)
                 fresh.append(ref)
             return fresh
 
+        # Exact-file mode: the task names the file, so its direct callers and
+        # importers are evidence-based context, not a guess. Adding them here
+        # makes the result independent of which anchors the graph expansion
+        # happened to pick from the task wording.
+        if parsed.get("files"):
+            known = {item["entity"] for item in ranked}
+            extra = []
+            for file_name in parsed["files"]:
+                for row in connection.execute(
+                        "SELECT * FROM entities WHERE kind = 'file' AND (path = ? OR path LIKE ?)",
+                        (file_name, "%/" + file_name)).fetchall():
+                    # (other_id, predicate, confidence) — explicit tuples, because
+                    # a caller edge is stored as file -> symbol and reversing it in
+                    # place produced the symbol itself as the "other" side.
+                    pairs = []
+                    for hop in index_mod.neighbours(
+                            connection, row["id"],
+                            ["imports", "calls", "handles_route", "tested_by", "reads_from"],
+                            limit=30):
+                        other = (hop["object"] if hop["subject"] == row["id"]
+                                 else hop["subject"])
+                        pairs.append((other, hop["predicate"],
+                                      hop["confidence"] or "structural"))
+                    # Callers point at the *symbol* inside the file, so a file-only
+                    # lookup misses them. Walk the declared symbols and take whoever
+                    # calls them.
+                    for sym in connection.execute(
+                            "SELECT id FROM entities WHERE path = ? AND kind IN "
+                            "('function','symbol','class')", (row["path"],)).fetchall():
+                        for hop in index_mod.neighbours(connection, sym["id"],
+                                                        ["calls", "imports"], limit=30):
+                            other = (hop["object"] if hop["subject"] == sym["id"]
+                                     else hop["subject"])
+                            if other.startswith("symbol:") or other == sym["id"]:
+                                continue
+                            pairs.append((other, hop["predicate"],
+                                          hop["confidence"] or "structural"))
+                    for other, predicate, quality in pairs:
+                        if other in known:
+                            continue
+                        neighbour = index_mod.entity(connection, other)
+                        if neighbour is None or not neighbour["path"]:
+                            continue
+                        known.add(other)
+                        extra.append({
+                            "entity": neighbour["id"], "kind": neighbour["kind"],
+                            "path": neighbour["path"] or "",
+                            "symbol": neighbour["symbol"] or neighbour["name"] or "",
+                            "start_line": neighbour["start_line"] or 1,
+                            "end_line": neighbour["end_line"] or neighbour["start_line"] or 1,
+                            "relation": [predicate],
+                            "relation_confidence": quality,
+                            "location_confidence": "observed",
+                            "relevance_confidence": "structural",
+                            "confidence": "structural",
+                            "why_matched": "quan hệ " + predicate + " với " + file_name,
+                            "relevance_why": ["liên hệ trực tiếp với file task nêu"],
+                            "relevance_score": 0.9,
+                            "evidence_refs": [{"path": neighbour["path"] or "",
+                                               "start_line": neighbour["start_line"] or 1,
+                                               "relation": [predicate],
+                                               "confidence": quality}],
+                            "verified": False,
+                        })
+            ranked = ranked + extra
+            ranked.sort(key=lambda item: (-item["relevance_score"], item["path"]))
+            ranked = ranked[:max_files]
+
+        # A candidate that only matched keywords is not a file to read before
+        # editing. In exact-file mode the task already names the file, so keyword
+        # overlap elsewhere is noise — the decoy fixture exists to catch exactly
+        # that. Explicitly named files and anything with a real relation stay.
+        named_files = set(parsed.get("files") or [])
+        exact_file_mode = bool(named_files)
+
+        def is_direct(item):
+            """Is this candidate about the task, or only about the words in it?
+
+            Three ways to qualify: the task names the file, the task names a
+            symbol in it, or it is reached by a relation from the named file.
+            Keyword overlap alone does not qualify — "has some relation" did, and
+            a decoy route file has relations to its own route, so it slipped in.
+            """
+            if not exact_file_mode:
+                return True
+            if any(name == item["path"] or item["path"].endswith("/" + name)
+                   for name in named_files):
+                return True
+            if item["relevance_confidence"] in {"observed", "structural"}:
+                return True
+            return False
+
+        main_files = [item for item in ranked if item["path"] and is_direct(item)]
+        lexical_only = [item for item in main_files if False] + [
+            item for item in ranked if item["path"] and not is_direct(item)]
+
         likely_files = []
-        for result in ranked:
+        for result in main_files:
             if result["path"] and result["path"] not in seen_paths:
                 seen_paths.add(result["path"])
                 seen_entities.add(result["entity"])
@@ -924,6 +1032,11 @@ def context_pack(root, task, max_files=12, include_snippets=False, backend=None)
                     "evidence_refs": add_evidence(result["evidence_refs"]),
                 })
 
+        likely_files.sort(key=lambda item: (
+            {"observed": 0, "structural": 1, "inferred": 2}.get(item["relevance_confidence"], 3),
+            0 if item["path"] in named_files else 1,
+            -len(item.get("relation") or []),
+            item["path"]))
         task_terms = expand_terms(parsed["folded"], parsed["terms"])
         entry_points, related_entry_points = _entry_points(
             connection, ranked, list(seen_paths), task_terms=task_terms,
@@ -1012,6 +1125,10 @@ def context_pack(root, task, max_files=12, include_snippets=False, backend=None)
                            "evidence_refs": item.get("evidence_refs", [])}
                           for item in tests[:max_files]],
         "likely_files": likely_files,
+        "lexical_only": [{"path": item["path"], "symbol": item["symbol"],
+                          "why_excluded": "chỉ khớp từ khoá, không có quan hệ evidence",
+                          "confidence": item["relevance_confidence"]}
+                         for item in _dedup_paths(lexical_only, seen_paths)[:max_files]],
         "dependencies": dependencies,
         "external_dependencies": external[:max_files],
         "warnings": warnings,

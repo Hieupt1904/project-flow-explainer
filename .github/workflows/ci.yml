@@ -57,7 +57,8 @@ jobs:
             dsh-plugin/tests/settings.test.mjs \
             dsh-plugin/tests/arguments.test.mjs \
             dsh-plugin/tests/description.test.mjs \
-            dsh-plugin/tests/command.test.mjs
+            dsh-plugin/tests/command.test.mjs \
+            dsh-plugin/tests/flow-filter.test.mjs
       - name: pack + independent install
         run: node --test dsh-plugin/tests/pack.test.mjs
 

@@ -1,0 +1,90 @@
+{
+  "generated_at": "2026-11-20T17:05:00+07:00",
+  "kind": "model-session",
+  "package_version": "0.7.5",
+  "installed_version": "0.7.5",
+  "tarball_sha256": "eecc6700ab6674df33054cbe6e645fbcb5464f2a53799b04d016d47d4f7a73e6",
+  "requested_profile": "pfe-model",
+  "provider": "deepseek",
+  "model": "deepseek-flash",
+  "prompt_sha256": "0fd433989fb933cb69d302706a49ce92555dea01117ce57725439ca61b72cb8e",
+  "fixture": "tests/fixtures/shop-app",
+  "fixture_tree_hash": "01fcb1c9642f4347e1a5226c604e8df31648c4205eb6068795692b722cd38e29",
+  "fixture_file_count": 8,
+  "fixture_source": "tests/fixtures/shop-app",
+  "surface_probe": {
+    "exit_code": 0,
+    "tool_count": 29,
+    "has_pfe": true,
+    "answer": "TOOLS=29; HAS_PFE=có; FIRST=bash"
+  },
+  "wall_seconds": 11.5,
+  "exit_code": 0,
+  "stderr_tail": "",
+  "stop_reason": "completed",
+  "session_file": "session.v4.jsonl.zstd",
+  "session_dir_tag": "session-827f07d1…",
+  "session_sha256": "474d667d0cc06f6e3a2dc02c52be0c7ff87bd9737604477d1fd768f20b8cbf3e",
+  "loader_profile": "pfe-model",
+  "profile_identity_ok": true,
+  "profile_identity_evidence": "tool_surface_in_request_header",
+  "tools_outside_allowlist": [],
+  "context_accuracy": {
+    "expected_paths_found": [
+      "services/report_service.js",
+      "tests/report_service.test.js"
+    ],
+    "expected_paths_missing": [
+      "server.js"
+    ],
+    "decoy_presented_as_direct": false,
+    "impact_has_downstream_and_test": true
+  },
+  "selected_tools": [
+    "project_context_pack",
+    "project_impact_analysis",
+    "project_verify_flow"
+  ],
+  "tool_sequence": [
+    {
+      "tool": "project_context_pack",
+      "step": 2,
+      "call": "call_00_jpbeJckyJyBMiItms3Z50722",
+      "outcome": "ok"
+    },
+    {
+      "tool": "project_impact_analysis",
+      "step": 3,
+      "call": "call_00_Eh4ATcEw0EOKhK7MJqOI3964",
+      "outcome": "ok"
+    },
+    {
+      "tool": "project_verify_flow",
+      "step": 4,
+      "call": "call_00_OqeoxiZ2ihSBH6oFnLiw0266",
+      "outcome": "ok"
+    }
+  ],
+  "order": {
+    "missing": [],
+    "ordered": true,
+    "observed": [
+      "project_context_pack",
+      "project_impact_analysis",
+      "project_verify_flow"
+    ]
+  },
+  "session_marker": "PFE-SMOKE-4cd302dc15deeaca",
+  "answer_excerpt": "Đã chạy xong ba bước bằng tool của plugin **project-flow-explainer**. Kết quả: bước 1 có context, bước 2 báo rủi ro medium, bước 3 chưa pass vì repository chưa có artifact flow. Phiên: ``.\n\n| Bước | Tool đã gọi | Kết quả chính |\n|---|---|---|\n| 1. Gom context trước khi sửa | `project_context_pack` | 0 entry point khớp task, 3 route cùng file không khớp, 7 file nên đọc; file chính `services/report_service.js:1` (`report_service`), kèm `db/report_repo.js:4`, `routes/preview.js`, `db/connection.js`; test liên quan `tests/report_service.test.js` |\n| 2. Phân tích tác động | `project_impact_analysis` (changed_files = `services/report_service.js`) | 1 file, **rủi ro medium**; 2 module phụ thuộc; 2 symbol có thể bị gọi; 0 flow, 0 route, 2 symbol, 1 test; khuyến nghị chạy `tests/report_service.test",
+  "policy": {
+    "tool_errors": [],
+    "expected_tools_ran": true,
+    "order_respected": true,
+    "tools_outside_allowlist": []
+  },
+  "workflow_order_verified": true,
+  "context_accuracy_verified": false,
+  "status": "partial",
+  "blocked": "context thiếu: server.js",
+  "updated_at": "2026-11-20T17:05:15+07:00"
+}

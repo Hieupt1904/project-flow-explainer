@@ -125,6 +125,68 @@ class FlaskBlueprintTests(unittest.TestCase):
         self.assertNotIn("/reports/status", entry)
         self.assertIn("/reports/status", related)
 
+class DecoyRouteTests(unittest.TestCase):
+    """0.7.3: a route that only shares vocabulary is not context."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.repo = prepare(ROOT / "tests" / "fixtures" / "shop-app",
+                            Path(self._tmp.name) / "shop")
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def test_exact_file_task_excludes_decoy_route(self):
+        """0.7.3: a keyword-only decoy must not be a file to read before editing.
+
+        `routes/preview.js` declares /api/legacy/preview. It shares vocabulary with
+        the task and has relations to its own route, which used to be enough to
+        put it in likely_files next to the file the task actually named.
+        """
+        from pfe import retrieval
+        pack = retrieval.context_pack(self.repo, "Sửa services/report_service.js: gom context")
+        paths = {item["path"] for item in pack["likely_files"]}
+        self.assertIn("services/report_service.js", paths)
+        self.assertNotIn("routes/preview.js", paths)
+        excluded = {item["path"] for item in pack["lexical_only"]}
+        self.assertIn("routes/preview.js", excluded)
+
+    def test_exact_file_task_reaches_its_callers(self):
+        from pfe import retrieval
+        pack = retrieval.context_pack(self.repo, "Sửa services/report_service.js: gom context")
+        paths = {item["path"] for item in pack["likely_files"]}
+        self.assertIn("server.js", paths, "the caller of the named file is real context")
+        self.assertIn("tests/report_service.test.js", paths)
+
+    def test_decoy_is_never_an_entry_point(self):
+        from pfe import retrieval
+        for task in ("export report", "xuất báo cáo", "lỗi khi xuất báo cáo"):
+            pack = retrieval.context_pack(self.repo, task)
+            entry = {item["label"] for item in pack["entry_points"]}
+            self.assertNotIn("/api/legacy/preview", entry, task)
+            related = {item["label"] for item in pack.get("related_routes", [])}
+            self.assertNotIn("/api/legacy/preview", entry & related, task)
+
+    def test_routes_field_holds_only_task_relevant_routes(self):
+        from pfe import retrieval
+        pack = retrieval.context_pack(self.repo, "export report")
+        self.assertEqual({item["route"] for item in pack["routes"]}, {"/api/reports/export"})
+
+    def test_lexical_only_candidate_carries_inferred_relevance(self):
+        from pfe import retrieval
+        pack = retrieval.context_pack(self.repo, "Sửa services/report_service.js: gom context")
+        for item in pack["lexical_only"]:
+            self.assertEqual(item["confidence"], "inferred")
+
+    def test_three_confidence_axes_are_distinct(self):
+        from pfe import retrieval
+        pack = retrieval.context_pack(self.repo, "export report")
+        for item in pack["likely_files"]:
+            for key in ("location_confidence", "relation_confidence",
+                        "relevance_confidence"):
+                self.assertIn(key, item)
+            self.assertEqual(item["location_confidence"], "observed")
+
 
 class RelatedTestsResolutionTests(unittest.TestCase):
     """T2: `tested_by` is a file -> test fact, but the pack ranks symbols.

@@ -23,6 +23,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 REVIEW = ROOT / "artifacts" / "review"
+DIST = ROOT / "dist"
+PACKAGE_NAME = "dsh-project-flow-explainer"
 UI_SHOT = ROOT / "artifacts" / "ui-verification" / "dsh-settings-page.png"
 REVIEW.mkdir(parents=True, exist_ok=True)
 
@@ -69,6 +71,12 @@ def parse_node_tests(output):
     fail_match = re.search(r"ℹ fail (\d+)", output)
     return {"pass": int(pass_match.group(1)) if pass_match else 0,
             "fail": int(fail_match.group(1)) if fail_match else 0}
+
+
+def tar_listing(path):
+    """Entry names in a tarball; empty when it is unreadable."""
+    listing = run(["tar", "-tzf", str(path)], "tarball listing")
+    return [line for line in listing["stdout"].splitlines() if line.strip()]
 
 
 def parse_tarball(pack_stdout):
@@ -154,7 +162,8 @@ def main(argv=None):
     evidence["description_log"] = write_log(stamp, "node-description", description).name
     evidence["description"] = parse_node_tests(description["stdout"])
 
-    slash = run(["node", "--test", "dsh-plugin/tests/command.test.mjs"],
+    slash = run(["node", "--test", "dsh-plugin/tests/command.test.mjs",
+            "dsh-plugin/tests/flow-filter.test.mjs"],
                 "slash command tests")
     evidence["command_log"] = write_log(stamp, "node-command", slash).name
     evidence["command"] = parse_node_tests(slash["stdout"])
@@ -164,10 +173,27 @@ def main(argv=None):
     evidence["policy"] = {"ok": policy["exit_code"] == 0,
                           "summary": policy["stdout"].strip().splitlines()[-1] if policy["stdout"].strip() else ""}
 
-    build = run(["node", "dsh-plugin/scripts/pack.mjs"], "pack bundle")
-    evidence["bundle_log"] = write_log(stamp, "pack-build", build).name
-    packed = parse_tarball(build["stdout"])
-    tarball = Path(packed["tarball"])
+    # ONE tarball per release. `dsh-plugin/README.md` ships inside the bundle, so
+    # repacking after a doc edit produced a different hash than the one the smoke
+    # and the model session ran against — the manifest then looked inconsistent
+    # with itself. Reuse the existing build when its version matches.
+    package_version = json.loads(
+        (ROOT / "dsh-plugin" / "package.json").read_text(encoding="utf-8"))["version"]
+    expected = DIST / (PACKAGE_NAME + "-" + package_version + ".tgz")
+    if expected.exists():
+        tarball = expected
+        entries = tar_listing(expected)
+        build = {"argv": ["reuse", str(expected.relative_to(ROOT))],
+                 "stdout": json.dumps({"tarball": str(expected), "files": len(entries)}),
+                 "exit_code": 0, "stderr": "", "duration_ms": 0.0}
+        evidence["bundle_log"] = write_log(stamp, "pack-build", build).name
+        evidence["bundle_reused"] = True
+    else:
+        build = run(["node", "dsh-plugin/scripts/pack.mjs"], "pack bundle")
+        evidence["bundle_log"] = write_log(stamp, "pack-build", build).name
+        packed = parse_tarball(build["stdout"])
+        tarball = Path(packed["tarball"])
+        evidence["bundle_reused"] = False
     listing = run(["tar", "-tzf", str(tarball)], "tarball listing")
     evidence["tarball"] = {
         "filename": tarball.name,
