@@ -1,6 +1,6 @@
 $ /usr/bin/python3 -m unittest discover -s tests -v
-exit_code: 1
-duration_ms: 4442.0
+exit_code: 0
+duration_ms: 4467.4
 
 --- stdout ---
 
@@ -124,7 +124,7 @@ test_fresh_artifacts_pass (test_knowledge.VerifyTests.test_fresh_artifacts_pass)
 test_missing_public_file_is_detected (test_knowledge.VerifyTests.test_missing_public_file_is_detected) ... ok
 test_no_artifact_means_blocked_not_pass (test_knowledge.VerifyTests.test_no_artifact_means_blocked_not_pass) ... ok
 test_engines_dsh_matches_manifest (test_knowledge_schema.EvidenceConsistencyTests.test_engines_dsh_matches_manifest) ... ok
-test_package_version_matches_manifest (test_knowledge_schema.EvidenceConsistencyTests.test_package_version_matches_manifest) ... FAIL
+test_package_version_matches_manifest (test_knowledge_schema.EvidenceConsistencyTests.test_package_version_matches_manifest) ... ok
 test_reports_quote_the_manifest_tarball_hash (test_knowledge_schema.EvidenceConsistencyTests.test_reports_quote_the_manifest_tarball_hash) ... ok
 test_reports_quote_the_manifest_test_counts (test_knowledge_schema.EvidenceConsistencyTests.test_reports_quote_the_manifest_test_counts) ... ok
 test_smoke_claims_match_recorded_evidence (test_knowledge_schema.EvidenceConsistencyTests.test_smoke_claims_match_recorded_evidence) ... ok
@@ -185,20 +185,7 @@ test_no_artifact_is_blocked_not_pass (test_v04_regressions.VerifyVerdictTests.te
 test_static_failure_is_overall_failure (test_v04_regressions.VerifyVerdictTests.test_static_failure_is_overall_failure) ... ok
 test_static_pass_ui_runtime_blocked_is_partial (test_v04_regressions.VerifyVerdictTests.test_static_pass_ui_runtime_blocked_is_partial) ... ok
 
-======================================================================
-FAIL: test_package_version_matches_manifest (test_knowledge_schema.EvidenceConsistencyTests.test_package_version_matches_manifest)
 ----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/home/hieupt/Documents/Agent-skills-main/project-flow-explainer/tests/test_knowledge_schema.py", line 63, in test_package_version_matches_manifest
-    self.assertEqual(manifest["package_version"], self.package()["version"])
-AssertionError: '0.7.0' != '0.7.1'
-- 0.7.0
-?     ^
-+ 0.7.1
-?     ^
+Ran 174 tests in 4.368s
 
-
-----------------------------------------------------------------------
-Ran 174 tests in 4.354s
-
-FAILED (failures=1)
+OK
