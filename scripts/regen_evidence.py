@@ -301,11 +301,15 @@ def main(argv=None):
         "status": "verified" if verified else "blocked",
         "profile": "pfe-test",
         "registry_runtime": "verified" if verified else "not_verified",
-        # A model session proves selection only for the build it ran on. The
-        # record does not carry a version, so it can be claimed only when the
-        # matching smoke run for THIS build is verified as well; otherwise the
-        # honest answer is not_verified.
-        "model_driven": ("verified" if (verified and model_session) else "not_verified"),
+        # A model session proves selection only for the build it ran on, and the
+        # record carries no version — so it cannot be attributed to this release
+        # by itself. Keep the historical record visible but do not upgrade it to
+        # a claim for a build nobody observed the model on.
+        "model_driven": "not_verified",
+        "model_driven_note": (
+            "record mô tả một session thật nhưng không mang package_version/tarball_sha256, "
+            "nên không quy được cho bản " + current_version + "; cần chạy lại session model "
+            "trên bản này trước khi claim."),
         "model_session": {
             "record": model_records[-1].name if model_records else "",
             "model": model_session.get("model", ""),

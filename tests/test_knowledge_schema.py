@@ -99,6 +99,15 @@ class EvidenceConsistencyTests(unittest.TestCase):
         self.assertIn(smoke["registry_runtime"], {"verified", "not_verified"})
         if smoke["registry_runtime"] == "verified":
             self.assertTrue(smoke.get("record"), "verified without a smoke record")
+            # The named record must be for THIS release: a record carried over
+            # from an earlier version is not evidence for this one.
+            record = (ROOT / "artifacts" / "review" / smoke["record"])
+            self.assertTrue(record.is_file(), "smoke record file is missing")
+            payload = json.loads(record.read_text(encoding="utf-8"))
+            self.assertEqual(payload.get("package_version"), manifest["package_version"],
+                             "smoke record was recorded for a different package version")
+            self.assertEqual(payload.get("tarball_sha256"), manifest["tarball"]["sha256"],
+                             "smoke record was recorded against a different tarball")
             self.assertTrue(smoke.get("checks"), "verified without per-check evidence")
             self.assertTrue(all(smoke["checks"].values()),
                             "registry_runtime=verified nhưng có check false")
