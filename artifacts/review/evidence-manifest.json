@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-11-20T14:12:27+07:00",
+  "generated_at": "2026-11-20T14:13:07+07:00",
   "generator": "scripts/regen_evidence.py",
-  "source_commit": "7010b7c4d30d49b27576e33e7e62a19bb07105be",
+  "source_commit": "0bc4b78e7218e61de7a795e35152815afe526f0e",
   "source_branch": "main",
-  "working_tree_dirty": true,
-  "evidence_files_changed": 35,
+  "working_tree_dirty": false,
+  "evidence_files_changed": 15,
   "dirty_semantics": "working_tree_dirty chỉ tính file ngoài artifacts/review; evidence_files_changed là số file bằng chứng do lần chạy này sinh.",
   "package_version": "0.7.2",
   "engines_dsh": "0.2.2-rc.2",
@@ -35,9 +35,9 @@
     "contains_knowledge": true
   },
   "smoke": {
-    "status": "blocked",
+    "status": "verified",
     "profile": "pfe-test",
-    "registry_runtime": "not_verified",
+    "registry_runtime": "verified",
     "model_driven": "verified",
     "model_driven_note": "session thật trên 0.7.2 (tarball 522d87ba): model tự chọn 4 tool, thứ tự đúng, 0 lỗi.",
     "model_session": {
@@ -75,41 +75,38 @@
       "wall_seconds": 14.3
     },
     "model_records_rejected": [],
-    "reason": "BLOCKED_DSH_SMOKE: không có bản ghi smoke nào chạy trên 0.7.2 với tarball sha 522d87ba; cần chạy scripts/run_dsh_smoke.py cho bản này.",
-    "tool_count": 0,
-    "checks": {},
-    "record": "",
-    "stale_records": [
-      {
-        "record": "20261120-134319-dsh-smoke.json",
-        "reason": "chạy cho 0.7.1, không phải 0.7.2"
-      },
-      {
-        "record": "20261120-134138-dsh-smoke.json",
-        "reason": "chạy cho 0.7.1, không phải 0.7.2"
-      },
-      {
-        "record": "20261120-125854-dsh-smoke.json",
-        "reason": "chạy cho 0.7.0, không phải 0.7.2"
-      },
-      {
-        "record": "20261120-125451-dsh-smoke.json",
-        "reason": "chạy cho 0.7.0, không phải 0.7.2"
-      },
-      {
-        "record": "20261120-125310-dsh-smoke.json",
-        "reason": "chạy cho 0.6.4, không phải 0.7.2"
-      },
-      {
-        "record": "20261120-125232-dsh-smoke.json",
-        "reason": "chạy cho 0.6.4, không phải 0.7.2"
-      }
-    ],
-    "blocked": {},
+    "reason": "model tự chọn tool trong một session thật; probe registry là bằng chứng bổ sung.",
+    "tool_count": 36,
+    "checks": {
+      "profile_identity": true,
+      "tools_registered": true,
+      "no_missing_tools": true,
+      "flow_ok": true,
+      "context_ok": true,
+      "impact_ok": true,
+      "verify_ok": true,
+      "verify_partial_or_pass": true,
+      "search_ok": true,
+      "outside_roots_rejected": true,
+      "malformed_rejected": true,
+      "abort_identity": true,
+      "empty_roots_rejected": true,
+      "timeout_code": true,
+      "disabled_hides_tools": true,
+      "client_subpath_resolves": true,
+      "command_registered": true,
+      "invalid_config_rejected": true
+    },
+    "record": "20261120-141252-dsh-smoke.json",
+    "stale_records": [],
+    "blocked": {
+      "model_driven": "not_verified: profile không có API key; probe gọi registry, không qua model",
+      "panel_ui": "BLOCKED_UI_API_UNVERIFIED"
+    },
     "settings_ui": {
       "client_entry": "client.js",
       "slot": "plugins.bundle.config",
-      "config_schema": "fallback normalizeConfig",
+      "config_schema": "native schemastery",
       "verified": "client tests + ValidationError boot check"
     }
   },
@@ -138,22 +135,22 @@
   },
   "policy": {
     "ok": true,
-    "summary": "OK: 124 file đã kiểm tra · không có absolute path, nested artifacts hay secret"
+    "summary": "OK: 127 file đã kiểm tra · không có absolute path, nested artifacts hay secret"
   },
   "benchmark": {
     "files": 2000,
     "source_bytes": 942071,
-    "scan_ms": 670.2,
+    "scan_ms": 696.3,
     "scan_files": 2001,
     "budget_notes": [],
-    "index_full_ms": 1441.3,
-    "index_incremental_ms": 395.1,
+    "index_full_ms": 1447.6,
+    "index_incremental_ms": 456.0,
     "files_parsed_full": 2001,
     "files_parsed_incremental": 0,
     "entities": 20003,
     "facts": 20001,
     "db_bytes": 15601664,
-    "rss_mb": 69.0,
+    "rss_mb": 68.8,
     "limits": {
       "max_files_scanned": 20000,
       "max_total_source_bytes": 33554432,
@@ -322,16 +319,25 @@
       "real-project run (path và tên repo đã scrub)"
     ],
     "unverified": [
-      "DSH registry-runtime smoke cho 0.7.2",
       "Harness panel UI (BLOCKED_UI_API_UNVERIFIED)"
     ],
     "verified_for": "0.7.2",
-    "registry_runtime": "not_verified",
+    "registry_runtime": "verified",
     "model_driven": "verified"
   },
   "consistency_recheck": {
     "ok": true,
     "note": "chạy lại toàn bộ unittest sau khi manifest được ghi",
     "ran": 174
+  },
+  "provenance": {
+    "source_commit": "0bc4b78e7218e61de7a795e35152815afe526f0e",
+    "evidence_commit": "0bc4b78e7218e61de7a795e35152815afe526f0e",
+    "head_at_record": "0bc4b78e7218e61de7a795e35152815afe526f0e",
+    "source_tree_equals_evidence_tree_except": "artifacts/review",
+    "non_evidence_diff": [],
+    "clean_source_tree": true,
+    "recorded_at": "2026-11-20T14:13:22+07:00",
+    "note": "source_commit là commit của code được mô tả; evidence_commit là commit chứa manifest này. Hai cây chỉ khác nhau ở artifacts/review/, đã kiểm bằng git diff."
   }
 }
