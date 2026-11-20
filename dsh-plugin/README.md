@@ -12,11 +12,33 @@ Core không phụ thuộc DSH: xoá thư mục này thì CLI Python vẫn chạy
 | Python | 3.12 (chỉ standard library) |
 | Mạng | không cần lúc chạy; chỉ cần khi cài bundle lần đầu vào profile mới |
 
+## Lệnh người dùng: `/project-flow-explainer`
+
+Người dùng gõ trực tiếp trong Web UI, không cần nhờ model chọn tool:
+
+```text
+/project-flow-explainer từ lúc bấm xuất báo cáo đến khi nhận được file
+/project-flow-explainer xuất Excel --repo /duong/dan/khac
+```
+
+Plugin đăng ký qua `ctx.commands.register()` (`lib/command.js`), nên:
+
+- Kết quả hiện thẳng trong UI, **không vào lịch sử model** và không tốn token —
+  đúng đặc tính của command, khác với tool.
+- Repository lấy từ working directory của session; `--repo` để chỉ định nơi khác.
+- Cùng chính sách với tool: `allowedRoots`, cùng core, cùng chỗ ghi artifact.
+- Lệnh không có thì plugin vẫn mount: `commands` là service tùy chọn, composition
+  headless không có adapter lệnh.
+
+Lệnh trả `{kind:'success', text}` hoặc `{kind:'error', text}` với mã lỗi ổn định
+(`allowed_roots_unconfigured`, `repository_outside_allowed_roots`, `core_timeout`, …).
+Khi giao diện hỏi mã lỗi, đọc nguyên văn trong `text`, không đoán.
+
 ## Tool
 
 | Tool | Quyền ghi | Ghi chú |
 |---|---|---|
-| `project_flow_explain` | có (artifact flow) | trả đường dẫn tuyệt đối, đánh dấu `host-only` |
+| `project_flow_explain` | có (artifact flow) | trả đường dẫn tương đối tính từ repository |
 | `project_code_index` | có (`.pfe/index`) | full hoặc incremental |
 | `project_code_search` | không | chỉ trả đường dẫn tương đối |
 | `project_context_pack` | không | mặc định không snippet |
@@ -115,6 +137,7 @@ node --test dsh-plugin/tests/knowledge.test.mjs   # 6 tool tri thức + validati
 node --test dsh-plugin/tests/lifecycle.test.mjs   # mount/dispose/remount, huỷ khi đang chạy
 node --test dsh-plugin/tests/settings.test.mjs    # binding settings theo entry id và package name
 node --test dsh-plugin/tests/arguments.test.mjs   # từ chối tham số không khai báo, cả 7 tool
+node --test dsh-plugin/tests/command.test.mjs     # lệnh /project-flow-explainer (8 test)
 node --test dsh-plugin/tests/pack.test.mjs        # pack + cài độc lập
 ```
 

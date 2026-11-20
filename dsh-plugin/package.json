@@ -1,10 +1,30 @@
 {
   "name": "dsh-project-flow-explainer",
-  "version": "0.5.7",
-  "private": true,
+  "version": "0.6.0",
   "type": "module",
   "description": "DSH adapter: expose the Project Flow Explainer core (scripts/build_flow.py + template) as one DSH tool. Ships the core under vendor/core so a packed install works without the checkout.",
   "license": "MIT",
+  "author": "Hieupt1904",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hieupt1904/project-flow-explainer.git",
+    "directory": "dsh-plugin"
+  },
+  "homepage": "https://github.com/Hieupt1904/project-flow-explainer",
+  "bugs": {
+    "url": "https://github.com/Hieupt1904/project-flow-explainer/issues"
+  },
+  "keywords": [
+    "deepseek",
+    "harness",
+    "dsh",
+    "dsh-plugin",
+    "code-analysis",
+    "flow-diagram",
+    "codebase",
+    "offline-html",
+    "agent-tool"
+  ],
   "main": "./index.js",
   "exports": {
     ".": "./index.js",

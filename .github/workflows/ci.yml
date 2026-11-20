@@ -56,7 +56,8 @@ jobs:
             dsh-plugin/tests/client.test.mjs \
             dsh-plugin/tests/settings.test.mjs \
             dsh-plugin/tests/arguments.test.mjs \
-            dsh-plugin/tests/description.test.mjs
+            dsh-plugin/tests/description.test.mjs \
+            dsh-plugin/tests/command.test.mjs
       - name: pack + independent install
         run: node --test dsh-plugin/tests/pack.test.mjs
 

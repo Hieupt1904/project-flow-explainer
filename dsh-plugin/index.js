@@ -26,6 +26,7 @@ import { runCore } from './lib/core-runner.js'
 import {
   InputError, resolveArtifactRoot, resolveCoreRoot, resolveRepository,
 } from './lib/paths.js'
+import { flowCommand } from './lib/command.js'
 import { knowledgeTools } from './lib/tools.js'
 import {
   assertObject, optionalString, rejectUnknownKeys, requiredString,
@@ -530,5 +531,16 @@ export function apply(ctx, config = {}) {
   // Knowledge layer: same path policy, same core subprocess, separate tools.
   for (const definition of knowledgeTools({ settings, core, inFlight })) {
     ctx.tools.register(definition)
+  }
+
+  // Human entry point: /project-flow-explainer <request>. Optional service — a
+  // headless composition has no command adapter, and the plugin must still
+  // mount there (the tools are what that composition needs).
+  try {
+    ctx.inject(['commands'], (scoped) => {
+      scoped.commands.register(flowCommand({ ctx: scoped, settings, core }))
+    })
+  } catch {
+    // no command service in this composition: tools remain the entry point
   }
 }
