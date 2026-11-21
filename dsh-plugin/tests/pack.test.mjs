@@ -144,7 +144,9 @@ test('packed manifest keeps metadata and drops checkout-only scripts', () => {
     assert.equal(manifest.name, 'dsh-project-flow-explainer')
     assert.equal(manifest.main, './index.js')
     assert.equal(manifest.type, 'module')
-    assert.equal(manifest.engines.dsh, '0.2.2-rc.2')
+    // A range keeps the bundle installable across patch releases of DSH.
+    assert.match(manifest.engines.dsh, /^>=0\.2\.2-rc\.\d+ <0\.3\.0$/,
+      'engines.dsh must accept the whole 0.2.x line')
     assert.equal(manifest.scripts, undefined, 'packed manifest should not keep dev scripts')
     assert.ok(manifest.dsh.bundle.patch, 'bundle patch missing')
     assert.ok(Array.isArray(manifest.files), 'files list missing')

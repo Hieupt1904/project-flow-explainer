@@ -96,7 +96,7 @@ Cài vào profile riêng (không dùng profile `web`):
 
 ```bash
 node dsh-plugin/scripts/pack.mjs
-dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.7.7.tgz"
+dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.7.8.tgz"
 ```
 
 Bundle đã tự insert row `project-flow-explainer`. Cấu hình bằng **override row**

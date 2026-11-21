@@ -6,10 +6,10 @@ model-driven, native Config và tool visibility **chưa chạy được** (ghi B
 | Mục | Giá trị |
 |---|---|
 | Package version | `0.7.6` |
-| `engines.dsh` | `0.2.2-rc.2` (khớp DSH đang cài) |
+| `engines.dsh` | `0.2.2-rc.5` (khớp DSH đang cài) |
 | Test | 209 Python · 16 adapter · 9 knowledge · 8 lifecycle · 10 client · 13 command · 5 settings · 9 arguments · 18 description · 2 pack — 0 fail |
 | Bằng chứng | [evidence-manifest.json](artifacts/review/evidence-manifest.json) |
-| Tarball | `dsh-project-flow-explainer-0.7.7.tgz` · 119 279 byte · sha256 `1573be4ff953899786b5d46d129592f2af82d0c1a42694edd18d0ee4d4b9fd61…25bb5c` |
+| Tarball | `dsh-project-flow-explainer-0.7.8.tgz` · 119 289 byte · sha256 `8562461ccb698163ee17664703e7d5cc9abdde46066ad667b1cab04b75a4ea58…25bb5c` |
 
 ## 1. Bảng task T0–T9
 

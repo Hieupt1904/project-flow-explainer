@@ -1,0 +1,67 @@
+{
+  "status": "verified",
+  "profile": "pfe-test",
+  "registry_runtime": "verified",
+  "model_driven": "not_verified",
+  "model_driven_note": "chưa có record verified mang package_version 0.7.8 + tarball 8562461c; chạy scripts/run_model_smoke.py.",
+  "model_session": {
+    "record": "",
+    "status": "",
+    "package_version": "",
+    "provider": "",
+    "model": "",
+    "session_sha256": "",
+    "prompt_sha256": "",
+    "tools": [],
+    "order": {},
+    "policy": {},
+    "stop_reason": "",
+    "requested_profile": "",
+    "installed_version": "",
+    "wall_seconds": null
+  },
+  "model_records_rejected": [
+    {
+      "record": "20261120-171127-model-session.json",
+      "reason": "package_version 0.7.6"
+    },
+    {
+      "record": "20261120-165634-model-session.json",
+      "reason": "package_version 0.7.5"
+    }
+  ],
+  "reason": "model tự chọn tool trong một session thật; probe registry là bằng chứng bổ sung.",
+  "tool_count": 36,
+  "checks": {
+    "profile_identity": true,
+    "tools_registered": true,
+    "no_missing_tools": true,
+    "flow_ok": true,
+    "context_ok": true,
+    "impact_ok": true,
+    "verify_ok": true,
+    "verify_partial_or_pass": true,
+    "search_ok": true,
+    "outside_roots_rejected": true,
+    "malformed_rejected": true,
+    "abort_identity": true,
+    "empty_roots_rejected": true,
+    "timeout_code": true,
+    "disabled_hides_tools": true,
+    "client_subpath_resolves": true,
+    "command_registered": true,
+    "invalid_config_rejected": true
+  },
+  "record": "20261121-221133-dsh-smoke.json",
+  "stale_records": [],
+  "blocked": {
+    "model_driven": "not_verified: profile không có API key; probe gọi registry, không qua model",
+    "panel_ui": "BLOCKED_UI_API_UNVERIFIED"
+  },
+  "settings_ui": {
+    "client_entry": "client.js",
+    "slot": "plugins.bundle.config",
+    "config_schema": "native schemastery",
+    "verified": "client tests + ValidationError boot check"
+  }
+}

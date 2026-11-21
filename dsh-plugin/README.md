@@ -8,7 +8,7 @@ Core không phụ thuộc DSH: xoá thư mục này thì CLI Python vẫn chạy
 | Thành phần | Giá trị |
 |---|---|
 | Node | `>= 20` (đã test 24.22.3) |
-| DSH | `0.2.2-rc.2` (`engines.dsh`) |
+| DSH | `0.2.2-rc.5` (`engines.dsh`) |
 | Python | 3.12 (chỉ standard library) |
 | Mạng | không cần lúc chạy; chỉ cần khi cài bundle lần đầu vào profile mới |
 

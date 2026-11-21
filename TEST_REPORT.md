@@ -2,7 +2,7 @@
 
 Sinh từ lần chạy thật trên commit nguồn và bằng chứng trong
 [artifacts/review/evidence-manifest.json](artifacts/review/evidence-manifest.json).
-Môi trường: Ubuntu 24.04 · Python 3.12.3 · Node v24.22.3 · DSH 0.2.2-rc.2 · 2026-11-19.
+Môi trường: Ubuntu 24.04 · Python 3.12.3 · Node v24.22.3 · DSH 0.2.2-rc.5 · 2026-11-19.
 
 ## 1. Tổng hợp
 
@@ -28,10 +28,10 @@ Tarball phát hành:
 
 | Mục | Giá trị |
 |---|---|
-| Tên | `dsh-project-flow-explainer-0.7.7.tgz` |
-| Byte | 119279 |
+| Tên | `dsh-project-flow-explainer-0.7.8.tgz` |
+| Byte | 119289 |
 | Entry | 27 (gồm `client.js` và `vendor/core/{scripts,assets,tools,pfe}`) |
-| SHA-256 | `1573be4ff953899786b5d46d129592f2af82d0c1a42694edd18d0ee4d4b9fd61` |
+| SHA-256 | `8562461ccb698163ee17664703e7d5cc9abdde46066ad667b1cab04b75a4ea58` |
 
 ## 2. Lỗi tái hiện được và đã sửa trong 0.4.x
 

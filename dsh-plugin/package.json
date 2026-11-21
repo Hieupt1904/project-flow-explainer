@@ -1,6 +1,6 @@
 {
   "name": "dsh-project-flow-explainer",
-  "version": "0.7.7",
+  "version": "0.7.8",
   "type": "module",
   "description": "DSH adapter: expose the Project Flow Explainer core (scripts/build_flow.py + template) as one DSH tool. Ships the core under vendor/core so a packed install works without the checkout.",
   "license": "MIT",
@@ -45,7 +45,7 @@
   ],
   "engines": {
     "node": ">=20",
-    "dsh": "0.2.2-rc.2"
+    "dsh": ">=0.2.2-rc.2 <0.3.0"
   },
   "peerDependencies": {
     "@deepseek-ai/schemastery": ">=3.18.5 <4"
