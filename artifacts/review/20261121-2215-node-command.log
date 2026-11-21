@@ -1,0 +1,28 @@
+$ node --test dsh-plugin/tests/command.test.mjs dsh-plugin/tests/flow-filter.test.mjs
+exit_code: 0
+duration_ms: 433.4
+
+--- stdout ---
+✔ registers exactly one command next to the seven tools (3.547586ms)
+✔ mounts without a command service (headless composition) (0.36036ms)
+✔ the command declares a name the registry accepts and an input hint (0.502669ms)
+✔ a real request returns success with the artifact paths (68.143223ms)
+✔ an empty request is an error with the usage line (0.533743ms)
+✔ a repository outside allowedRoots is refused with its stable code and a fix (0.559751ms)
+✔ a session whose cwd is not a repository names --repo as the fix (0.516642ms)
+✔ an unconfigured allowedRoots is refused, not silently widened (0.37526ms)
+✔ --repo targets an explicit repository (64.655278ms)
+✔ --repo accepts a quoted path with spaces (128.622384ms)
+✔ a quoted path is not truncated at the first space (0.321016ms)
+✔ --repo=value form is parsed too (0.203593ms)
+✔ filters.flow_id reaches the core instead of being dropped (353.241655ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 405.433975
+
+--- stderr ---

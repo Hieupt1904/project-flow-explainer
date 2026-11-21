@@ -1,6 +1,6 @@
 $ /usr/bin/python3 -m unittest discover -s tests -v
 exit_code: 0
-duration_ms: 4608.8
+duration_ms: 4541.8
 
 --- stdout ---
 {"status": "verified", "record": "record.json", "package_version": "0.7.4", "installed_version": "0.7.4", "tarball_sha256": "000000000000", "tools": ["project_context_pack", "project_impact_analysis", "project_verify_flow"], "order_ok": true, "missing": [], "surface": {"has_pfe": true, "tool_count": 36}, "wall_seconds": 0.0}
@@ -226,6 +226,6 @@ test_static_failure_is_overall_failure (test_v04_regressions.VerifyVerdictTests.
 test_static_pass_ui_runtime_blocked_is_partial (test_v04_regressions.VerifyVerdictTests.test_static_pass_ui_runtime_blocked_is_partial) ... ok
 
 ----------------------------------------------------------------------
-Ran 209 tests in 4.528s
+Ran 209 tests in 4.459s
 
 OK
