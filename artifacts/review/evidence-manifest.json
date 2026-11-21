@@ -326,5 +326,23 @@
     "ok": true,
     "note": "chạy lại toàn bộ unittest sau khi manifest được ghi",
     "ran": 209
+  },
+  "provenance": {
+    "source_commit": "a442a30685c800a6c0900b517c434afde80decb6",
+    "evidence_commit": "b7f4d207ced0",
+    "head_at_record": "b7f4d207ced00136a05af4e8b58a334c82b32ea4",
+    "source_tree_equals_evidence_tree_except": "artifacts/review",
+    "non_evidence_diff": [],
+    "clean_source_tree": true,
+    "recorded_at": "2026-11-21T22:13:45+07:00",
+    "note": "source_commit là commit của code được mô tả; evidence_commit là commit chứa manifest này. Hai cây chỉ khác nhau ở artifacts/review/, đã kiểm bằng git diff."
+  },
+  "ci": {
+    "run_id": "44917999928",
+    "commit": "b7f4d207ced0",
+    "conclusion": "success",
+    "jobs": 4,
+    "url": "https://github.com/Hieupt1904/project-flow-explainer/actions/runs/44917999928",
+    "recorded_at": "2026-11-21T22:13:45+07:00"
   }
 }
