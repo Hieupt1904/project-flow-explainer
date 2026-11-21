@@ -28,10 +28,10 @@ Tarball phát hành:
 
 | Mục | Giá trị |
 |---|---|
-| Tên | `dsh-project-flow-explainer-0.7.8.tgz` |
-| Byte | 119289 |
+| Tên | `dsh-project-flow-explainer-0.7.10.tgz` |
+| Byte | 119290 |
 | Entry | 27 (gồm `client.js` và `vendor/core/{scripts,assets,tools,pfe}`) |
-| SHA-256 | `8562461ccb698163ee17664703e7d5cc9abdde46066ad667b1cab04b75a4ea58` |
+| SHA-256 | `38d68cd09a0ac08845037b4083862dd9e7e85f9b7e865c2ddc32bfe0fb644998` |
 
 ## 2. Lỗi tái hiện được và đã sửa trong 0.4.x
 
@@ -287,8 +287,7 @@ Dữ liệu: 9 cặp `*.flow.json` + HTML do người dùng tạo trước đó.
 | 08-gan-co-so-cho-tai-khoan-lark | 10 | 14 | 0 | 0 | 10 |
 | 09-vong-nen-canh-bao | 8 | 12 | 0 | 0 | 4 |
 
-Ghi chú: file 08 có 10 stage Simple, vượt mục tiêu 3–7; `buildSimpleView` gộp theo loại bước
-nên luồng nhiều node vẫn có thể vượt. Cần xác nhận có muốn gộp thêm hay không.
+Sau khi thêm `MAX_SIMPLE_STAGES=7`, file 08 giảm từ 10 stage còn **7** (card gộp “4 điểm rẽ nhánh”), các file khác 4–6 stage. Nhãn cạnh vẫn 0 đè card.
 
 ## 5. Chưa kiểm chứng
 

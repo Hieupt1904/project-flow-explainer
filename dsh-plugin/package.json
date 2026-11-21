@@ -1,6 +1,6 @@
 {
   "name": "dsh-project-flow-explainer",
-  "version": "0.7.8",
+  "version": "0.7.10",
   "type": "module",
   "description": "DSH adapter: expose the Project Flow Explainer core (scripts/build_flow.py + template) as one DSH tool. Ships the core under vendor/core so a packed install works without the checkout.",
   "license": "MIT",

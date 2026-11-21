@@ -92,11 +92,30 @@ Plugin cũng đăng ký 7 tool và gọi lại core qua subprocess (không shell
 | `project_verify_flow` | kiểm tra graph/artifact/HTML tĩnh/privacy/test mapping; tách `static_verdict` và `overall_verdict` |
 | `project_knowledge_refresh` | refresh tăng dần sau khi sửa code |
 
+### Cài từ npm (khuyến nghị)
+
+```bash
+dsh plugin --profile <profile> add dsh-project-flow-explainer@latest
+```
+
+Bản npm phải chứa `vendor/core/` (core Python đã vendor). Khi phát hành, **publish từ thư mục
+staging của `pack.mjs`**, không publish trực tiếp `dsh-plugin/`:
+
+```bash
+OUT=$(node dsh-plugin/scripts/pack.mjs --keep | tail -1)
+STAGING=$(echo "$OUT" | python3 -c "import json,sys;print(json.load(sys.stdin)['staging'])")
+npm publish "$STAGING" --access public
+npm dist-tag add dsh-project-flow-explainer@<version> latest
+```
+
+Publish thẳng từ `dsh-plugin/` cho ra tarball 10 file, thiếu `vendor/core/` — đã xảy ra với
+0.7.10 và bản đó đã bị `npm deprecate`.
+
 Cài vào profile riêng (không dùng profile `web`):
 
 ```bash
 node dsh-plugin/scripts/pack.mjs
-dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.7.8.tgz"
+dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.7.10.tgz"
 ```
 
 Bundle đã tự insert row `project-flow-explainer`. Cấu hình bằng **override row**
