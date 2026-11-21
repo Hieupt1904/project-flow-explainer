@@ -1,6 +1,6 @@
 $ /usr/bin/python3 -m compileall -q scripts tests pfe tools
 exit_code: 0
-duration_ms: 30.9
+duration_ms: 30.4
 
 --- stdout ---
 

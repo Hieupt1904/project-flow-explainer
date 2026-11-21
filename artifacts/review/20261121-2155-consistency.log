@@ -1,6 +1,6 @@
 $ /usr/bin/python3 -m unittest discover -s tests -v
 exit_code: 0
-duration_ms: 4647.4
+duration_ms: 4930.8
 
 --- stdout ---
 {"status": "verified", "record": "record.json", "package_version": "0.7.4", "installed_version": "0.7.4", "tarball_sha256": "000000000000", "tools": ["project_context_pack", "project_impact_analysis", "project_verify_flow"], "order_ok": true, "missing": [], "surface": {"has_pfe": true, "tool_count": 36}, "wall_seconds": 0.0}
@@ -174,6 +174,11 @@ test_invalid_dangling_edge (test_render_flow.RenderFlowTests.test_invalid_dangli
 test_invalid_unmarked_cycle (test_render_flow.RenderFlowTests.test_invalid_unmarked_cycle) ... ok
 test_invalid_verified_without_source (test_render_flow.RenderFlowTests.test_invalid_verified_without_source) ... ok
 test_sample_graph_valid (test_render_flow.RenderFlowTests.test_sample_graph_valid) ... ok
+test_label_placement_avoids_node_rectangles (test_template_labels.EdgeLabelTemplateTests.test_label_placement_avoids_node_rectangles) ... ok
+test_labels_have_an_opaque_backing (test_template_labels.EdgeLabelTemplateTests.test_labels_have_an_opaque_backing) ... ok
+test_long_labels_are_truncated_to_the_box (test_template_labels.EdgeLabelTemplateTests.test_long_labels_are_truncated_to_the_box) ... ok
+test_node_layer_paints_above_edge_layer (test_template_labels.EdgeLabelTemplateTests.test_node_layer_paints_above_edge_layer) ... ok
+test_simple_view_renders_step_notes (test_template_labels.EdgeLabelTemplateTests.test_simple_view_renders_step_notes) ... ok
 test_artifact_dir_is_stored_repository_relative (test_v04_regressions.ArtifactPathPrivacyTests.test_artifact_dir_is_stored_repository_relative) ... ok
 test_impact_never_returns_an_absolute_path (test_v04_regressions.ArtifactPathPrivacyTests.test_impact_never_returns_an_absolute_path) ... ok
 test_flow_from_another_working_directory (test_v04_regressions.CliFlowTests.test_flow_from_another_working_directory) ... ok
@@ -218,6 +223,6 @@ test_static_failure_is_overall_failure (test_v04_regressions.VerifyVerdictTests.
 test_static_pass_ui_runtime_blocked_is_partial (test_v04_regressions.VerifyVerdictTests.test_static_pass_ui_runtime_blocked_is_partial) ... ok
 
 ----------------------------------------------------------------------
-Ran 201 tests in 4.566s
+Ran 206 tests in 4.847s
 
 OK

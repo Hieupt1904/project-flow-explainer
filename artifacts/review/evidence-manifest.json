@@ -1,18 +1,18 @@
 {
-  "generated_at": "2026-11-20T17:12:59+07:00",
+  "generated_at": "2026-11-21T21:55:22+07:00",
   "generator": "scripts/regen_evidence.py",
-  "source_commit": "badafad8eb62b5c38033d24d13debff0141c53d3",
+  "source_commit": "f8d089df1733b740a5e8b35a62d5ae35081de520",
   "source_branch": "main",
-  "working_tree_dirty": false,
-  "evidence_files_changed": 13,
+  "working_tree_dirty": true,
+  "evidence_files_changed": 31,
   "dirty_semantics": "working_tree_dirty chỉ tính file ngoài artifacts/review; evidence_files_changed là số file bằng chứng do lần chạy này sinh.",
   "package_version": "0.7.6",
   "engines_dsh": "0.2.2-rc.2",
-  "dsh_version": "0.2.2-rc.2",
+  "dsh_version": "0.2.2-rc.5",
   "python_version": "3.12.3",
   "node_version": "v24.22.3",
   "tests": {
-    "python": 201,
+    "python": 206,
     "adapter": 16,
     "knowledge_tools": 9,
     "lifecycle": 8,
@@ -97,12 +97,7 @@
       "invalid_config_rejected": true
     },
     "record": "20261120-171109-dsh-smoke.json",
-    "stale_records": [
-      {
-        "record": "20261120-1712-dsh-smoke.json",
-        "reason": "summary của regen_evidence, không phải lần chạy thật"
-      }
-    ],
+    "stale_records": [],
     "blocked": {
       "model_driven": "not_verified: profile không có API key; probe gọi registry, không qua model",
       "panel_ui": "BLOCKED_UI_API_UNVERIFIED"
@@ -139,16 +134,16 @@
   },
   "policy": {
     "ok": true,
-    "summary": "OK: 133 file đã kiểm tra · không có absolute path, nested artifacts hay secret"
+    "summary": "OK: 131 file đã kiểm tra · không có absolute path, nested artifacts hay secret"
   },
   "benchmark": {
     "files": 2000,
     "source_bytes": 942071,
-    "scan_ms": 675.4,
+    "scan_ms": 677.9,
     "scan_files": 2001,
     "budget_notes": [],
-    "index_full_ms": 1449.5,
-    "index_incremental_ms": 409.7,
+    "index_full_ms": 1482.2,
+    "index_incremental_ms": 414.2,
     "files_parsed_full": 2001,
     "files_parsed_incremental": 0,
     "entities": 20003,
@@ -287,20 +282,20 @@
     ]
   },
   "logs": {
-    "python_log": "20261120-1712-python-tests.log",
-    "adapter_log": "20261120-1712-node-adapter.log",
-    "knowledge_log": "20261120-1712-node-knowledge.log",
-    "lifecycle_log": "20261120-1712-node-lifecycle.log",
-    "client_log": "20261120-1712-node-client.log",
-    "pack_log": "20261120-1712-node-pack.log",
-    "settings_log": "20261120-1712-node-settings.log",
-    "arguments_log": "20261120-1712-node-arguments.log",
-    "description_log": "20261120-1712-node-description.log",
-    "command_log": "20261120-1712-node-command.log",
-    "policy_log": "20261120-1712-policy.log",
-    "bundle_log": "20261120-1712-pack-build.log",
-    "bench_log": "20261120-1712-bench.json",
-    "consistency_log": "20261120-1712-consistency.log"
+    "python_log": "20261121-2155-python-tests.log",
+    "adapter_log": "20261121-2155-node-adapter.log",
+    "knowledge_log": "20261121-2155-node-knowledge.log",
+    "lifecycle_log": "20261121-2155-node-lifecycle.log",
+    "client_log": "20261121-2155-node-client.log",
+    "pack_log": "20261121-2155-node-pack.log",
+    "settings_log": "20261121-2155-node-settings.log",
+    "arguments_log": "20261121-2155-node-arguments.log",
+    "description_log": "20261121-2155-node-description.log",
+    "command_log": "20261121-2155-node-command.log",
+    "policy_log": "20261121-2155-policy.log",
+    "bundle_log": "20261121-2155-pack-build.log",
+    "bench_log": "20261121-2155-bench.json",
+    "consistency_log": "20261121-2155-consistency.log"
   },
   "classification": {
     "confirmed": [
@@ -332,16 +327,6 @@
   "consistency_recheck": {
     "ok": true,
     "note": "chạy lại toàn bộ unittest sau khi manifest được ghi",
-    "ran": 201
-  },
-  "provenance": {
-    "source_commit": "badafad8eb62b5c38033d24d13debff0141c53d3",
-    "evidence_commit": "badafad8eb62b5c38033d24d13debff0141c53d3",
-    "head_at_record": "badafad8eb62b5c38033d24d13debff0141c53d3",
-    "source_tree_equals_evidence_tree_except": "artifacts/review",
-    "non_evidence_diff": [],
-    "clean_source_tree": true,
-    "recorded_at": "2026-11-20T17:13:09+07:00",
-    "note": "source_commit là commit của code được mô tả; evidence_commit là commit chứa manifest này. Hai cây chỉ khác nhau ở artifacts/review/, đã kiểm bằng git diff."
+    "ran": 206
   }
 }

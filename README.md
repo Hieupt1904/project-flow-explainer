@@ -202,7 +202,7 @@ Luật định danh session:
 ## Kiểm thử
 
 ```bash
-python3 -m unittest discover -s tests -v                # core + knowledge + regression (201 test)
+python3 -m unittest discover -s tests -v                # core + knowledge + regression (206 test)
 node --test dsh-plugin/tests/plugin.test.mjs            # adapter (16 test)
 node --test dsh-plugin/tests/knowledge.test.mjs         # tool tri thức (9 test)
 node --test dsh-plugin/tests/lifecycle.test.mjs         # mount/dispose/remount + native Config (8 test)
@@ -227,7 +227,7 @@ tools/pfe_cli.py         CLI máy đọc cho 6 tool tri thức
 dsh-plugin/              adapter DSH (zero dependency)
 assets/                  template HTML offline
 references/              schema + prompt module + code-knowledge-schema.json
-tests/                   201 unittest + fixture web/desktop
+tests/                   206 unittest + fixture web/desktop
 artifacts/               bằng chứng: samples, review, ui-verification
 ```
 

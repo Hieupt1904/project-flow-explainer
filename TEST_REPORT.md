@@ -47,7 +47,7 @@ Tarball phát hành:
 
 ### 3.1 CLI và core (T0)
 
-| Test | 201 Python · 16 adapter · 9 knowledge · 8 lifecycle · 10 client · 13 command · 5 settings · 9 arguments · 18 description · 2 pack — 0 fail |
+| Test | 206 Python · 16 adapter · 9 knowledge · 8 lifecycle · 10 client · 13 command · 5 settings · 9 arguments · 18 description · 2 pack — 0 fail |
 |---|---|
 | `test_flow_from_repository_root` | chạy từ repo root, exit 0, đúng một JSON object, không có `ModuleNotFoundError` |
 | `test_flow_from_another_working_directory` | chạy từ `/tmp` bằng đường dẫn tuyệt đối |
@@ -265,6 +265,30 @@ reasoning high. Prompt không nêu tên tool nào ngoài yêu cầu nghiệp v�
 Bản ghi: [20261120-005100-model-session.json](artifacts/review/20261120-005100-model-session.json) ·
 ảnh: [dsh-model-session.png](artifacts/ui-verification/dsh-model-session.png).
 Manifest: `smoke.model_driven = verified`.
+
+## 4h. Kiểm tra trên 9 sơ đồ thật (2026-11-21)
+
+Dữ liệu: 9 cặp `*.flow.json` + HTML do người dùng tạo trước đó. HTML cũ **không** có
+`pickLabelPoint`, `view-technical` hay Simple view, nên nhãn cạnh được đặt cố định và vẽ
+**trên** card: nhãn che chữ của bước.
+
+Đã render lại 9 file bằng template hiện tại, giữ nguyên `*.flow.json`, bản cũ sao lưu trong
+`.backup-<stamp>/`. Đo trong trình duyệt (technical view):
+
+| Sơ đồ | Node | Nhãn | Nhãn đè card | Chữ bị cắt | Stage Simple |
+|---|---|---|---|---|---|
+| 01-tong-quan-he-thong | 8 | 11 | 0 | 0 | 4 |
+| 02-dang-nhap | 8 | 10 | 0 | 0 | 6 |
+| 03-tim-va-them-san-pham | 8 | 9 | 0 | 0 | 6 |
+| 04-hoan-thanh-phieu | 10 | 13 | 0 | 0 | 6 |
+| 05-lark-duyet-va-dong-bo | 7 | 10 | 0 | 0 | 5 |
+| 06-admin-duyet-tren-web | 7 | 10 | 0 | 0 | 6 |
+| 07-dong-bo-ton-kho | 7 | 9 | 0 | 0 | 4 |
+| 08-gan-co-so-cho-tai-khoan-lark | 10 | 14 | 0 | 0 | 10 |
+| 09-vong-nen-canh-bao | 8 | 12 | 0 | 0 | 4 |
+
+Ghi chú: file 08 có 10 stage Simple, vượt mục tiêu 3–7; `buildSimpleView` gộp theo loại bước
+nên luồng nhiều node vẫn có thể vượt. Cần xác nhận có muốn gộp thêm hay không.
 
 ## 5. Chưa kiểm chứng
 

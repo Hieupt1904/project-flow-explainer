@@ -1,0 +1,33 @@
+$ node --test dsh-plugin/tests/description.test.mjs
+exit_code: 0
+duration_ms: 101.8
+
+--- stdout ---
+✔ seven tools keep their existing names (no rename without migration) (2.699878ms)
+✔ project_flow_explain declares all six description sections (0.630333ms)
+✔ project_flow_explain renderer ends with the next action (0.580435ms)
+✔ project_context_pack declares all six description sections (0.525847ms)
+✔ project_context_pack renderer ends with the next action (0.543692ms)
+✔ project_impact_analysis declares all six description sections (0.601948ms)
+✔ project_impact_analysis renderer ends with the next action (0.530957ms)
+✔ project_verify_flow declares all six description sections (0.502675ms)
+✔ project_verify_flow renderer ends with the next action (0.503057ms)
+✔ project_code_index declares all six description sections (0.601103ms)
+✔ project_code_index renderer ends with the next action (0.410878ms)
+✔ project_code_search declares all six description sections (0.349631ms)
+✔ project_code_search renderer ends with the next action (0.380494ms)
+✔ project_knowledge_refresh declares all six description sections (0.331478ms)
+✔ project_knowledge_refresh renderer ends with the next action (0.340206ms)
+✔ the default workflow tool says it is the default before editing (0.554936ms)
+✔ maintenance tools are labelled as maintenance (0.552693ms)
+✔ verify description separates static scan from browser and test execution (0.473693ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 73.207411
+
+--- stderr ---

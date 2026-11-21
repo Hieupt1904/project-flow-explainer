@@ -10,7 +10,7 @@ Mọi con số đều có log/artifact tương ứng, sinh từ cùng một comm
 | Package version | `0.7.6` (`engines.dsh: 0.2.2-rc.2`) |
 | Tarball | `dsh-project-flow-explainer-0.7.6.tgz` · 118 886 byte · sha256 `7d420deb…25bb5c` |
 | Tarball trước | `dsh-project-flow-explainer-0.3.0.tgz` (lịch sử) |
-| Test | 201 Python · 16 adapter · 9 knowledge · 8 lifecycle · 10 client · 13 command · 5 settings · 9 arguments · 18 description · 2 pack — 0 fail |
+| Test | 206 Python · 16 adapter · 9 knowledge · 8 lifecycle · 10 client · 13 command · 5 settings · 9 arguments · 18 description · 2 pack — 0 fail |
 | Policy | `check_repo_policy.py` OK: không absolute path, nested artifact, secret-shape |
 | UI | 12 tổ hợp (3 sample × 4 viewport) sạch; tương tác search/click/zoom/fit chạy |
 | Trạng thái tổng | registry-runtime: **verified** (20261120-112353-dsh-smoke.json) · model-driven: **not_verified** — không claim khi chưa có trajectory của đúng build |
