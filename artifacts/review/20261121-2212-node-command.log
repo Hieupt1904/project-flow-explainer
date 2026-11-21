@@ -1,21 +1,21 @@
 $ node --test dsh-plugin/tests/command.test.mjs dsh-plugin/tests/flow-filter.test.mjs
 exit_code: 0
-duration_ms: 435.9
+duration_ms: 433.4
 
 --- stdout ---
-✔ registers exactly one command next to the seven tools (2.265391ms)
-✔ mounts without a command service (headless composition) (0.299165ms)
-✔ the command declares a name the registry accepts and an input hint (0.377303ms)
-✔ a real request returns success with the artifact paths (67.631444ms)
-✔ an empty request is an error with the usage line (0.502281ms)
-✔ a repository outside allowedRoots is refused with its stable code and a fix (0.554405ms)
-✔ a session whose cwd is not a repository names --repo as the fix (0.51162ms)
-✔ an unconfigured allowedRoots is refused, not silently widened (0.354904ms)
-✔ --repo targets an explicit repository (66.398064ms)
-✔ --repo accepts a quoted path with spaces (126.866447ms)
-✔ a quoted path is not truncated at the first space (0.291115ms)
-✔ --repo=value form is parsed too (0.180742ms)
-✔ filters.flow_id reaches the core instead of being dropped (359.178206ms)
+✔ registers exactly one command next to the seven tools (2.272157ms)
+✔ mounts without a command service (headless composition) (0.379412ms)
+✔ the command declares a name the registry accepts and an input hint (0.508954ms)
+✔ a real request returns success with the artifact paths (66.785192ms)
+✔ an empty request is an error with the usage line (0.54477ms)
+✔ a repository outside allowedRoots is refused with its stable code and a fix (0.57827ms)
+✔ a session whose cwd is not a repository names --repo as the fix (0.510944ms)
+✔ an unconfigured allowedRoots is refused, not silently widened (0.351472ms)
+✔ --repo targets an explicit repository (64.743652ms)
+✔ --repo accepts a quoted path with spaces (125.145638ms)
+✔ a quoted path is not truncated at the first space (0.374356ms)
+✔ --repo=value form is parsed too (0.179978ms)
+✔ filters.flow_id reaches the core instead of being dropped (360.010715ms)
 ℹ tests 13
 ℹ suites 0
 ℹ pass 13
@@ -23,6 +23,6 @@ duration_ms: 435.9
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 410.585806
+ℹ duration_ms 407.789113
 
 --- stderr ---

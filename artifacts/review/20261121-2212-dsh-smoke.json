@@ -53,7 +53,12 @@
     "invalid_config_rejected": true
   },
   "record": "20261121-221133-dsh-smoke.json",
-  "stale_records": [],
+  "stale_records": [
+    {
+      "record": "20261121-2212-dsh-smoke.json",
+      "reason": "summary của regen_evidence, không phải lần chạy thật"
+    }
+  ],
   "blocked": {
     "model_driven": "not_verified: profile không có API key; probe gọi registry, không qua model",
     "panel_ui": "BLOCKED_UI_API_UNVERIFIED"

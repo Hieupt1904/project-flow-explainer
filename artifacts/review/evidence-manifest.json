@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-11-21T22:12:28+07:00",
+  "generated_at": "2026-11-21T22:12:57+07:00",
   "generator": "scripts/regen_evidence.py",
-  "source_commit": "67c45e50d366c42eeb5bb0733f674fb25961bbc4",
+  "source_commit": "a442a30685c800a6c0900b517c434afde80decb6",
   "source_branch": "main",
-  "working_tree_dirty": true,
-  "evidence_files_changed": 32,
+  "working_tree_dirty": false,
+  "evidence_files_changed": 13,
   "dirty_semantics": "working_tree_dirty chỉ tính file ngoài artifacts/review; evidence_files_changed là số file bằng chứng do lần chạy này sinh.",
   "package_version": "0.7.8",
   "engines_dsh": ">=0.2.2-rc.2 <0.3.0",
@@ -89,7 +89,12 @@
       "invalid_config_rejected": true
     },
     "record": "20261121-221133-dsh-smoke.json",
-    "stale_records": [],
+    "stale_records": [
+      {
+        "record": "20261121-2212-dsh-smoke.json",
+        "reason": "summary của regen_evidence, không phải lần chạy thật"
+      }
+    ],
     "blocked": {
       "model_driven": "not_verified: profile không có API key; probe gọi registry, không qua model",
       "panel_ui": "BLOCKED_UI_API_UNVERIFIED"
@@ -126,22 +131,22 @@
   },
   "policy": {
     "ok": true,
-    "summary": "OK: 132 file đã kiểm tra · không có absolute path, nested artifacts hay secret"
+    "summary": "OK: 134 file đã kiểm tra · không có absolute path, nested artifacts hay secret"
   },
   "benchmark": {
     "files": 2000,
     "source_bytes": 942071,
-    "scan_ms": 676.7,
+    "scan_ms": 666.5,
     "scan_files": 2001,
     "budget_notes": [],
-    "index_full_ms": 1403.8,
-    "index_incremental_ms": 400.0,
+    "index_full_ms": 1426.0,
+    "index_incremental_ms": 409.1,
     "files_parsed_full": 2001,
     "files_parsed_incremental": 0,
     "entities": 20003,
     "facts": 20001,
     "db_bytes": 15601664,
-    "rss_mb": 69.4,
+    "rss_mb": 69.2,
     "limits": {
       "max_files_scanned": 20000,
       "max_total_source_bytes": 33554432,
