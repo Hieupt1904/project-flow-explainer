@@ -36,6 +36,10 @@
   "record": "",
   "stale_records": [
     {
+      "record": "20261121-2306-dsh-smoke.json",
+      "reason": "summary của regen_evidence, không phải lần chạy thật"
+    },
+    {
       "record": "20261121-221133-dsh-smoke.json",
       "reason": "chạy cho 0.7.8, không phải 0.7.10"
     },
@@ -54,10 +58,6 @@
     {
       "record": "20261120-141252-dsh-smoke.json",
       "reason": "chạy cho 0.7.2, không phải 0.7.10"
-    },
-    {
-      "record": "20261120-134319-dsh-smoke.json",
-      "reason": "chạy cho 0.7.1, không phải 0.7.10"
     }
   ],
   "blocked": {},

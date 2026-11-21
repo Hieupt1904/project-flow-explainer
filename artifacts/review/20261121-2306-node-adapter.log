@@ -1,24 +1,24 @@
 $ node --test dsh-plugin/tests/plugin.test.mjs
 exit_code: 0
-duration_ms: 461.7
+duration_ms: 453.3
 
 --- stdout ---
-✔ exports a Cordis plugin shape with one tool (2.758668ms)
-✔ end-to-end: builds four artifacts through the core CLI (68.96045ms)
-✔ tool result never carries source secrets (72.518486ms)
-✔ adapter and direct core produce the same graph (135.666288ms)
-✔ missing allowedRoots denies every call (deny-by-default) (2.391404ms)
-✔ empty allowedRoots denies every call (1.72658ms)
-✔ repository outside allowedRoots is rejected (1.618148ms)
-✔ symlink that escapes allowedRoots is rejected (0.935408ms)
-✔ relative and missing repository paths are rejected (0.856457ms)
-✔ output_directory must be exactly artifacts/flows (81.202407ms)
-✔ symlinked artifacts directory is rejected (3.906347ms)
-✔ abort surfaces as AbortError, not a business failure (3.101517ms)
-✔ timeout is reported as core_timeout, distinct from abort (3.690762ms)
-✔ missing flow request is rejected before the core runs (1.999637ms)
-✔ unload removes the tool and reload registers it again (1.124236ms)
-✔ rejects invalid configuration at load time (0.343909ms)
+✔ exports a Cordis plugin shape with one tool (3.2753ms)
+✔ end-to-end: builds four artifacts through the core CLI (68.066513ms)
+✔ tool result never carries source secrets (69.976989ms)
+✔ adapter and direct core produce the same graph (132.521239ms)
+✔ missing allowedRoots denies every call (deny-by-default) (2.327183ms)
+✔ empty allowedRoots denies every call (3.301235ms)
+✔ repository outside allowedRoots is rejected (1.647271ms)
+✔ symlink that escapes allowedRoots is rejected (0.867321ms)
+✔ relative and missing repository paths are rejected (0.742911ms)
+✔ output_directory must be exactly artifacts/flows (74.955358ms)
+✔ symlinked artifacts directory is rejected (3.402714ms)
+✔ abort surfaces as AbortError, not a business failure (3.487204ms)
+✔ timeout is reported as core_timeout, distinct from abort (4.666841ms)
+✔ missing flow request is rejected before the core runs (1.80833ms)
+✔ unload removes the tool and reload registers it again (1.004616ms)
+✔ rejects invalid configuration at load time (0.313297ms)
 ℹ tests 16
 ℹ suites 0
 ℹ pass 16
@@ -26,6 +26,6 @@ duration_ms: 461.7
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 432.239755
+ℹ duration_ms 423.890703
 
 --- stderr ---

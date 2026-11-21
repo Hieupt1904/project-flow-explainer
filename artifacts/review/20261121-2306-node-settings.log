@@ -1,13 +1,13 @@
 $ node --test dsh-plugin/tests/settings.test.mjs
 exit_code: 0
-duration_ms: 95.0
+duration_ms: 91.7
 
 --- stdout ---
-✔ deny-by-default until a settings row supplies allowedRoots (4.526921ms)
-✔ a row keyed by the package name binds live settings (1.389295ms)
-✔ a row keyed by the entry id binds live settings (1.294181ms)
-✔ a row published after mount is adopted on the settings event (2.162907ms)
-✔ an unrelated settings row is ignored (1.289936ms)
+✔ deny-by-default until a settings row supplies allowedRoots (5.168363ms)
+✔ a row keyed by the package name binds live settings (1.554308ms)
+✔ a row keyed by the entry id binds live settings (1.434346ms)
+✔ a row published after mount is adopted on the settings event (2.074223ms)
+✔ an unrelated settings row is ignored (1.361402ms)
 ℹ tests 5
 ℹ suites 0
 ℹ pass 5
@@ -15,6 +15,6 @@ duration_ms: 95.0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 68.330395
+ℹ duration_ms 62.930673
 
 --- stderr ---

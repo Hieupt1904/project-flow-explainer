@@ -1,26 +1,26 @@
 $ node --test dsh-plugin/tests/description.test.mjs
 exit_code: 0
-duration_ms: 92.8
+duration_ms: 98.8
 
 --- stdout ---
-✔ seven tools keep their existing names (no rename without migration) (2.612902ms)
-✔ project_flow_explain declares all six description sections (0.635008ms)
-✔ project_flow_explain renderer ends with the next action (0.608726ms)
-✔ project_context_pack declares all six description sections (0.488683ms)
-✔ project_context_pack renderer ends with the next action (0.507561ms)
-✔ project_impact_analysis declares all six description sections (0.547135ms)
-✔ project_impact_analysis renderer ends with the next action (0.487293ms)
-✔ project_verify_flow declares all six description sections (0.534279ms)
-✔ project_verify_flow renderer ends with the next action (0.495557ms)
-✔ project_code_index declares all six description sections (0.659584ms)
-✔ project_code_index renderer ends with the next action (0.485386ms)
-✔ project_code_search declares all six description sections (0.491073ms)
-✔ project_code_search renderer ends with the next action (0.371153ms)
-✔ project_knowledge_refresh declares all six description sections (0.345188ms)
-✔ project_knowledge_refresh renderer ends with the next action (0.353056ms)
-✔ the default workflow tool says it is the default before editing (0.520327ms)
-✔ maintenance tools are labelled as maintenance (0.43556ms)
-✔ verify description separates static scan from browser and test execution (0.446818ms)
+✔ seven tools keep their existing names (no rename without migration) (2.40856ms)
+✔ project_flow_explain declares all six description sections (0.685072ms)
+✔ project_flow_explain renderer ends with the next action (0.811103ms)
+✔ project_context_pack declares all six description sections (0.540368ms)
+✔ project_context_pack renderer ends with the next action (0.573976ms)
+✔ project_impact_analysis declares all six description sections (0.587675ms)
+✔ project_impact_analysis renderer ends with the next action (0.483873ms)
+✔ project_verify_flow declares all six description sections (0.474612ms)
+✔ project_verify_flow renderer ends with the next action (0.465701ms)
+✔ project_code_index declares all six description sections (0.589875ms)
+✔ project_code_index renderer ends with the next action (0.543009ms)
+✔ project_code_search declares all six description sections (0.507529ms)
+✔ project_code_search renderer ends with the next action (0.379638ms)
+✔ project_knowledge_refresh declares all six description sections (0.595944ms)
+✔ project_knowledge_refresh renderer ends with the next action (0.744425ms)
+✔ the default workflow tool says it is the default before editing (0.909033ms)
+✔ maintenance tools are labelled as maintenance (0.523624ms)
+✔ verify description separates static scan from browser and test execution (0.514212ms)
 ℹ tests 18
 ℹ suites 0
 ℹ pass 18
@@ -28,6 +28,6 @@ duration_ms: 92.8
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 64.958369
+ℹ duration_ms 69.312678
 
 --- stderr ---

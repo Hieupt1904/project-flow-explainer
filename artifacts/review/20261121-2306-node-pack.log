@@ -1,10 +1,10 @@
 $ node --test dsh-plugin/tests/pack.test.mjs
 exit_code: 0
-duration_ms: 1001.7
+duration_ms: 948.9
 
 --- stdout ---
-✔ packed tarball carries the core and works without the checkout (624.750269ms)
-✔ packed manifest keeps metadata and drops checkout-only scripts (301.513132ms)
+✔ packed tarball carries the core and works without the checkout (575.237483ms)
+✔ packed manifest keeps metadata and drops checkout-only scripts (302.523665ms)
 ℹ tests 2
 ℹ suites 0
 ℹ pass 2
@@ -12,6 +12,6 @@ duration_ms: 1001.7
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 970.688368
+ℹ duration_ms 919.364708
 
 --- stderr ---
