@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-11-21T22:09:45+07:00",
+  "generated_at": "2026-11-21T22:10:35+07:00",
   "generator": "scripts/regen_evidence.py",
-  "source_commit": "60afeffd07b357508fc5224d963ec65509c724f4",
+  "source_commit": "1640749ed68d333c88f0029e58cdbc3153b1c434",
   "source_branch": "main",
-  "working_tree_dirty": true,
+  "working_tree_dirty": false,
   "evidence_files_changed": 30,
   "dirty_semantics": "working_tree_dirty chỉ tính file ngoài artifacts/review; evidence_files_changed là số file bằng chứng do lần chạy này sinh.",
   "package_version": "0.7.7",
@@ -22,7 +22,7 @@
     "arguments": 9,
     "description": 18,
     "command": 13,
-    "failures": 1,
+    "failures": 0,
     "adapter_engine_failures": 0
   },
   "tarball": {
@@ -134,17 +134,17 @@
   "benchmark": {
     "files": 2000,
     "source_bytes": 942071,
-    "scan_ms": 674.9,
+    "scan_ms": 687.5,
     "scan_files": 2001,
     "budget_notes": [],
-    "index_full_ms": 1476.1,
-    "index_incremental_ms": 414.4,
+    "index_full_ms": 1498.8,
+    "index_incremental_ms": 409.4,
     "files_parsed_full": 2001,
     "files_parsed_incremental": 0,
     "entities": 20003,
     "facts": 20001,
     "db_bytes": 15601664,
-    "rss_mb": 69.1,
+    "rss_mb": 69.0,
     "limits": {
       "max_files_scanned": 20000,
       "max_total_source_bytes": 33554432,
@@ -277,20 +277,20 @@
     ]
   },
   "logs": {
-    "python_log": "20261121-2209-python-tests.log",
-    "adapter_log": "20261121-2209-node-adapter.log",
-    "knowledge_log": "20261121-2209-node-knowledge.log",
-    "lifecycle_log": "20261121-2209-node-lifecycle.log",
-    "client_log": "20261121-2209-node-client.log",
-    "pack_log": "20261121-2209-node-pack.log",
-    "settings_log": "20261121-2209-node-settings.log",
-    "arguments_log": "20261121-2209-node-arguments.log",
-    "description_log": "20261121-2209-node-description.log",
-    "command_log": "20261121-2209-node-command.log",
-    "policy_log": "20261121-2209-policy.log",
-    "bundle_log": "20261121-2209-pack-build.log",
-    "bench_log": "20261121-2209-bench.json",
-    "consistency_log": "20261121-2209-consistency.log"
+    "python_log": "20261121-2210-python-tests.log",
+    "adapter_log": "20261121-2210-node-adapter.log",
+    "knowledge_log": "20261121-2210-node-knowledge.log",
+    "lifecycle_log": "20261121-2210-node-lifecycle.log",
+    "client_log": "20261121-2210-node-client.log",
+    "pack_log": "20261121-2210-node-pack.log",
+    "settings_log": "20261121-2210-node-settings.log",
+    "arguments_log": "20261121-2210-node-arguments.log",
+    "description_log": "20261121-2210-node-description.log",
+    "command_log": "20261121-2210-node-command.log",
+    "policy_log": "20261121-2210-policy.log",
+    "bundle_log": "20261121-2210-pack-build.log",
+    "bench_log": "20261121-2210-bench.json",
+    "consistency_log": "20261121-2210-consistency.log"
   },
   "classification": {
     "confirmed": [
@@ -322,7 +322,7 @@
     "model_driven": "not_verified"
   },
   "consistency_recheck": {
-    "ok": false,
+    "ok": true,
     "note": "chạy lại toàn bộ unittest sau khi manifest được ghi",
     "ran": 209
   }
