@@ -76,7 +76,7 @@ jobs:
             const m = require("./dsh-plugin/package.json");
             const need = ["name", "version", "type", "main", "exports", "files", "engines", "dsh"];
             for (const key of need) if (!(key in m)) { console.error("missing", key); process.exit(1) }
-            if (m.engines.dsh !== "0.2.2-rc.2") { console.error("engines.dsh mismatch"); process.exit(1) }
+            if (!/^(0\.2\.[0-9]+-rc\.\d+|>=0\.2\.2-rc\.\d+ <0\.3\.0)$/.test(m.engines.dsh)) { console.error("engines.dsh must accept the 0.2.x line, got " + m.engines.dsh); process.exit(1) }
             if (!m.files.includes("vendor/core/scripts/build_flow.py")) { console.error("files missing core"); process.exit(1) }
             if (!m.files.includes("vendor/core/tools/pfe_cli.py")) { console.error("files missing cli"); process.exit(1) }
             if (!m.files.includes("vendor/core/pfe/")) { console.error("files missing knowledge package"); process.exit(1) }
