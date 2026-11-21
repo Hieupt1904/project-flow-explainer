@@ -40,6 +40,14 @@ class EdgeLabelTemplateTests(unittest.TestCase):
     def test_labels_have_an_opaque_backing(self):
         self.assertRegex(self.text, r"\.edge-label-rect\s*\{[^}]*fill:\s*#fff")
 
+    def test_simple_view_caps_the_number_of_stages(self):
+        self.assertIn("MAX_SIMPLE_STAGES=7", self.text)
+        body = self.text[self.text.index("function buildSimpleView"):]
+        body = body[: body.index("function setView")]
+        self.assertIn("budget=Math.max(1,MAX_SIMPLE_STAGES", body)
+        self.assertIn("điểm rẽ nhánh", body,
+                      "decisions that do not fit must collapse into one card")
+
     def test_simple_view_renders_step_notes(self):
         self.assertIn("stageCard(", self.text)
         self.assertRegex(self.text, r"\.stage-note\s*\{")

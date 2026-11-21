@@ -343,6 +343,7 @@ function stageCard(kind,title,meta,confidence,list,note,nodeId){
   btn.dataset.hay=[title,meta||'',note||'',(list||[]).map(n=>n.title+' '+(n.summary||'')).join(' ')].join(' ').toLocaleLowerCase();
   return btn;
 }
+const MAX_SIMPLE_STAGES=7;
 function buildSimpleView(){
   const root=$('simple-view');root.replaceChildren();
   add(root,'p','simple-intro','Đọc theo thứ tự từ trên xuống. Nhấn một bước để xem giải thích và nguồn; cần chi tiết kỹ thuật thì chuyển sang chế độ Kỹ thuật.');
@@ -356,36 +357,49 @@ function buildSimpleView(){
   const errorNodes=graph.nodes.filter(n=>n.type==='error');
   const realErrors=errorNodes.filter(n=>!['no-entry','no-evidence'].includes(n.id));
   const blockers=errorNodes.filter(n=>['no-entry','no-evidence'].includes(n.id));
+  let stageCount=0;
+  const pushCard=card=>{root.append(card);stageCount++;};
   const order=[...startNodes,...entryNodes];
   if(order.length){
     const n=order[order.length-1];
     const refs=(n.source_refs||[])[0];
-    root.append(stageCard('Bắt đầu',n.title,refs?refs.path+(refs.start_line?':'+refs.start_line:''):'',''===stageConfidence(order)?'verified':stageConfidence(order),order,null,n.id));
+    pushCard(stageCard('Bắt đầu',n.title,refs?refs.path+(refs.start_line?':'+refs.start_line:''):'',''===stageConfidence(order)?'verified':stageConfidence(order),order,null,n.id));
   }
   if(actionNodes.length){
     const refs=actionNodes.map(n=>(n.source_refs||[])[0]).filter(Boolean);
-    root.append(stageCard('Các bước xử lý',actionNodes.length===1?actionNodes[0].title:actionNodes.length+' bước xử lý',refs.length?refs[0].path+(refs[0].start_line?':'+refs[0].start_line:''):'',stageConfidence(actionNodes),actionNodes,null,actionNodes[0].id));
+    pushCard(stageCard('Các bước xử lý',actionNodes.length===1?actionNodes[0].title:actionNodes.length+' bước xử lý',refs.length?refs[0].path+(refs[0].start_line?':'+refs[0].start_line:''):'',stageConfidence(actionNodes),actionNodes,null,actionNodes[0].id));
   }
-  decisionNodes.forEach(n=>{
+  // Simple view stays scannable: at most MAX_SIMPLE_STAGES cards. Decisions are
+  // the variable part, so the ones that do not fit collapse into one grouped card.
+  const decisionCard=n=>{
     const branches=graph.edges.filter(e=>e.from===n.id).map(e=>e.label+' → '+(nodeMap.get(e.to)?.title||e.to));
     const refs=(n.source_refs||[])[0];
-    root.append(stageCard('Điều kiện',n.title,refs?refs.path+(refs.start_line?':'+refs.start_line:''):'',n.confidence,[],branches.length?branches.join(' · '):null,n.id));
-  });
+    return stageCard('Điều kiện',n.title,refs?refs.path+(refs.start_line?':'+refs.start_line:''):'',n.confidence,[],branches.length?branches.join(' · '):null,n.id);
+  };
+  const reserved=(endNodes.length?1:0)+((realErrors&&realErrors.length)?1:0)+((blockers&&blockers.length)?1:0)+(((graph.assumptions||[]).length)?1:0);
+  const budget=Math.max(1,MAX_SIMPLE_STAGES-stageCount-reserved);
+  if(decisionNodes.length<=budget){
+    decisionNodes.forEach(n=>pushCard(decisionCard(n)));
+  }else{
+    decisionNodes.slice(0,budget-1).forEach(n=>pushCard(decisionCard(n)));
+    const rest=decisionNodes.slice(Math.max(0,budget-1));
+    pushCard(stageCard('Điều kiện',rest.length+' điểm rẽ nhánh','',stageConfidence(rest),rest,'Mở chế độ Kỹ thuật để xem từng nhánh',rest[0]&&rest[0].id));
+  }
   if(endNodes.length){
     const n=endNodes[0];const refs=(n.source_refs||[])[0];
-    root.append(stageCard('Kết thúc',n.title,refs?refs.path+(refs.start_line?':'+refs.start_line:''):'',n.confidence,[],null,n.id));
+    pushCard(stageCard('Kết thúc',n.title,refs?refs.path+(refs.start_line?':'+refs.start_line:''):'',n.confidence,[],null,n.id));
   }
   if(realErrors.length){
     const refs=(realErrors[0].source_refs||[])[0];
-    root.append(stageCard('Nhánh lỗi',realErrors.length===1?realErrors[0].title:realErrors.length+' nhánh lỗi',refs?refs.path+(refs.start_line?':'+refs.start_line:''):'',stageConfidence(realErrors),realErrors,null,realErrors[0].id));
+    pushCard(stageCard('Nhánh lỗi',realErrors.length===1?realErrors[0].title:realErrors.length+' nhánh lỗi',refs?refs.path+(refs.start_line?':'+refs.start_line:''):'',stageConfidence(realErrors),realErrors,null,realErrors[0].id));
   }
-  blockers.forEach(n=>{
-    const refs=(n.source_refs||[])[0];
-    root.append(stageCard('Chưa xác minh',n.title,'',n.confidence,[],n.summary||null,n.id));
-  });
+  if(blockers.length){
+    const first=blockers[0];const refs=(first.source_refs||[])[0];
+    pushCard(stageCard('Chưa xác minh',blockers.length===1?first.title:blockers.length+' điểm chưa xác minh',refs?refs.path:'',stageConfidence(blockers),blockers,first.summary||null,first.id));
+  }
   const warnings=(graph.assumptions||[]);
   if(warnings.length){
-    root.append(stageCard('Cần kiểm tra',warnings.length+' điểm cần xác nhận','','partial',[],warnings.slice(0,2).join(' · '),null));
+    pushCard(stageCard('Cần kiểm tra',warnings.length+' điểm cần xác nhận','','partial',[],warnings.slice(0,2).join(' · '),null));
   }
 }
 function setView(mode){

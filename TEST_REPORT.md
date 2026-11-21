@@ -28,10 +28,10 @@ Tarball phát hành:
 
 | Mục | Giá trị |
 |---|---|
-| Tên | `dsh-project-flow-explainer-0.7.6.tgz` |
-| Byte | 118886 |
+| Tên | `dsh-project-flow-explainer-0.7.7.tgz` |
+| Byte | 119279 |
 | Entry | 27 (gồm `client.js` và `vendor/core/{scripts,assets,tools,pfe}`) |
-| SHA-256 | `7d420debf763b23dae19310fd8baf130f63c720ba7fa5fef8d5ed6141425bb5c` |
+| SHA-256 | `1573be4ff953899786b5d46d129592f2af82d0c1a42694edd18d0ee4d4b9fd61` |
 
 ## 2. Lỗi tái hiện được và đã sửa trong 0.4.x
 
@@ -47,7 +47,7 @@ Tarball phát hành:
 
 ### 3.1 CLI và core (T0)
 
-| Test | 206 Python · 16 adapter · 9 knowledge · 8 lifecycle · 10 client · 13 command · 5 settings · 9 arguments · 18 description · 2 pack — 0 fail |
+| Test | 209 Python · 16 adapter · 9 knowledge · 8 lifecycle · 10 client · 13 command · 5 settings · 9 arguments · 18 description · 2 pack — 0 fail |
 |---|---|
 | `test_flow_from_repository_root` | chạy từ repo root, exit 0, đúng một JSON object, không có `ModuleNotFoundError` |
 | `test_flow_from_another_working_directory` | chạy từ `/tmp` bằng đường dẫn tuyệt đối |
