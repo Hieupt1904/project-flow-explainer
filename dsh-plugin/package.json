@@ -1,8 +1,8 @@
 {
   "name": "dsh-project-flow-explainer",
-  "version": "0.7.10",
+  "version": "0.7.11",
   "type": "module",
-  "description": "DSH adapter: expose the Project Flow Explainer core (scripts/build_flow.py + template) as one DSH tool. Ships the core under vendor/core so a packed install works without the checkout.",
+  "description": "Turn repository source into offline interactive flow diagrams and look up code evidence in DeepSeek Harness. Includes the Python core.",
   "license": "MIT",
   "author": "Hieupt1904",
   "repository": {
@@ -29,6 +29,7 @@
   "exports": {
     ".": "./index.js",
     "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
     "./package.json": "./package.json"
   },
   "files": [
@@ -37,6 +38,8 @@
     "lib/",
     "cordis.patch.yml",
     "README.md",
+    "docs/",
+    "locale/*.json",
     "vendor/core/scripts/build_flow.py",
     "vendor/core/scripts/render_flow.py",
     "vendor/core/assets/workflow_template.html",

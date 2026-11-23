@@ -68,6 +68,13 @@ try {
   cpSync(path.join(PACKAGE_ROOT, 'cordis.patch.yml'), path.join(staging, 'cordis.patch.yml'))
   const readme = path.join(PACKAGE_ROOT, 'README.md')
   if (statSync(readme, { throwIfNoEntry: false })) cpSync(readme, path.join(staging, 'README.md'))
+  for (const dir of ['docs', 'locale']) {
+    const source = path.join(PACKAGE_ROOT, dir)
+    if (statSync(source, { throwIfNoEntry: false })?.isDirectory()) {
+      cpSync(source, path.join(staging, dir), { recursive: true })
+      staged.push(dir + '/')
+    }
+  }
 
   for (const [source, target] of CORE_FILES) {
     const destination = path.join(staging, target)

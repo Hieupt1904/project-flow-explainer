@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Project Flow Explainer",
+    "description": "Turn repository source into an interactive diagram with file and line references. Open Configure on the project-flow-explainer row and set the allowed roots. Then type /project-flow-explainer followed by a flow description. The plugin analyzes source locally without running the target application. The preview shows a Vietnamese sample.",
+    "detail": "docs/DETAIL.md"
+  }
+}

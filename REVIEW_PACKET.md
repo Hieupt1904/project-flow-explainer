@@ -6,14 +6,14 @@ Mọi con số đều có log/artifact tương ứng, sinh từ cùng một comm
 | Mục | Giá trị |
 |---|---|
 | Repo | `https://github.com/Hieupt1904/project-flow-explainer` |
-| Commit nguồn | `bd02147` (code 0.3.0); commit kế tiếp chỉ chứa bằng chứng |
-| Package version | `0.7.6` (`engines.dsh: 0.2.2-rc.5`) |
-| Tarball | `dsh-project-flow-explainer-0.7.10.tgz` · 119 290 byte · sha256 `38d68cd09a0ac08845037b4083862dd9e7e85f9b7e865c2ddc32bfe0fb644998…25bb5c` |
+| Commit nguồn | Xem `source_commit` trong [manifest bằng chứng](artifacts/review/evidence-manifest.json). |
+| Phiên bản gói | `0.7.11` (`engines.dsh`: `>=0.2.2-rc.2 <0.3.0`) |
+| Tarball | `dsh-project-flow-explainer-0.7.11.tgz` · 243 158 byte · SHA-256 `88bfa9ad2b1a04a57841e54bf16fdff6c9db69223d936e5d0168e925536b8676` |
 | Tarball trước | `dsh-project-flow-explainer-0.3.0.tgz` (lịch sử) |
 | Test | 209 Python · 16 adapter · 9 knowledge · 8 lifecycle · 10 client · 13 command · 5 settings · 9 arguments · 18 description · 2 pack — 0 fail |
 | Policy | `check_repo_policy.py` OK: không absolute path, nested artifact, secret-shape |
 | UI | 12 tổ hợp (3 sample × 4 viewport) sạch; tương tác search/click/zoom/fit chạy |
-| Trạng thái tổng | registry-runtime: **verified** (20261120-112353-dsh-smoke.json) · model-driven: **not_verified** — không claim khi chưa có trajectory của đúng build |
+| Trạng thái bản `0.7.11` | Đã thử cài gói vào hồ sơ DSH tạm. Kiểm thử qua registry và việc mô hình tự chọn công cụ: **CHƯA XÁC MINH**. |
 
 Số liệu máy đọc: [artifacts/review/evidence-manifest.json](artifacts/review/evidence-manifest.json).
 Sinh lại bằng một lệnh: `python3 scripts/regen_evidence.py`.

@@ -1,202 +1,94 @@
-# dsh-project-flow-explainer (DSH adapter)
+# Project Flow Explainer cho DeepSeek Harness
 
-Adapter mỏng đăng ký 7 tool trong DeepSeek Harness và gọi lại core Python qua subprocess.
-Core không phụ thuộc DSH: xoá thư mục này thì CLI Python vẫn chạy nguyên vẹn.
+**ĐÃ TRIỂN KHAI** — Plugin DeepSeek Harness (DSH) dựng sơ đồ tương tác từ mã nguồn và trả vị trí làm căn cứ cho từng bước có bằng chứng. Gói chứa lõi Python. Bạn dùng plugin mà không cần tải kho mã Project Flow Explainer.
 
-## Yêu cầu
+![Luồng xuất báo cáo ở chế độ Đơn giản, với bảng chi tiết và căn cứ của bước đang chọn](https://raw.githubusercontent.com/Hieupt1904/project-flow-explainer/v0.7.11/dsh-plugin/docs/flow-simple.jpg)
 
-| Thành phần | Giá trị |
-|---|---|
-| Node | `>= 20` (đã test 24.22.3) |
-| DSH | `0.2.2-rc.5` (`engines.dsh`) |
-| Python | 3.12 (chỉ standard library) |
-| Mạng | không cần lúc chạy; chỉ cần khi cài bundle lần đầu vào profile mới |
-
-## Lệnh người dùng: `/project-flow-explainer`
-
-Người dùng gõ trực tiếp trong Web UI, không cần nhờ model chọn tool:
-
-```text
-/project-flow-explainer từ lúc bấm xuất báo cáo đến khi nhận được file
-/project-flow-explainer xuất Excel --repo /duong/dan/khac
-```
-
-Plugin đăng ký qua `ctx.commands.register()` (`lib/command.js`), nên:
-
-- Kết quả hiện thẳng trong UI, **không vào lịch sử model** và không tốn token —
-  đúng đặc tính của command, khác với tool.
-- Repository lấy từ working directory của session; `--repo` để chỉ định nơi khác.
-- Cùng chính sách với tool: `allowedRoots`, cùng core, cùng chỗ ghi artifact.
-- Lệnh không có thì plugin vẫn mount: `commands` là service tùy chọn, composition
-  headless không có adapter lệnh.
-
-Lệnh trả `{kind:'success', text}` hoặc `{kind:'error', text}` với mã lỗi ổn định
-(`allowed_roots_unconfigured`, `repository_outside_allowed_roots`, `core_timeout`, …).
-Khi giao diện hỏi mã lỗi, đọc nguyên văn trong `text`, không đoán.
-
-## Tool
-
-| Tool | Quyền ghi | Ghi chú |
-|---|---|---|
-| `project_flow_explain` | có (artifact flow) | trả đường dẫn tương đối tính từ repository |
-| `project_code_index` | có (`.pfe/index`) | full hoặc incremental |
-| `project_code_search` | không | chỉ trả đường dẫn tương đối |
-| `project_context_pack` | không | mặc định không snippet |
-| `project_impact_analysis` | không | cần index |
-| `project_verify_flow` | không | verdict pass/partial/fail |
-| `project_knowledge_refresh` | có (`.pfe/index`) | chỉ parse lại file đã đổi |
+*Ảnh chụp sơ đồ HTML sinh từ kho mã mẫu.*
 
 ## Cài đặt
 
-### Từ checkout (dev)
+| Thành phần | Phiên bản |
+|---|---|
+| Node.js | `>=20` |
+| DeepSeek Harness | Dải khai báo: `>=0.2.2-rc.2 <0.3.0`. |
+| Python | Dùng Python 3.12. Lõi chỉ dùng thư viện chuẩn. |
+
+Cài vào hồ sơ cần dùng. Ví dụ dưới đây dùng hồ sơ `pfe-test`:
 
 ```bash
-dsh plugin --profile pfe-test add /duong/dan/project-flow-explainer/dsh-plugin
+dsh plugin --profile pfe-test add dsh-project-flow-explainer@latest
 ```
 
-### Từ tarball (độc lập, không cần checkout)
+Để cài từ tệp gói, tải [bản phát hành GitHub mới nhất](https://github.com/Hieupt1904/project-flow-explainer/releases/latest) rồi chỉ định đường dẫn tệp đã tải:
 
 ```bash
-node dsh-plugin/scripts/pack.mjs                                  # -> dist/dsh-project-flow-explainer-0.7.6.tgz
-dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.7.6.tgz"
+dsh plugin --profile pfe-test add "$PWD/project-flow-explainer.tgz"
 ```
 
-Tarball chứa `vendor/core/{scripts,assets,tools,pfe}` do script pack sinh ra từ checkout.
-Bản cài độc lập tìm được `scripts/build_flow.py` và `tools/pfe_cli.py` mà không cần thư mục cha.
+Khởi động lại DSH sau khi cài hoặc nâng cấp. Lõi phân tích không cần kết nối mạng khi chạy.
 
-## Cấu hình: override row, không insert lại
+## Cấu hình
 
-`cordis.patch.yml` của bundle **đã** insert row `project-flow-explainer`.
-Profile chỉ cần override theo id; insert lại cùng id sẽ tạo duplicate loader entry:
+Trong giao diện web, mở **Plugins**. Tìm bundle rồi chọn **Configure** tại dòng `project-flow-explainer`. Thêm đường dẫn tuyệt đối vào **Thư mục được đọc** (`allowedRoots`), rồi chọn **Lưu cấu hình**.
+
+| Trường | Giá trị mặc định hoặc cách dùng |
+|---|---|
+| `allowedRoots` | Rỗng. Điền đường dẫn tuyệt đối cho các thư mục plugin được đọc. |
+| `pythonPath` | `python3`. Đổi nếu cần chọn trình thông dịch khác. |
+| `coreRoot` | Plugin tự dò lõi. Chỉ đặt khi lõi nằm ở vị trí khác. |
+| `timeoutMs` | `180000` ms cho mỗi lần gọi. |
+| `maxOutputBytes` | `1048576` byte cho đầu ra của tiến trình con. |
+
+Nếu dùng bản vá cấu hình, ghi đè dòng `project-flow-explainer` đã có thay vì chèn thêm dòng cùng định danh:
 
 ```yaml
 - id: project-flow-explainer
   config:
     allowedRoots:
-      - /home/ban/workspace
+      - /duong/dan/workspace
     pythonPath: python3
-    timeoutMs: 180000
-    maxOutputBytes: 1048576
 ```
 
-| Key | Mặc định | Ý nghĩa |
-|---|---|---|
-| `allowedRoots` | không có → từ chối mọi path | danh sách thư mục gốc được đọc, so sánh sau `realpath` |
-| `pythonPath` | `python3` | interpreter gọi core |
-| `coreRoot` | tự dò (`vendor/core` → thư mục cha) | chỉ đặt khi core ở nơi khác; sai là `core_not_found` |
-| `timeoutMs` | `180000` | ngân sách mỗi lần gọi |
-| `maxOutputBytes` | `1048576` | giới hạn stdout/stderr của child |
+## Sử dụng
 
-Không có cấu hình nào cho phép artifact ra ngoài `<repo>/artifacts/flows`.
+Nhập lệnh trong giao diện web:
 
-### Profile template `headless`
-
-Template này không có API key và cần preset permission tường minh. Thêm vào patch layer:
-
-```yaml
-- id: permission
-  config:
-    defaultPreset: workspace-write
-- id: project-flow-explainer
-  config:
-    allowedRoots: ['/duong/dan/workspace']
+```text
+/project-flow-explainer Giải thích luồng xuất báo cáo
+/project-flow-explainer Giải thích luồng xuất báo cáo --repo /duong/dan/repo
 ```
 
-Thiếu `defaultPreset` thì DSH dừng với lỗi composed sandbox/approval defaults.
+Nếu bỏ `--repo`, plugin dùng thư mục làm việc của phiên. Mở `flow.html` trong `<repo>/artifacts/flows/<slug>/` để xem sơ đồ. Plugin trả đường dẫn kết quả tính từ thư mục gốc của kho mã.
 
-## Mã lỗi ổn định
-
-| Mã | Khi nào |
+| Công cụ | Dùng để |
 |---|---|
-| `allowed_roots_unconfigured` | thiếu hoặc rỗng `allowedRoots` |
-| `allowed_roots_invalid` | phần tử không phải chuỗi hoặc không tuyệt đối |
-| `repository_outside_allowed_roots` | repo ngoài root sau realpath |
-| `repository_path_missing` / `_invalid_type` / `_relative` | tham số sai |
-| `invalid_artifact_root` / `artifact_symlink_escape` | output không phải `artifacts/flows` |
-| `core_timeout` | vượt `timeoutMs` |
-| `core_failed` / `core_spawn_failed` | core lỗi hoặc không chạy được |
-| `core_cli_not_found` | bản core cũ không có `tools/pfe_cli.py` |
-| `index_missing` | chưa chạy `project_code_index` |
-| `no_changed_files` | impact thiếu `changed_files` và `diff` |
-| `invalid_arguments` | tham số không phải object |
-| `ABORTED` | runtime map từ `Error{name:'AbortError'}` |
+| `project_flow_explain` | Dựng sơ đồ cho một luồng cụ thể. |
+| `project_code_index` | Tạo hoặc cập nhật chỉ mục cục bộ. |
+| `project_code_search` | Tìm theo tên hàm, tuyến xử lý hoặc từ khóa. |
+| `project_context_pack` | Tìm điểm vào, tệp và kiểm thử liên quan trước khi sửa. |
+| `project_impact_analysis` | Tìm luồng, hàm và kiểm thử có thể chịu tác động sau khi sửa. |
+| `project_knowledge_refresh` | Cập nhật chỉ mục theo phần mã đã đổi. |
+| `project_verify_flow` | Kiểm tra tĩnh sơ đồ và tệp kết quả; không chạy kiểm thử ứng dụng. |
 
-## Gỡ cài đặt
+### Lỗi thường gặp
+
+| Mã lỗi | Cách khắc phục |
+|---|---|
+| `allowed_roots_unconfigured` | Điền ít nhất một thư mục tuyệt đối vào `allowedRoots`. |
+| `repository_outside_allowed_roots` | Chọn kho mã nằm trong một thư mục đã khai báo. |
+| `index_missing` | Chạy `project_code_index` trước khi tra cứu. |
+| `core_cli_not_found` | Cài lại từ gói có thư mục `vendor/core/`. |
+
+## Đóng gói từ mã nguồn
+
+Chạy từ thư mục gốc của kho mã Project Flow Explainer:
 
 ```bash
-dsh plugin --profile pfe-test remove dsh-project-flow-explainer
+node dsh-plugin/scripts/pack.mjs
+node --test dsh-plugin/tests/*.test.mjs
 ```
 
-Profile `web` không bị chạm trong mọi bước.
+Script in đường dẫn tệp gói trong trường `tarball`. Khi phát hành lên npm, dùng tệp gói này. Đóng gói trực tiếp từ thư mục `dsh-plugin/` sẽ bỏ sót lõi Python.
 
-## Kiểm thử
-
-```bash
-node --test dsh-plugin/tests/plugin.test.mjs      # policy, artifact, abort, config
-node --test dsh-plugin/tests/knowledge.test.mjs   # 6 tool tri thức + validation
-node --test dsh-plugin/tests/lifecycle.test.mjs   # mount/dispose/remount, huỷ khi đang chạy
-node --test dsh-plugin/tests/settings.test.mjs    # binding settings theo entry id và package name
-node --test dsh-plugin/tests/arguments.test.mjs   # từ chối tham số không khai báo, cả 7 tool
-node --test dsh-plugin/tests/command.test.mjs     # lệnh /project-flow-explainer (8 test)
-node --test dsh-plugin/tests/pack.test.mjs        # pack + cài độc lập
-```
-
-## Đối chiếu với chuẩn plugin DSH
-
-Rà theo gói tài liệu `dsh-plugin-dev` (bản dịch của docs.deepseekdocs.com) và đối chiếu
-với chính bản cài đang chạy.
-
-| Chuẩn | Trạng thái trong plugin này |
-|---|---|
-| `export const name` + `export function apply(ctx, config)` | **ĐẠT** (`index.js`) |
-| `inject` khai báo trước khi dùng `ctx.<service>` | **ĐẠT**: `inject = ['tools']`; `settings` lấy qua `ctx.inject` tùy chọn |
-| Tool có `output { schema, render }`, `timeoutMs`, `isConcurrencySafe` | **ĐẠT**: 7/7 tool có đủ ba trường |
-| Tên tool không đụng `run_code` | **ĐẠT** |
-| Config schema + người dùng chỉnh trong Settings | **ĐẠT**, nhưng nạp `@deepseek-ai/schemastery` qua resolver neo vào bản cài (xem dưới) |
-| Bundle layer qua `dsh.bundle.patch` | **ĐẠT**: `cordis.patch.yml`, dòng `insert` id `project-flow-explainer` |
-| Nửa client (nếu có UI) | **ĐẠT**: `dsh.client` + `client.js` đăng ký slot `plugins.bundle.config` / `plugins.row.config` |
-| Hủy và dọn tài nguyên | **ĐẠT**: `exec.signal` → `AbortError`; `ctx.effect` dọn run đang bay |
-| Env của người dùng đọc qua snapshot khởi chạy | **ĐẠT** (working tree, chưa phát hành): `PFE_CORE_ROOT` đọc qua `ctx.get('launchEnvironment')`, lùi về `process.env` khi host không có |
-| Tham số được kiểm trước khi chạy | **ĐẠT** bằng `lib/validate.js` + `rejectUnknownKeys()` (tương đương phần mà `defineTool` lo) |
-| `defineTool` từ `@deepseek-ai/dsh-tools` | **KHÔNG dùng, có chủ ý** — xem dưới |
-| `ctx.invariants`, Typert, `deferLoading`, `presentationMeta` | **KHÔNG dùng**: không cần cho một plugin 7 tool cục bộ |
-
-### Vì sao không dùng `defineTool`
-
-`defineTool` là API chuẩn: nó chuyển `parameters` sang JSON Schema và **tự kiểm tham số trước
-khi gọi `execute`**, ném `ToolArgsError`. Plugin này dựng thẳng object rồi `ctx.tools.register()`
-vì `@deepseek-ai/dsh-tools` không resolve được từ thư mục plugin trong profile (kiểm bằng
-`createRequire` từ `~/.dsh/profiles/web/node_modules/dsh-project-flow-explainer/`), và plugin
-giữ cam kết "không import `@deepseek-ai/*`" để bản `link:`/tgz cài được ở mọi profile.
-
-Cái mất khi bỏ `defineTool`: runtime **không** kiểm tham số theo schema, và lỗi sai tham số ra
-dạng `InputError` của plugin thay vì `ToolArgsError`. Plugin tự bù đúng phần thiếu đó:
-
-| `defineTool` cho gì | Plugin làm gì thay thế |
-|---|---|
-| chuyển `parameters` sang JSON Schema | khai báo thẳng JSON Schema trong định nghĩa tool |
-| kiểm kiểu/giá trị theo schema trước `execute` | `lib/validate.js` kiểm từng trường với mã lỗi riêng (`repository_path_missing`, `top_k_out_of_range`, …) |
-| `additionalProperties: false` được thực thi | `rejectUnknownKeys()` — từ chối khóa lạ bằng mã `unknown_arguments` (`tests/arguments.test.mjs`) |
-| lỗi là `ToolArgsError` | lỗi là `InputError` với `code` ổn định, cộng `hint` |
-
-Nếu muốn đúng chuẩn tuyệt đối, thêm `@deepseek-ai/dsh-tools` vào `peerDependencies` rồi bọc
-`defineTool`, và chấp nhận rằng profile phải resolve được gói đó.
-
-### Chi phí prompt của 7 tool
-
-Mô tả tool được tính vào system prompt **mỗi bước** của model, nên mỗi dòng phải trả lại giá trị
-định tuyến của nó. Bảy tool hiện tốn **3 517 ký tự `description` + 2 633 ký tự `parameters` =
-6 150 ký tự (~1 757 token)** mỗi bước.
-
-Đã thử cắt xuống 4 dòng/tool (bỏ `ĐIỀU KIỆN` và `TIẾP THEO`) để giảm còn 5 219 ký tự, nhưng
-`dsh-plugin/tests/description.test.mjs` chứng minh đó là đánh đổi sai: model mất thông tin tiên
-quyết và bước kế tiếp nên chọn sai tool, và chi phí của một lần chọn sai lớn hơn 900 ký tự tiết
-kiệm được. Sáu dòng là mức giữ lại đủ. Thêm tool mới thì phải trả chi phí này mỗi bước — ưu tiên
-gộp tool hơn là thêm tool.
-
-### Hợp đồng id của settings
-
-`ctx.settings.describe()` trả row theo **id của dòng trong profile**, không phải tên package.
-Plugin nhận cả hai: `project-flow-explainer` (id trong `cordis.patch.yml`) và
-`dsh-project-flow-explainer` (tên package, dùng khi mount tay). Không so khớp theo chuỗi con.
-Nếu dòng settings chưa xuất hiện lúc mount, lần `settings/document-updated` kế tiếp sẽ đọc lại.
+Xem thêm [hướng dẫn sử dụng](https://github.com/Hieupt1904/project-flow-explainer/blob/main/USAGE_GUIDE.md) và [mã nguồn](https://github.com/Hieupt1904/project-flow-explainer).
