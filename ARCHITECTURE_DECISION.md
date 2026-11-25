@@ -1,12 +1,30 @@
 # ARCHITECTURE_DECISION — Hybrid Project Flow Explainer × DeepSeek Harness
 
-Trạng thái: **CHỐT** (cập nhật 2026-11-19 cho 0.3.0). Hướng: Hybrid — core độc lập + adapter DSH.
+## Trạng thái hiện hành: 0.9.0-rc.2
+
+**ĐÃ TRIỂN KHAI** — Project Flow Explainer giữ hai đường dựng riêng. Các mục quyết định bên dưới ghi lại bối cảnh của các phiên bản trước.
+
+| Đường dựng | Thành phần | Đầu ra |
+|---|---|---|
+| Sơ đồ một luồng | `build_flow.py` và lõi `pfe` phân tích tĩnh. `render_flow.py` dùng trình xem chính nếu có Node.js hoặc giao diện Python dự phòng. | `<repo>/artifacts/flows/<slug>/`: `flow.html`, `flow.json`, `overview.md` và `run.json` nội bộ. |
+| Bản đồ toàn kho | `project_map.mjs` gọi bộ quét và trình dựng Node.js trong `vendor/project-flow-explainer/`. | `<repo>/project-flow-explainer/`: `index.html`, `graph.json` và các tệp cấu hình bản đồ. |
+| Chỉ mục mã nguồn | `pfe_cli.py` gọi lớp chỉ mục và truy vấn của lõi Python. | `<repo>/.pfe/index/` và kết quả tra cứu. |
+
+Plugin DeepSeek Harness (DSH) giữ nguyên bảy công cụ. Các tùy chọn `--map`, `--refresh-map` và `--blueprint` thuộc lệnh `/project-flow-explainer`; chúng dùng cùng phạm vi `allowedRoots`. Gói plugin phân phối cả lõi Python và mã dựng bản đồ.
+
+HTML mở trực tiếp để xem. Máy chủ bản đồ chỉ lắng nghe loopback và tra cứu dữ liệu tại máy theo mặc định. Khi người dùng bật `--agent`, máy chủ chuyển câu hỏi và dữ liệu chọn từ bản đồ cho mô hình của hồ sơ `headless`. Đường hỏi này tách khỏi bước dựng và phân tích tĩnh.
+
+Xem [hướng dẫn sử dụng](USAGE_GUIDE.md) để chạy các lệnh. Xem [ghi chú xuất xứ](vendor/project-flow-explainer/UPSTREAM.md) để đối chiếu thư viện tích hợp.
+
+## Quyết định lịch sử
+
+Hướng ban đầu: lõi độc lập và bộ tích hợp DSH. Các mục sau mô tả hợp đồng tại thời điểm ghi nhận. Mục trạng thái hiện hành ở trên áp dụng cho phiên bản mới.
 
 ## 0. Bổ sung 0.3.0: vì sao thêm lớp tri thức code
 
 Flow diagram chỉ trả lời "một luồng đi qua đâu". Agent sửa code cần ba câu khác:
 "chỗ này nằm ở đâu", "sửa nó ảnh hưởng gì", "sửa xong kiểm tra bằng gì". Ba câu đó cần
-fact ổn định, không phải một hình vẽ. Vì vậy core được tách thành:
+fact ổn định, không đồng nhất với một hình vẽ. Vì vậy core được tách thành:
 
 ```text
 pfe.facts      đọc source -> fact tĩnh (file, symbol, route, import, call site, error site)

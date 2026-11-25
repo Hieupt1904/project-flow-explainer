@@ -41,7 +41,7 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: syntax check
         run: |
-          for file in dsh-plugin/index.js dsh-plugin/lib/*.js dsh-plugin/scripts/pack.mjs; do
+          for file in dsh-plugin/index.js dsh-plugin/lib/*.js dsh-plugin/scripts/pack.mjs assets/viewer/*.js; do
             node --check "$file"
           done
       # Every adapter test file runs here. Running a subset let the lifecycle,
@@ -59,6 +59,8 @@ jobs:
             dsh-plugin/tests/description.test.mjs \
             dsh-plugin/tests/command.test.mjs \
             dsh-plugin/tests/flow-filter.test.mjs
+      - name: viewer and Project Flow Explainer tests
+        run: node --test tests/viewer-model.test.mjs tests/project-map-integration.test.mjs
       - name: pack + independent install
         run: node --test dsh-plugin/tests/pack.test.mjs
 

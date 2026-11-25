@@ -1,8 +1,8 @@
 # Project Flow Explainer cho DeepSeek Harness
 
-**ĐÃ TRIỂN KHAI** — Plugin DeepSeek Harness (DSH) dựng sơ đồ tương tác từ mã nguồn và trả vị trí làm căn cứ cho từng bước có bằng chứng. Gói chứa lõi Python. Bạn dùng plugin mà không cần tải kho mã Project Flow Explainer.
+**ĐÃ TRIỂN KHAI** — Plugin DeepSeek Harness (DSH) dựng sơ đồ tương tác từ mã nguồn và trả vị trí làm căn cứ cho từng bước có bằng chứng. Gói chứa lõi Python và trình dựng bản đồ Node.js. Bạn dùng plugin mà không cần tải riêng kho mã Project Flow Explainer.
 
-![Luồng xuất báo cáo ở chế độ Đơn giản, với bảng chi tiết và căn cứ của bước đang chọn](https://raw.githubusercontent.com/Hieupt1904/project-flow-explainer/v0.7.11/dsh-plugin/docs/flow-simple.jpg)
+![Sơ đồ luồng với phần căn cứ và hướng dẫn đi theo nhánh](docs/flow-simple.jpg)
 
 *Ảnh chụp sơ đồ HTML sinh từ kho mã mẫu.*
 
@@ -26,7 +26,20 @@ dsh plugin --profile pfe-test add dsh-project-flow-explainer@latest
 dsh plugin --profile pfe-test add "$PWD/project-flow-explainer.tgz"
 ```
 
-Khởi động lại DSH sau khi cài hoặc nâng cấp. Lõi phân tích không cần kết nối mạng khi chạy.
+Để thử bản `0.9.0-rc.2` trên npm, chỉ định phiên bản thay cho `latest`:
+
+```bash
+dsh plugin --profile pfe-test add dsh-project-flow-explainer@0.9.0-rc.2
+```
+
+Bạn cũng có thể tải [gói GitHub của bản thử nghiệm](https://github.com/Hieupt1904/project-flow-explainer/releases/tag/v0.9.0-rc.2) hoặc dựng gói từ kho mã này:
+
+```bash
+node dsh-plugin/scripts/pack.mjs
+dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.9.0-rc.2.tgz"
+```
+
+Khởi động lại hồ sơ DSH sau khi cài hoặc nâng cấp. Các lệnh dựng bản đồ và phân tích luồng chạy tại máy, không gọi mô hình.
 
 ## Cấu hình
 
@@ -57,9 +70,32 @@ Nhập lệnh trong giao diện web:
 ```text
 /project-flow-explainer Giải thích luồng xuất báo cáo
 /project-flow-explainer Giải thích luồng xuất báo cáo --repo /duong/dan/repo
+/project-flow-explainer --map
+/project-flow-explainer --refresh-map
+/project-flow-explainer --blueprint
 ```
 
-Nếu bỏ `--repo`, plugin dùng thư mục làm việc của phiên. Mở `flow.html` trong `<repo>/artifacts/flows/<slug>/` để xem sơ đồ. Plugin trả đường dẫn kết quả tính từ thư mục gốc của kho mã.
+Nếu bỏ `--repo`, plugin dùng thư mục làm việc của phiên. Mở `flow.html` trong `<repo>/artifacts/flows/<slug>/` để xem sơ đồ. Plugin trả đường dẫn kết quả tính từ thư mục gốc của kho mã. Lệnh `--map` dựng `project-flow-explainer/index.html`. Lệnh `--blueprint` đọc `project-flow-explainer/plan.json` có sẵn. Cả chế độ luồng và các lệnh bản đồ dùng cùng phạm vi `allowedRoots`.
+
+### Thanh Hỏi trên bản đồ
+
+Chạy một trong hai lệnh sau từ thư mục gốc của kho mã đã dựng bản đồ. Sau đó, mở địa chỉ máy chủ in ra.
+
+```bash
+# Tra cứu dữ liệu bản đồ tại máy
+node project-flow-explainer/serve.mjs --no-open
+
+# Dùng mô hình của hồ sơ DSH headless đã cấu hình
+node project-flow-explainer/serve.mjs --no-open --agent
+```
+
+1. Khi bật `--agent`, chọn cặp mô hình và nhà cung cấp cạnh thanh **Hỏi**. Danh sách lấy từ các mô hình khai báo trong hồ sơ `web`. Tải lại bản đồ sau khi thêm mô hình trong DSH.
+2. Mỗi lần hỏi chạy qua `headless` với bản vá tạm. DSH tự lấy thông tin xác thực đã lưu. Công cụ không sửa hồ sơ hoặc trả giá trị khóa về trình duyệt.
+3. Nếu dùng hồ sơ khác, đặt `PROJECT_FLOW_DSH_PROFILE` trước khi chạy máy chủ. Nếu máy có nhiều bản DSH, đặt `PROJECT_FLOW_DSH` thành đường dẫn tuyệt đối tới trình khởi chạy đã dùng để cấu hình mô hình.
+
+Danh sách hiện hỗ trợ các mô hình khai báo trong bộ điều hợp `llm-pi-ai` và `llm-deepseek`. Khi danh sách trống hoặc chưa đọc được, thanh **Hỏi** dùng cấu hình mặc định của `headless`. Nếu gặp `MISSING_CREDENTIAL`, kiểm tra nhà cung cấp đã chọn hoặc dùng **Tra cứu bản đồ cục bộ**.
+
+Mở trực tiếp `index.html` để xem bản đồ. Để hỏi, mở địa chỉ do máy chủ in ra.
 
 | Công cụ | Dùng để |
 |---|---|
@@ -79,6 +115,7 @@ Nếu bỏ `--repo`, plugin dùng thư mục làm việc của phiên. Mở `flo
 | `repository_outside_allowed_roots` | Chọn kho mã nằm trong một thư mục đã khai báo. |
 | `index_missing` | Chạy `project_code_index` trước khi tra cứu. |
 | `core_cli_not_found` | Cài lại từ gói có thư mục `vendor/core/`. |
+| `MISSING_CREDENTIAL` | Trong **Models** của DSH, lưu khóa cho nhà cung cấp mà hồ sơ `headless` đang dùng. Để tiếp tục ngay, chọn **Tra cứu bản đồ cục bộ** trong thanh Hỏi. |
 
 ## Đóng gói từ mã nguồn
 
@@ -89,6 +126,6 @@ node dsh-plugin/scripts/pack.mjs
 node --test dsh-plugin/tests/*.test.mjs
 ```
 
-Script in đường dẫn tệp gói trong trường `tarball`. Khi phát hành lên npm, dùng tệp gói này. Đóng gói trực tiếp từ thư mục `dsh-plugin/` sẽ bỏ sót lõi Python.
+Script in đường dẫn tệp gói trong trường `tarball`. Khi phát hành lên npm, dùng tệp gói này. Đóng gói trực tiếp từ thư mục `dsh-plugin/` sẽ bỏ sót các tệp lõi trong `vendor/core/`.
 
 Xem thêm [hướng dẫn sử dụng](https://github.com/Hieupt1904/project-flow-explainer/blob/main/USAGE_GUIDE.md) và [mã nguồn](https://github.com/Hieupt1904/project-flow-explainer).

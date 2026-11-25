@@ -1,1 +1,1 @@
-![Ảnh sơ đồ luồng xuất báo cáo, với các bước và bảng căn cứ mã nguồn](flow-simple.jpg)
+![Sơ đồ luồng minh họa kích hoạt bảo hành và bảng hướng dẫn chọn nhánh](flow-simple.jpg)

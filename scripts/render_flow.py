@@ -8,8 +8,12 @@ No third-party packages required.
 """
 
 import argparse
+import base64
+import hashlib
 import json
 import re
+import shutil
+import subprocess
 import sys
 from collections import defaultdict, deque
 from pathlib import Path
@@ -23,6 +27,8 @@ REQUIRED_GRAPH = ("flow_id", "title", "description", "entry_node", "nodes", "edg
 REQUIRED_NODE = ("id", "title", "type", "summary", "confidence")
 REQUIRED_EDGE = ("from", "to", "label", "kind")
 ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,80}$")
+# A 250-step chain occupies about 98,500 units after layered layout.
+MAX_COORDINATE = 100_000
 
 
 class FlowError(ValueError):
@@ -79,7 +85,7 @@ def validate(data):
                 text_field(node, field, context, empty=True)
         if ("x" in node) != ("y" in node):
             fail(f"{context}: cần có cả x và y, hoặc bỏ cả hai")
-        if "x" in node and (not all(isinstance(node[k], (int, float)) and not isinstance(node[k], bool) and -100 <= node[k] <= 25000 for k in ("x", "y"))):
+        if "x" in node and (not all(isinstance(node[k], (int, float)) and not isinstance(node[k], bool) and -100 <= node[k] <= MAX_COORDINATE for k in ("x", "y"))):
             fail(f"{context}: tọa độ x/y không hợp lệ")
         refs = node.get("source_refs", [])
         if not isinstance(refs, list):
@@ -187,15 +193,44 @@ def assign_positions(graph, info):
             item["y"] = padding_top + row * 282
 
 
-def render_json(graph):
+def render_json(graph, viewer="auto"):
+    """Render with Project Flow Explainer when Node is installed; keep the Python-only renderer available."""
+    if viewer == "floorplan":  # Legacy CLI selector.
+        viewer = "project-flow-explainer"
+    runtime = shutil.which("node") if viewer != "classic" else None
+    adapter = HERE / "scripts" / "flow_project_map.mjs"
+    if runtime and adapter.is_file():
+        try:
+            output = subprocess.run([runtime, str(adapter)], input=json.dumps(graph, ensure_ascii=False),
+                                    capture_output=True, text=True, encoding="utf-8", timeout=25)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            fail(f"Trình dựng Project Flow Explainer không khởi chạy: {type(exc).__name__}")
+        if output.returncode or not output.stdout.startswith("<!doctype html>"):
+            fail("Trình dựng Project Flow Explainer báo lỗi khi tạo HTML.")
+        return output.stdout
+    if viewer == "project-flow-explainer":
+        fail("Cần Node.js và thư mục vendor/project-flow-explainer để dựng giao diện Project Flow Explainer.")
     serialized = json.dumps(graph, ensure_ascii=False, separators=(",", ":"))
     # Leave JSON valid; prevent data from breaking out of the application/json script element.
     for old, new in (("&", "\\u0026"), ("<", "\\u003c"), (">", "\\u003e"), ("\u2028", "\\u2028"), ("\u2029", "\\u2029")):
         serialized = serialized.replace(old, new)
     template = TEMPLATE.read_text(encoding="utf-8")
-    if template.count("__FLOW_JSON__") != 1:
-        fail("Template HTML sai: cần chính xác một placeholder __FLOW_JSON__")
-    return template.replace("__FLOW_JSON__", serialized)
+    viewer = TEMPLATE.parent / "viewer"
+    script = "\n".join((viewer / name).read_text(encoding="utf-8")
+                       for name in ("model.js", "ui.js", "map.js", "viewer.js"))
+    digest = base64.b64encode(hashlib.sha256(script.encode("utf-8")).digest()).decode("ascii")
+    slots = {
+        "__VIEWER_CSP__": ("default-src 'none'; script-src 'sha256-" + digest
+                           + "'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"),
+        "__VIEWER_CSS__": (viewer / "viewer.css").read_text(encoding="utf-8"),
+        "__VIEWER_JS__": script,
+        "__FLOW_JSON__": serialized,
+    }
+    for slot in slots:
+        if template.count(slot) != 1:
+            fail(f"Template HTML sai: cần chính xác một placeholder {slot}")
+    # Replace in one pass so placeholder-like strings in graph data remain intact.
+    return re.sub("|".join(map(re.escape, slots)), lambda match: slots[match[0]], template)
 
 
 def main(argv=None):
@@ -203,6 +238,9 @@ def main(argv=None):
     parser.add_argument("input", type=Path, help="Path to workflow graph JSON")
     parser.add_argument("--out", type=Path, help="HTML output path")
     parser.add_argument("--check-only", action="store_true", help="Only validate graph")
+    parser.add_argument("--viewer", choices=("auto", "project-flow-explainer", "classic"), default="auto",
+                        type=lambda value: "project-flow-explainer" if value == "floorplan" else value,
+                        help="auto: Project Flow Explainer with Node.js, classic otherwise")
     args = parser.parse_args(argv)
     try:
         data = json.loads(args.input.read_text(encoding="utf-8"))
@@ -213,7 +251,7 @@ def main(argv=None):
         if not args.out:
             fail("Thiếu --out để ghi HTML. Hoặc truyền --check-only")
         assign_positions(data, info)
-        html = render_json(data)
+        html = render_json(data, viewer=args.viewer)
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(html, encoding="utf-8")
         print(f"HTML created: {args.out.resolve()} ({args.out.stat().st_size:,} bytes)")

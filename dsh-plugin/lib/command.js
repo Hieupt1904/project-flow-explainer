@@ -12,7 +12,8 @@
  * invocation, same artifact location, no network, no repository code execution.
  */
 import path from 'node:path'
-import { runCore } from './core-runner.js'
+import { runCli, runCore } from './core-runner.js'
+import { existsSync } from 'node:fs'
 import {
   InputError, resolveArtifactRoot, resolveRepository,
 } from './paths.js'
@@ -87,7 +88,7 @@ async function repositoryFor(ctx, agent, explicit, signal, settings) {
 export function flowCommand({ ctx, settings, core }) {
   return {
     name: COMMAND_NAME,
-    description: 'Dựng sơ đồ luồng từ repository hiện tại: flow.html mở offline + flow.json + overview.md',
+    description: 'Dựng sơ đồ luồng hoặc bản đồ Project Flow Explainer toàn kho bằng --map, --refresh-map, --blueprint.',
     input: {
       hint: '<mô tả luồng> [--repo <đường dẫn tuyệt đối>]',
       attachments: false,
@@ -99,11 +100,12 @@ export function flowCommand({ ctx, settings, core }) {
       const { agent, rawInput, signal } = invocation
       const { request, repository } = parseInput(rawInput)
       if (request === '') return { kind: 'error', text: 'Thiếu mô tả luồng.\n' + USAGE }
+      const mapMode = new Map([['--map', 'build'], ['--refresh-map', 'refresh'], ['--blueprint', 'plan']]).get(request)
       let root
       let outputDirectory
       try {
         root = (await repositoryFor(ctx, agent, repository, signal, settings)).root
-        outputDirectory = resolveArtifactRoot(root)
+        if (!mapMode) outputDirectory = resolveArtifactRoot(root)
       } catch (error) {
         const code = error?.code ?? 'command_failed'
         const hint = error?.hint ? '\n' + error.hint : ''
@@ -122,6 +124,22 @@ export function flowCommand({ ctx, settings, core }) {
         }
       }
       if (signal?.aborted) return { kind: 'error', text: 'ABORTED: lệnh đã bị huỷ.' }
+      if (mapMode) {
+        try {
+          const coreRoot = (typeof core === 'function' ? core() : core).root
+          const script = path.join(coreRoot, 'scripts', 'project_map.mjs')
+          if (!existsSync(script)) return { kind: 'error', text: 'map_core_missing: Gói core chưa chứa Project Flow Explainer.' }
+          const run = await runCli({ pythonPath: process.execPath, coreRoot, script, args: [mapMode, root], signal,
+            timeoutMs: settings.timeoutMs, maxOutputBytes: settings.maxOutputBytes })
+          if (run.aborted || run.timedOut) return { kind: 'error', text: run.aborted ? 'ABORTED: Lệnh đã bị hủy.' : 'core_timeout: Dựng bản đồ vượt quá thời gian.' }
+          const data = JSON.parse(run.stdout.trim())
+          if (run.code !== 0 || data.status !== 'ok') return { kind: 'error', text: (data.code || 'map_failed') + ': ' + (data.message || 'Trình dựng báo lỗi.') }
+          return { kind: 'success', text: ['Bản đồ Project Flow Explainer: ' + data.artifacts.html,
+            data.counts.files + ' tệp · ' + data.counts.modules + ' nhóm cấp cao · ' + data.counts.routes + ' đường dẫn web',
+            'Dữ liệu: ' + data.artifacts.graph + ' · Cấu hình: ' + data.artifacts.architecture,
+            'Để bật thanh Hỏi, chạy node project-flow-explainer/serve.mjs --no-open tại thư mục kho mã.'].join('\n') }
+        } catch { return { kind: 'error', text: 'map_failed: Trình dựng Project Flow Explainer không trả kết quả hợp lệ.' } }
+      }
       let run
       try {
         run = await runCore({

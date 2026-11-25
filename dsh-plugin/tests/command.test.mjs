@@ -59,6 +59,13 @@ function tempRepo(t) {
   return dir
 }
 
+test('map mode checks the same allowedRoots as a flow run', async () => {
+  const { commands } = mount({ allowedRoots: undefined })
+  const result = await commands.get('project-flow-explainer').handler({rawInput:'--map'})
+  assert.equal(result.kind,'error')
+  assert.match(result.text,/allowed_roots_unconfigured/)
+})
+
 test('registers exactly one command next to the seven tools', () => {
   const { tools, commands } = mount()
   assert.equal(tools.size, 7)

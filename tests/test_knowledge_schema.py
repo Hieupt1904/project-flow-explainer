@@ -60,7 +60,13 @@ class EvidenceConsistencyTests(unittest.TestCase):
 
     def test_package_version_matches_manifest(self):
         manifest = self.manifest()
-        self.assertEqual(manifest["package_version"], self.package()["version"])
+        version = self.package()["version"]
+        if "-rc." in version and version != manifest["package_version"]:
+            # A release candidate must not inherit the prior release's evidence.
+            parts = lambda value: tuple(map(int, value.split("-", 1)[0].split(".")))
+            self.assertGreater(parts(version), parts(manifest["package_version"]))
+        else:
+            self.assertEqual(manifest["package_version"], version)
         self.assertIn(manifest["tarball"]["filename"],
                       "dsh-project-flow-explainer-" + manifest["package_version"] + ".tgz")
 

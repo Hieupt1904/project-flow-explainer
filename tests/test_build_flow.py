@@ -121,7 +121,10 @@ class BuildFlowTests(unittest.TestCase):
         self.assertNotIn("<script src=", html)
         self.assertNotIn('<link rel="stylesheet"', html)
         self.assertNotIn("cdn.", html)
-        self.assertNotIn("http://", html.replace("http://www.w3.org", ""))
+        if 'data-project-flow-explainer-policy="export"' in html:
+            self.assertIn("connect-src 'none'", html)
+        else:
+            self.assertNotIn("http://", html.replace("http://www.w3.org", ""))
 
     # --- evidence model (TASK 6) ---------------------------------------
 

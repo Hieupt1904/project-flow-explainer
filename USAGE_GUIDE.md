@@ -1,14 +1,12 @@
-# Hướng dẫn sử dụng hiệu quả
+# Hướng dẫn sử dụng
 
-Tài liệu này nói **khi nào dùng công cụ nào, query viết thế nào, đọc kết quả ra sao**.
-Số liệu trong đây lấy từ lần chạy thật ngày 2026-11-19: một dự án desktop riêng tư
-(27 file Python, 17 file được quét) và chính repo này. Bằng chứng máy đọc:
-[20261119-2307-real-project.json](artifacts/review/20261119-2307-real-project.json).
+Chọn **bản đồ toàn kho** để xem cấu trúc. Chọn **sơ đồ luồng** để lần theo một nghiệp vụ. Dùng **chỉ mục mã nguồn** để tìm vị trí cần đọc hoặc kiểm tra tác động của thay đổi.
 
-## 1. Chọn đúng công cụ trong 10 giây
+## 1. Chọn công cụ
 
 | Bạn đang có | Dùng | Vì sao |
 |---|---|---|
+| Tổng quan mô-đun, tệp và đường dẫn web | `project_map.mjs build` hoặc `/project-flow-explainer --map` | Dựng bản đồ toàn kho. |
 | Câu mô tả nghiệp vụ: "từ lúc bấm xuất Excel đến khi có file" | `project_flow_explain` / `build_flow.py` | chấm điểm theo facet + chọn route, phù hợp câu dài |
 | Tên hàm, tên lớp, endpoint | `project_code_search` / `pfe_cli.py search` | exact match thắng, trả đúng dòng |
 | "Sửa chỗ này thì phải đọc gì" | `project_context_pack` | gom entry point + file + test + phụ thuộc |
@@ -26,34 +24,70 @@ và đừng dùng flow cho câu "hàm này ở đâu".
 R=/duong/dan/repo
 
 # 1) Xem luồng nghiệp vụ trước (có sơ đồ để đọc)
-python3 scripts/build_flow.py --repo $R \
+python3 scripts/build_flow.py --repo "$R" \
   --request "Giải thích từ lúc người dùng bấm cập nhật dữ liệu đến khi có file Excel"
 
 # 2) Tạo index để tra cứu
-python3 tools/pfe_cli.py index --repo $R --mode full
+python3 tools/pfe_cli.py index --repo "$R" --mode full
 
 # 3) Tra đúng chỗ
-python3 tools/pfe_cli.py search --repo $R --query "write_xls"
+python3 tools/pfe_cli.py search --repo "$R" --query "write_xls"
 
 # 4) Kiểm tra những gì đã sinh
-python3 tools/pfe_cli.py verify --repo $R
+python3 tools/pfe_cli.py verify --repo "$R"
 ```
 
-Kết quả thật trên hai dự án (0.4.1, path và tên repo đã scrub):
+## 3. Xem bản đồ toàn kho
 
-| Bước | Desktop (tkinter) | Web (Flask + UI) |
+Chạy các lệnh từ kho Project Flow Explainer. Đặt `R` thành đường dẫn tuyệt đối của kho mã cần xem.
+
+```bash
+node scripts/project_map.mjs build "$R"
+node scripts/project_map.mjs status "$R"
+```
+
+Mở `<repo>/project-flow-explainer/index.html`. Chọn một phân hệ để xem chi tiết. Nhấp đúp để mở cấp mô-đun hoặc tệp khi thẻ có cấp con. Dùng phím `/` để tìm theo tên, mô tả, đường dẫn hoặc tuyến web.
+
+| Mục | Cách dùng |
+|---|---|
+| **Bắt đầu** | Mở tour giới thiệu các phần chính. |
+| **Luồng** | Chọn một luồng đã lưu hoặc yêu cầu tra cứu đường nối mới khi máy chủ đang chạy. |
+| **Màn hình** | Xem các màn hình khi bộ quét nhận diện được. |
+| **Sức khỏe** | Xem những mục bộ quét đã kiểm tra và những mục còn thiếu căn cứ. |
+| **Việc gần đây** | Xem thay đổi giữa hai lần dựng hoặc ghi chú đã lưu. |
+
+### Dữ liệu, cập nhật và chia sẻ
+
+- Sửa `architecture.json` để điều chỉnh cách nhóm và mô tả phân hệ. Dùng `describe` để tạo phiếu bổ sung mô tả tệp và tuyến web.
+- Chạy `node scripts/project_map.mjs refresh "$R"` sau khi mã nguồn thay đổi. Lệnh này khác `pfe_cli.py refresh`, vốn cập nhật chỉ mục mã nguồn.
+- Chạy `node scripts/project_map.mjs export "$R"` để tạo `<repo>/project-flow-explainer/share.html`. Bản chia sẻ giữ dữ liệu hiển thị, chẳng hạn tên tệp và mô tả. Kiểm tra nội dung trước khi gửi.
+- Để dựng bản phác, lưu `plan.json` theo [định dạng bản phác](vendor/project-flow-explainer/references/blueprint.md). Sau đó chạy `node scripts/project_map.mjs plan "$R"`. Bản phác mô tả hệ thống **DỰ KIẾN**; lệnh không tạo mã ứng dụng.
+
+### Bật thanh Hỏi
+
+Từ thư mục gốc của kho mã **đã có bản đồ**, chọn một chế độ và mở địa chỉ loopback mà máy chủ in ra. Để dừng máy chủ, nhấn `Ctrl+C` trong terminal đang chạy lệnh.
+
+| Chế độ | Lệnh | Dữ liệu dùng để trả lời |
 |---|---|---|
-| flow | 12 node: 10 verified / 1 partial / 1 inferred; 17 file | 20 node: 10 verified / 9 partial / 1 inferred; 246 file |
-| index full | 26 file · 207 symbol · 10 test | 224 file · 1 833 symbol · 47 route |
-| index incremental | parse lại 0 file | parse lại 0 file |
-| entry point | gui_event 6 · callback 2 · main 28 | http_route 47 · gui_event 52 · main 104 |
-| context pack | 4 entry point, `routes = []` (đúng) | route đầu: `/data/publish-schedule` |
-| verify | static pass · overall partial | static pass · overall partial |
+| Tra cứu cục bộ | `node project-flow-explainer/serve.mjs --no-open` | Tìm trong dữ liệu bản đồ. Không cần DSH hoặc khóa mô hình. |
+| Hỏi qua DeepSeek Harness (DSH) | `node project-flow-explainer/serve.mjs --no-open --agent` | Chọn mô hình từ danh sách của hồ sơ `web`. Máy chủ chuyển câu hỏi và dữ liệu bản đồ qua `headless` với lựa chọn đó. |
 
-Desktop không có HTTP route nên `routes = []` là kết quả đúng, không phải lỗi.
-Web có 47 route vì pattern nhận cả decorator blueprint (`@bp.route`), không chỉ `@app.route`.
+Nếu bật `--agent`, chọn mô hình và nhà cung cấp cạnh thanh **Hỏi**. Danh sách lấy từ cấu hình đã khai báo trong hồ sơ `web`. Tải lại bản đồ sau khi thêm mô hình. Nếu máy chủ không tải được danh sách hoặc báo thiếu khóa, xem [hướng dẫn xử lý trong tài liệu plugin](dsh-plugin/README.md#thanh-hỏi-trên-bản-đồ). Để tra cứu trên máy, chạy lại máy chủ không kèm `--agent`. Bản mở trực tiếp từ tệp hoặc bản chia sẻ không gửi câu hỏi.
 
-## 3. Vòng lặp hằng ngày khi sửa code
+## 4. Đọc và dựng lại sơ đồ luồng
+
+Trong trình xem chính, chọn **Dẫn qua luồng** để bắt đầu từ điểm vào. Chọn một nhánh để đi tiếp hoặc **Quay lại** để trở về bước vừa xem. Mở **Căn cứ** để đối chiếu tệp và dòng mã. Chọn **Tải HTML** để lưu bản sao.
+
+Để giữ dữ liệu cũ và dùng giao diện mới, dựng lại HTML từ `flow.json`. Dùng một tên đầu ra khác để giữ tệp HTML cũ.
+
+```bash
+python3 scripts/render_flow.py path/to/flow.json --out path/to/flow-new.html
+python3 scripts/render_flow.py path/to/flow.json --viewer classic --out path/to/flow-classic.html
+```
+
+Giao diện dự phòng mở ở **Bản đồ**. Chọn **Từng bước** để đọc danh sách và mở **Căn cứ** để xem mức độ xác minh. Nếu máy dựng thiếu Node.js, trình dựng dùng giao diện dự phòng.
+
+## 5. Vòng lặp hằng ngày khi sửa code
 
 ```text
 index (một lần)  →  search/context (hiểu chỗ sửa)  →  sửa code
@@ -63,23 +97,23 @@ index (một lần)  →  search/context (hiểu chỗ sửa)  →  sửa code
 
 ```bash
 # trước khi sửa: lấy context
-python3 tools/pfe_cli.py context-pack --repo $R --task "sửa chức năng xuất Excel quyết toán"
+python3 tools/pfe_cli.py context-pack --repo "$R" --task "sửa chức năng xuất Excel quyết toán"
 
 # sau khi sửa: biết ảnh hưởng gì
-python3 tools/pfe_cli.py impact --repo $R --changed src/_xls.py
+python3 tools/pfe_cli.py impact --repo "$R" --changed src/_xls.py
 
 # cập nhật index (chỉ file đã đổi)
-python3 tools/pfe_cli.py refresh --repo $R
+python3 tools/pfe_cli.py refresh --repo "$R"
 
 # kiểm tra lại artifact/flow nếu có đổi graph
-python3 tools/pfe_cli.py verify --repo $R
+python3 tools/pfe_cli.py verify --repo "$R"
 ```
 
 `impact` trả `risk_level`, `affected_routes`, `affected_symbols`,
 `related_tests`, `downstream_modules`, `suggested_verification`.
 Đọc `risk_reasons` để biết vì sao high/medium/low, đừng chỉ nhìn nhãn.
 
-## 4. Viết query hiệu quả (có số đo)
+## 6. Viết truy vấn tra cứu
 
 | Query | Kết quả thật | Kết luận |
 |---|---|---|
@@ -97,7 +131,7 @@ Quy tắc viết query:
    bộ bridge hai chiều lo phần còn lại (chỉ mở rộng recall, không quyết định đúng/sai).
 4. Không nhồi 5 khái niệm vào một query. Mỗi lần một khái niệm, ghép kết quả bằng suy luận của bạn.
 
-## 5. Đọc kết quả cho đúng
+## 7. Đọc kết quả cho đúng
 
 Mỗi kết quả có: `path`, `symbol`, `start_line`–`end_line`, `relation`,
 `confidence`, `score`, `why_matched`, `evidence_refs`, `source_commit`.
@@ -106,16 +140,15 @@ Mỗi kết quả có: `path`, `symbol`, `start_line`–`end_line`, `relation`,
 |---|---|
 | `confidence: observed` | có dòng thật; tin được vị trí |
 | `confidence: structural` | suy ra từ import/test; đúng cấu trúc, chưa chắc runtime |
-| `confidence: inferred` | heuristic; phải mở file xác nhận |
+| `confidence: inferred` | Kết quả suy luận. Mở mã nguồn để xác nhận. |
 | `relation: []` và `why_matched` ghi "chỉ khớp từ khoá" | **nghi ngờ**: đúng chữ nhưng không có quan hệ graph |
 | `relation: ["calls"]` | có call site thật trong file nguồn |
 | `stale: true` | index cũ hơn working tree → chạy `refresh` trước khi tin |
 | `score` | chỉ để xếp hạng, không phải xác suất |
 
-Luật thực dụng: **score > 1.0 + observed + có relation** là chỗ nên đọc trước.
-Score dưới 0.6 hoặc chỉ khớp keyword thì coi là gợi ý, không phải kết luận.
+Ưu tiên kết quả `observed` có `relation`. Dùng `score` để xếp thứ tự đọc trong cùng một truy vấn, không dùng làm ngưỡng xác nhận.
 
-## 6. Prompt mẫu cho agent trong DSH
+## 8. Prompt mẫu cho agent trong DSH
 
 ```text
 Trước khi sửa: gọi project_context_pack với task "..." và đọc likely_files + entry_points.
@@ -126,11 +159,11 @@ Cuối cùng gọi project_verify_flow; nếu verdict=partial thì nêu rõ chec
 Không đọc toàn bộ file nếu search đã trả đúng path:line.
 ```
 
-## 7. Bẫy và giới hạn (đọc trước khi tin)
+## 9. Giới hạn phân tích
 
 | Bẫy | Sự thật | Cách tránh |
 |---|---|---|
-| Coi `verified` là "đã chạy" | chỉ là xác minh tĩnh vị trí + quan hệ | muốn runtime thì phải chạy test |
+| Coi `verified` là đã chạy | Nhãn chỉ xác nhận vị trí và quan hệ tĩnh. | Chạy kiểm thử liên quan để xác nhận hành vi. |
 | Coi `calls` là call graph đầy đủ | chỉ call site đọc theo tên symbol duy nhất | alias/DI có thể thiếu |
 | Coi vector là ngữ nghĩa | backend mặc định là hashing bag-of-words | bật vector chỉ để tăng recall |
 | Query câu dài rồi tin top-1 | FTS cộng dồn theo từ khoá | dùng flow hoặc rút query |
@@ -138,7 +171,7 @@ Không đọc toàn bộ file nếu search đã trả đúng path:line.
 | Repo không có route | flow trả `no-entry` (đúng, không bịa) | dùng index + search thay vì flow |
 | Dự án desktop/CLI | `entry_points = 0` | đọc `likely_files` và `impacted_symbols` |
 
-## 8. Mã lỗi thường gặp
+## 10. Mã lỗi thường gặp
 
 | Mã | Nghĩa | Sửa |
 |---|---|---|
@@ -150,7 +183,7 @@ Không đọc toàn bộ file nếu search đã trả đúng path:line.
 | `artifact_exists` | slug đã tồn tại | bỏ `--slug` để tự sinh |
 | `core_timeout` | vượt ngân sách | tăng `timeoutMs` hoặc thu hẹp phạm vi |
 
-## 9. Checklist trước khi tin một kết quả
+## 11. Đối chiếu trước khi dùng kết quả
 
 1. `source_commit` trùng commit bạn đang làm việc.
 2. `stale` bằng `false`.
@@ -159,20 +192,7 @@ Không đọc toàn bộ file nếu search đã trả đúng path:line.
 5. Nếu là flow: đọc `limits` và `meta.related` trước khi kết luận luồng đã đủ.
 
 
-## 11. Simple view và chế độ Kỹ thuật (0.4.0)
-
-`flow.html` mở ở **Simple view**: 3–7 stage nghiệp vụ (bắt đầu, các bước xử lý, điều kiện,
-kết thúc, nhánh lỗi, điểm cần kiểm tra). Nhấn một stage để xem giải thích + nguồn.
-Cần thấy toàn bộ node và cạnh thì bấm tab **Kỹ thuật**.
-
-| Muốn gì | Làm gì |
-|---|---|
-| Hiểu nhanh cho người không đọc code | để nguyên Simple view, đọc từ trên xuống |
-| Kiểm tra thứ tự node/cạnh | tab Kỹ thuật, kéo/zoom, bấm "Toàn cảnh" |
-| Tìm một bước | ô tìm kiếm lọc stage (Simple) hoặc làm mờ node (Kỹ thuật) |
-| Xem nguồn của một bước | nhấn stage/card → panel phải |
-
-## 12. Entry point và context pack (0.4.0)
+## 12. Điểm vào trong gói ngữ cảnh
 
 `project_context_pack` trả `entry_points` có `kind`:
 
@@ -194,7 +214,7 @@ Cần thấy toàn bộ node và cạnh thì bấm tab **Kỹ thuật**.
 `evidence_refs`. Nếu `external_dependencies` xuất hiện, đó là bảng/gói ngoài — không có
 path trong repo, đừng cố mở.
 
-## 13. Verify: đọc verdict cho đúng (0.4.0)
+## 13. Đọc kết quả xác minh
 
 | Trường | Nghĩa |
 |---|---|
@@ -205,10 +225,11 @@ path trong repo, đừng cố mở.
 | `next_action` | việc cần làm để nâng verdict |
 
 Mặc định `ui` và `runtime` là **blocked**: tool không mở trình duyệt và không chạy test.
-Vì vậy một repo sạch sẽ cho `static_verdict=pass`, `overall_verdict=partial`. Đó là kết quả đúng,
-không phải lỗi.
+Nếu kiểm tra tĩnh đạt, `static_verdict=pass` và `overall_verdict=partial` vẫn là kết quả dự kiến.
 
-## 10. Bằng chứng của chính hướng dẫn này
+## 14. Bằng chứng và số liệu lịch sử
+
+Các số liệu dưới đây thuộc các lần chạy trước. Chúng không mô tả kết quả của bản hiện tại.
 
 | Bằng chứng | File |
 |---|---|

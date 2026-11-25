@@ -9,6 +9,7 @@ import json
 import os
 import re
 from pathlib import Path
+from html.parser import HTMLParser
 
 from . import index as index_mod
 
@@ -226,20 +227,45 @@ def _graph_problems(directory):
     return problems
 
 
+class _OfflineMarkup(HTMLParser):
+    """Inspect resource-loading attributes; ordinary links do not load until clicked."""
+
+    def __init__(self):
+        super().__init__()
+        self.external = []
+        self.policy = ""
+        self.project_map = False
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag == "meta" and attrs.get("http-equiv", "").lower() == "content-security-policy":
+            self.policy = attrs.get("content") or ""
+            self.project_map = bool({"data-project-flow-explainer-policy", "data-floorplan-policy"} & attrs.keys())
+        keys = ["src", "srcset", "poster", "background"]
+        if tag in {"link", "image", "use"}:
+            keys.extend(["href", "xlink:href"])
+        if tag == "object":
+            keys.append("data")
+        for key in keys:
+            value = (attrs.get(key) or "").strip()
+            if value and (key == "srcset" or not value.lower().startswith(("data:", "#"))):
+                self.external.append(f"{tag}[{key}]")
+
+
 def _ui_problems(directory):
     path = directory / "flow.html"
     if not path.exists():
         return ["thiếu flow.html"]
     text = path.read_text(encoding="utf-8", errors="replace")
-    problems = []
-    if "__FLOW_JSON__" in text:
+    parsed = _OfflineMarkup()
+    parsed.feed(text)
+    problems = [directory.name + ": tài nguyên ngoài trong " + tag for tag in parsed.external]
+    if "__FLOW_JSON__" in text and 'id="workflow-json" type="application/json">__FLOW_JSON__' in text:
         problems.append(directory.name + ": còn placeholder __FLOW_JSON__")
-    if "http://" in text.replace("http://www.w3.org", ""):
-        problems.append(directory.name + ": flow.html tham chiếu http ngoài")
-    if re.search(r"<script[^>]+src=", text):
-        problems.append(directory.name + ": flow.html tải script ngoài")
-    if re.search(r"<link[^>]+href=", text):
-        problems.append(directory.name + ": flow.html tải stylesheet ngoài")
+    if parsed.project_map and not {"default-src 'none'", "connect-src 'none'"} <= {
+        directive.strip() for directive in parsed.policy.split(";")
+    }:
+        problems.append(directory.name + ": chính sách Project Flow Explainer chưa khóa kết nối ngoài")
     return problems
 
 

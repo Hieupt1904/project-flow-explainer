@@ -1,20 +1,28 @@
 ---
 name: project-flow-explainer
-description: Đọc project/repository mã nguồn và giải thích quy trình hoạt động bằng sơ đồ HTML tương tác, giống canvas workflow với node, nhánh, điều kiện và đường nối. Dùng khi người dùng muốn phân tích luồng frontend-backend-API-DB, user journey, business process, chatbot automation, hoặc kiến trúc tính năng; cần sơ đồ người không biết code cũng hiểu, có căn cứ file/dòng nguồn, tạo HTML mở offline.
+description: Dựng bản đồ toàn kho hoặc giải thích một luồng nghiệp vụ bằng sơ đồ HTML tương tác mở ngoại tuyến. Dùng khi cần xem phân hệ, luồng giao diện đến dữ liệu, hoặc nhánh xử lý có căn cứ tệp và dòng mã.
 ---
 
 # Project Flow Explainer
 
 Biến mã nguồn project thành sơ đồ luồng dễ hiểu, có thể truy ngược về code. Một lần chạy cần tạo **JSON kiểm chứng được** và **HTML độc lập mở offline**.
 
-## Quy trình bắt buộc
+## Chọn chế độ
 
-1. **Xác định phạm vi**: Ưu tiên một luồng nghiệp vụ hoặc một hành trình người dùng. Nếu yêu cầu "toàn bộ project", tạo sơ đồ tổng quan module, sau đó tách từng luồng thành nhiều file HTML; không nhồi mọi thứ vào một canvas. Nếu không có quyền truy cập repo, nói rõ và yêu cầu đường dẫn hoặc upload; không giả vờ đã đọc project.
+- **Toàn kho:** chạy `node scripts/project_map.mjs build /duong/dan/repo`. Mở `project-flow-explainer/index.html` trong kho được phân tích. Dùng `refresh` khi đã có bản đồ.
+- **Một luồng:** xác định điểm vào và đầu ra, rồi làm theo quy trình bên dưới. Đầu ra nằm trong `artifacts/flows/<slug>/`.
+- **Bản phác:** chuẩn bị `project-flow-explainer/plan.json` theo [định dạng bản phác](vendor/project-flow-explainer/references/blueprint.md), rồi chạy `project_map.mjs plan` với đường dẫn kho. Gắn nhãn **DỰ KIẾN** cho hệ thống chưa xây.
+
+Xem [hướng dẫn sử dụng](USAGE_GUIDE.md#bật-thanh-hỏi) khi cần tra cứu cục bộ hoặc hỏi qua DeepSeek Harness (DSH).
+
+## Quy trình cho một luồng
+
+1. **Xác định phạm vi**: Ưu tiên một luồng nghiệp vụ hoặc một hành trình người dùng. Nếu cần giải thích chi tiết nhiều nghiệp vụ, tạo một sơ đồ riêng cho mỗi luồng. Nếu không có quyền truy cập repo, nói rõ và yêu cầu đường dẫn hoặc upload; không giả vờ đã đọc project.
 2. **Đọc project có chủ đích**: Xem [references/repository-reader.md](references/repository-reader.md). Kiểm tra file mô tả dự án, entry point, router, UI handler, service, model, DB, queue và integration liên quan. Không chạy code lạ, không đọc/hiển thị secrets nếu không cần.
 3. **Truy vết từng bước**: Xem [references/flow-tracer.md](references/flow-tracer.md). Theo dõi từ điểm kích hoạt đến các hành động và đầu ra. Ghi rõ điều kiện YES/NO, lỗi, retry, loop, async. Đính chứng cứ `path` + `start_line` (nếu xác định được). Không sáng tác cạnh hoặc trình tự chỉ từ tên file.
 4. **Đơn giản hóa cho người đọc**: Xem [references/explainer-style.md](references/explainer-style.md). Node chính trả lời "điều gì xảy ra?"; ghi chú giải thích "vì sao?"; cạnh trả lời "khi nào đi tiếp?". Tên hàm/endpoint/path nằm trong panel kỹ thuật, không đưa thành nhãn chính. Một canvas chi tiết nên có 5–12 node; nhiều hơn thì chia subflow.
 5. **Tạo graph JSON**: Theo [references/flow-schema.md](references/flow-schema.md). Mọi node phải có `id`, `title`, `type`, `summary`, `confidence`. Mọi edge có `from`, `to`, `label`, `kind`. Dùng `verified` chỉ khi thực sự có `source_refs`; sử dụng `inferred` hoặc `unknown` cho các đoạn chưa được chứng minh.
-6. **Render HTML**: Chạy `python scripts/render_flow.py path/to/flow.json --out path/to/flow.html` (dùng đường dẫn tuyệt đối tới script khi cần). Script kiểm tra schema trước rồi sinh một file HTML chứa toàn bộ CSS/JS, không phụ thuộc CDN. HTML có canvas dạng card + connector cong, pan/zoom, tìm kiếm, chọn node để xem chi tiết và nguồn, làm sáng tuyến từ điểm bắt đầu.
+6. **Render HTML**: Chạy `python scripts/render_flow.py path/to/flow.json --out path/to/flow.html` (dùng đường dẫn tuyệt đối tới script khi cần). Script kiểm tra schema rồi tạo một tệp HTML tự chứa. Trình xem chính có hướng dẫn chọn nhánh và bảng căn cứ. Giao diện dự phòng có danh sách từng bước. Để nâng giao diện của một sơ đồ cũ, dựng lại HTML từ `flow.json` đã có.
 7. **Kiểm tra**: Chạy script thành công; mở HTML nếu có trình duyệt; kiểm tra mũi tên, nhãn điều kiện, khả năng đọc, tìm kiếm, các nhánh lỗi và căn cứ mã nguồn. Nếu không thể mở trình duyệt, nói rõ kiểm tra bị giới hạn.
 
 ## Chuẩn đầu ra
@@ -28,10 +36,10 @@ Biến mã nguồn project thành sơ đồ luồng dễ hiểu, có thể truy 
 ## Quy tắc cứng
 
 - Không suy đoán logic nghiệp vụ từ screenshot hoặc README khi code chưa kiểm chứng; đánh dấu rõ mô phỏng, thiếu thông tin, hoặc giả định.
-- Không tạo node "Thành công" nếu không có tín hiệu success thực tế; thể hiện success/error branch nếu kiểm chứng.
+- Chỉ vẽ nhánh thành công hoặc nhánh lỗi khi có tín hiệu trong mã nguồn.
 - Không đọc và công khai `.env`, token, private key, password, dữ liệu cá nhân, thông tin khách hàng; không chép payload mật vào HTML.
-- Không cài thư viện hoặc gọi dịch vụ ngoài nếu không được phép. Không tự ý chạy migration, build hay test có side effect.
-- Không có repo thực tế: được tạo một **demo minh họa**, ghi rõ không phải kết quả phân tích project.
+- Không cài thư viện hoặc gọi dịch vụ ngoài nếu chưa có phê duyệt. Không tự ý chạy migration, build hay test có side effect.
+- Nếu thiếu kho mã, gắn nhãn **Ví dụ minh họa** cho sơ đồ mẫu.
 - Prompt hệ thống tích hợp cho agent độc lập có trong [references/SYSTEM_PROMPT.md](references/SYSTEM_PROMPT.md).
 
 ## Lớp tri thức code (0.3.0)
@@ -55,7 +63,7 @@ kết quả trả path/symbol/line range và bằng chứng, không trả source
 
 ## CLI nhanh
 
-Sinh cả bộ ba file từ repository (analyzer tự dựng graph có bằng chứng):
+Dựng ba tệp dành cho người xem và một tệp truy vết nội bộ:
 
 ```bash
 python scripts/build_flow.py \

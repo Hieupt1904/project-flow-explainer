@@ -35,13 +35,18 @@ const OUT_DIR = outIndex > -1 && process.argv[outIndex + 1]
 const CORE_FILES = [
   ['scripts/build_flow.py', 'vendor/core/scripts/build_flow.py'],
   ['scripts/render_flow.py', 'vendor/core/scripts/render_flow.py'],
+  ['scripts/flow_project_map.mjs', 'vendor/core/scripts/flow_project_map.mjs'],
+  ['scripts/project_map.mjs', 'vendor/core/scripts/project_map.mjs'],
   ['assets/workflow_template.html', 'vendor/core/assets/workflow_template.html'],
   ['tools/pfe_cli.py', 'vendor/core/tools/pfe_cli.py'],
 ]
 
-// The knowledge layer is a package, not a single file: copy it whole, minus
-// bytecode caches, so the packed install can index/search without a checkout.
-const CORE_PACKAGE = [['pfe', 'vendor/core/pfe']]
+// Preserve the relative paths used by the Python package and HTML renderer.
+const CORE_PACKAGE = [
+  ['pfe', 'vendor/core/pfe'],
+  ['assets/viewer', 'vendor/core/assets/viewer'],
+  ['vendor/project-flow-explainer', 'vendor/core/vendor/project-flow-explainer'],
+]
 
 function fail(message) {
   console.log(`@@ERROR@@${message}`)

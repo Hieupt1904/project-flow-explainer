@@ -27,7 +27,7 @@ Một file JSON là một **luồng**, giữ bằng chứng tương ứng với 
 }
 ```
 
-> Đây chỉ là **ví dụ định dạng**, không phải nhận định về một project cụ thể.
+> Ví dụ này minh họa định dạng và không mô tả kho mã cụ thể.
 
 ## Bắt buộc
 
@@ -48,7 +48,7 @@ Một file JSON là một **luồng**, giữ bằng chứng tương ứng với 
 
 ## Rendering
 
-`python scripts/render_flow.py FLOW.json --out FLOW.html` sẽ tự xếp layout theo tầng trái → phải nếu không đặt x/y. Có thể tùy chỉnh x/y để nhóm node theo nhánh trên canvas như ví dụ mẫu.
+`python3 scripts/render_flow.py FLOW.json --out FLOW.html` dựng tệp HTML ngoại tuyến. Khi có Node.js, trình xem chính tự bố trí sơ đồ. Tọa độ `x` và `y` dùng cho giao diện dự phòng `--viewer classic`; trình xem chính không dựa vào các tọa độ này.
 
 Giới hạn khuyến nghị: 5–12 node/luồng; trường hợp phức tạp phân nhỏ thành nhiều luồng.
 

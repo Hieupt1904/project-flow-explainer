@@ -1,0 +1,10 @@
+{
+  "stack": ["Node.js"],
+  "assumptions": ["Nhân viên xem báo cáo trong trình duyệt."],
+  "questions": [{"question":"Ai được tải báo cáo?","about":["web/index.tsx"]}],
+  "files": [
+    {"path":"web/index.tsx","name":"Trang báo cáo","description":"Hiện bảng báo cáo cho nhân viên.","screen":"/","calls":["GET /reports"]},
+    {"path":"api/server.js","name":"Máy chủ báo cáo","description":"Trả về danh sách báo cáo."}
+  ],
+  "endpoints": [{"method":"GET","path":"/reports","file":"api/server.js","name":"Lấy báo cáo","description":"Trả về các báo cáo đã tạo.","access":"team"}]
+}
