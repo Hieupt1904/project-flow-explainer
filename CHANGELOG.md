@@ -1,5 +1,11 @@
 # Lịch sử phiên bản
 
+## 0.9.0
+
+Bản ổn định của `0.9.0-rc.2`. Cài bằng thẻ npm `latest` hoặc [tải gói từ GitHub](https://github.com/Hieupt1904/project-flow-explainer/releases/tag/v0.9.0). Bản này giữ bản đồ toàn kho, bảng căn cứ và bộ chọn mô hình DSH của bản thử nghiệm.
+
+[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/deepseek-ai/deepseek-harness)
+
 ## 0.9.0-rc.2
 
 **BẢN THỬ NGHIỆM** — Phiên bản này không thay thẻ ổn định `latest` trên npm.

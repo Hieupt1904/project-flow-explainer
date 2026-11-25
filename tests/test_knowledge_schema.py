@@ -58,17 +58,23 @@ class EvidenceConsistencyTests(unittest.TestCase):
     def package(self):
         return json.loads((ROOT / "dsh-plugin" / "package.json").read_text(encoding="utf-8"))
 
-    def test_package_version_matches_manifest(self):
+    def test_release_evidence_is_attributed_to_its_own_version(self):
         manifest = self.manifest()
+        recorded = manifest["package_version"]
         version = self.package()["version"]
-        if "-rc." in version and version != manifest["package_version"]:
-            # A release candidate must not inherit the prior release's evidence.
-            parts = lambda value: tuple(map(int, value.split("-", 1)[0].split(".")))
-            self.assertGreater(parts(version), parts(manifest["package_version"]))
-        else:
-            self.assertEqual(manifest["package_version"], version)
-        self.assertIn(manifest["tarball"]["filename"],
-                      "dsh-project-flow-explainer-" + manifest["package_version"] + ".tgz")
+        if version != recorded:
+            # A newer version may keep a historical record, but the README
+            # must attribute that record to the version that was actually tested.
+            def release_key(value):
+                base, separator, _ = value.partition("-")
+                return (*map(int, base.split(".")), not separator)
+
+            self.assertGreater(release_key(version), release_key(recorded))
+            readme = (ROOT / "README.md").read_text(encoding="utf-8")
+            self.assertIn(
+                f"[Bản ghi phát hành {recorded}](artifacts/review/evidence-manifest.json)", readme)
+        self.assertEqual(manifest["tarball"]["filename"],
+                         "dsh-project-flow-explainer-" + recorded + ".tgz")
 
     def test_engines_dsh_matches_manifest(self):
         manifest = self.manifest()

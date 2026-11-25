@@ -26,17 +26,11 @@ dsh plugin --profile pfe-test add dsh-project-flow-explainer@latest
 dsh plugin --profile pfe-test add "$PWD/project-flow-explainer.tgz"
 ```
 
-Để thử bản `0.9.0-rc.2` trên npm, chỉ định phiên bản thay cho `latest`:
-
-```bash
-dsh plugin --profile pfe-test add dsh-project-flow-explainer@0.9.0-rc.2
-```
-
-Bạn cũng có thể tải [gói GitHub của bản thử nghiệm](https://github.com/Hieupt1904/project-flow-explainer/releases/tag/v0.9.0-rc.2) hoặc dựng gói từ kho mã này:
+Để cài đúng bản ổn định `0.9.0`, thay `@latest` bằng `@0.9.0`. Bạn cũng có thể tải [gói GitHub của bản ổn định](https://github.com/Hieupt1904/project-flow-explainer/releases/tag/v0.9.0) hoặc dựng gói từ kho mã này:
 
 ```bash
 node dsh-plugin/scripts/pack.mjs
-dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.9.0-rc.2.tgz"
+dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.9.0.tgz"
 ```
 
 Khởi động lại hồ sơ DSH sau khi cài hoặc nâng cấp. Các lệnh dựng bản đồ và phân tích luồng chạy tại máy, không gọi mô hình.

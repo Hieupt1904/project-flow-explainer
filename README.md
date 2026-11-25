@@ -10,15 +10,15 @@
 
 **ĐÃ TRIỂN KHAI** — Project Flow Explainer có hai chế độ xem. Chọn bản đồ toàn kho để khám phá kiến trúc. Chọn sơ đồ nghiệp vụ để lần theo từng nhánh và đối chiếu dòng mã.
 
-## Bản thử nghiệm 0.9.0-rc.2
+## Bản ổn định 0.9.0
 
-Cài từ npm bằng phiên bản cụ thể. Thẻ `latest` vẫn dành cho bản ổn định.
+Cài bản ổn định từ npm bằng thẻ `latest`.
 
 ```bash
-dsh plugin --profile pfe-test add dsh-project-flow-explainer@0.9.0-rc.2
+dsh plugin --profile pfe-test add dsh-project-flow-explainer@latest
 ```
 
-Xem [ghi chú phát hành](CHANGELOG.md) hoặc tải [gói cài từ GitHub](https://github.com/Hieupt1904/project-flow-explainer/releases/tag/v0.9.0-rc.2).
+Xem [ghi chú phát hành](CHANGELOG.md) hoặc tải [gói cài từ GitHub](https://github.com/Hieupt1904/project-flow-explainer/releases/tag/v0.9.0).
 
 ## Bản đồ toàn kho
 
