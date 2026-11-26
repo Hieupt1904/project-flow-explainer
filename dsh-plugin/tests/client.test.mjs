@@ -124,14 +124,17 @@ test('page renders every field with a section heading', () => {
   const { component } = mountPage()
   const tree = component({ view: 'page', form: makeForm(VALID) })
   const ids = flatten(tree).map((node) => node.props?.id).filter(Boolean)
-  for (const key of ['allowedRoots', 'pythonPath', 'coreRoot', 'timeoutMs', 'maxOutputBytes']) {
+  for (const key of ['includeSessionRoot', 'allowedRoots', 'pythonPath', 'coreRoot', 'timeoutMs', 'maxOutputBytes']) {
     assert.ok(ids.includes('pfe-' + key), 'missing control for ' + key)
   }
+  const session = flatten(tree).find((node) => node.props?.id === 'pfe-includeSessionRoot')
+  assert.equal(session.type, 'input')
+  assert.equal(session.props.type, 'checkbox')
   const roots = flatten(tree).find((node) => node.props?.id === 'pfe-allowedRoots')
   assert.equal(roots.type, 'textarea')
   assert.equal(roots.props.value, ROOT_A + '\n' + ROOT_B)
   const copy = texts(tree)
-  for (const heading of ['Thư mục được đọc', 'Runtime', 'Tool đã đăng ký', 'Deny-by-default']) {
+  for (const heading of ['Thư mục được đọc thêm', 'Runtime', 'Tool đã đăng ký', 'Phạm vi đọc']) {
     assert.ok(copy.includes(heading), 'missing section: ' + heading)
   }
   for (const tool of ['project_context_pack', 'project_verify_flow']) {
@@ -177,7 +180,7 @@ test('restore unsets every field', async () => {
   await restore.props.onClick()
   assert.equal(form.calls.length, 1)
   const ops = form.calls[0]
-  assert.equal(ops.length, 5)
+  assert.equal(ops.length, 6)
   assert.ok(ops.every((op) => op.op === 'unset'))
 })
 
@@ -192,9 +195,14 @@ test('a read-only form disables both actions', () => {
 test('summary view names the roots instead of pretending configuration', () => {
   const { component } = mountPage()
   const configured = texts(component({ view: 'summary', form: makeForm(VALID) }))
-  assert.ok(configured.includes('2 thư mục'))
-  const empty = texts(component({ view: 'summary', form: makeForm({ allowedRoots: [] }) }))
-  assert.ok(empty.includes('Chưa cấu hình'))
+  assert.match(configured, /2 thư mục/)
+  const sessionOnly = texts(component({ view: 'summary', form: makeForm({ allowedRoots: [] }) }))
+  assert.match(sessionOnly, /thư mục của phiên/i)
+  const strict = texts(component({
+    view: 'summary',
+    form: makeForm({ allowedRoots: [], includeSessionRoot: false }),
+  }))
+  assert.match(strict, /Đang chặn mọi lời gọi/)
 })
 
 test('a missing host form is reported, not silently rendered', () => {

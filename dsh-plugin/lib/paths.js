@@ -40,32 +40,50 @@ function canonicalExisting(input, label) {
 }
 
 /**
- * Canonicalize the configured roots; missing entries are dropped, but an
- * entirely unusable configuration is a hard error (deny-by-default).
- * @param {unknown} allowedRoots
+ * Canonicalize one candidate root; null when it is not a usable directory.
+ * @param {unknown} entry
+ * @returns {string|null}
+ */
+function canonicalRoot(entry) {
+  if (typeof entry !== 'string' || entry.trim() === '') return null
+  if (!path.isAbsolute(entry)) return null
+  if (!existsSync(entry)) return null
+  try {
+    return statSync(entry).isDirectory() ? realpathSync(entry) : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Canonicalize the roots a call may read.
+ *
+ * Two sources, and the distinction matters for a package anyone can install:
+ *
+ *   - `allowedRoots` is what the user configured, and every entry must be an
+ *     absolute path (a typo there is a configuration bug, so it throws);
+ *   - `sessionRoot` is the directory DSH gave the calling session. It is
+ *     already inside the host's own file policy, so using it needs no
+ *     configuration at all — this is what makes the plugin work on first run
+ *     instead of demanding a patch before the first diagram.
+ *
+ * The list is empty (and the call refused) only when the user turned the
+ * session root off AND configured nothing usable: an explicit strict mode,
+ * never the shipped default.
+ * @param {unknown} allowedRoots - configured roots.
+ * @param {{sessionRoot?: unknown, includeSessionRoot?: boolean}} [options]
  * @returns {string[]}
  */
-export function resolveAllowedRoots(allowedRoots) {
-  if (allowedRoots === undefined || allowedRoots === null) {
-    throw new InputError(
-      'allowed_roots_unconfigured',
-      'Chưa cấu hình allowedRoots nên tool từ chối phân tích mọi đường dẫn.',
-      'Thêm vào profile patch: config.allowedRoots: ["/duong/dan/workspace", ...]. '
-      + 'Tool chỉ đọc repository nằm trong các root này.',
-    )
-  }
-  if (!Array.isArray(allowedRoots)) {
+export function resolveAllowedRoots(allowedRoots, options = {}) {
+  const includeSessionRoot = options.includeSessionRoot !== false
+  if (allowedRoots !== undefined && allowedRoots !== null && !Array.isArray(allowedRoots)) {
     throw new InputError('allowed_roots_invalid', 'allowedRoots phải là mảng chuỗi đường dẫn.')
   }
-  if (allowedRoots.length === 0) {
-    throw new InputError(
-      'allowed_roots_unconfigured',
-      'allowedRoots rỗng nên tool từ chối phân tích mọi đường dẫn (deny-by-default).',
-      'Khai báo ít nhất một thư mục gốc trong config.allowedRoots của profile patch.',
-    )
-  }
+  const configured = allowedRoots ?? []
   const resolved = []
-  for (const entry of allowedRoots) {
+  // A configured entry that is relative is a typo the user must see; but only
+  // when they actually configured one.
+  for (const entry of configured) {
     if (typeof entry !== 'string' || entry.trim() === '') {
       throw new InputError('allowed_roots_invalid', 'allowedRoots chứa phần tử không phải chuỗi đường dẫn.')
     }
@@ -73,16 +91,22 @@ export function resolveAllowedRoots(allowedRoots) {
       throw new InputError('allowed_roots_invalid',
         `allowedRoots phải là đường dẫn tuyệt đối: ${entry}`)
     }
-    if (!existsSync(entry)) continue
-    try {
-      const stat = statSync(entry)
-      if (!stat.isDirectory()) continue
-      resolved.push(realpathSync(entry))
-    } catch {
-      /* unreadable entry: ignored, deny-by-default still holds */
-    }
+    const root = canonicalRoot(entry)
+    if (root !== null) resolved.push(root)
+  }
+  if (includeSessionRoot) {
+    const session = canonicalRoot(options.sessionRoot)
+    if (session !== null) resolved.push(session)
   }
   if (resolved.length === 0) {
+    if (configured.length === 0) {
+      throw new InputError(
+        'allowed_roots_unconfigured',
+        'Không có thư mục nào được phép đọc: chế độ chỉ-đọc-cấu-hình đang bật và allowedRoots rỗng.',
+        'Thêm ít nhất một thư mục tuyệt đối vào config.allowedRoots, '
+        + 'hoặc bật includeSessionRoot để dùng thư mục của phiên đang mở.',
+      )
+    }
     throw new InputError(
       'allowed_roots_unconfigured',
       'Không root nào trong allowedRoots tồn tại và đọc được.',
@@ -99,7 +123,10 @@ export function resolveAllowedRoots(allowedRoots) {
  * @returns {{root: string, allowedRoots: string[]}}
  */
 export function resolveRepository(input, options = {}) {
-  const allowedRoots = resolveAllowedRoots(options.allowedRoots)
+  const allowedRoots = resolveAllowedRoots(options.allowedRoots, {
+    sessionRoot: options.sessionRoot,
+    includeSessionRoot: options.includeSessionRoot,
+  })
   if (typeof input !== 'string' || input.trim() === '') {
     throw new InputError('repository_path_missing', 'Thiếu repository_path.',
       'Truyền đường dẫn tuyệt đối tới thư mục repository, ví dụ /home/ban/du-an.')
@@ -132,8 +159,10 @@ export function resolveRepository(input, options = {}) {
   const match = allowedRoots.find((allowed) => isInside(allowed, root))
   if (!match) {
     throw new InputError('repository_outside_allowed_roots',
-      `repository_path nằm ngoài allowedRoots: ${root}`,
-      `allowedRoots hiện tại: ${allowedRoots.join(', ')}`)
+      `repository_path nằm ngoài phạm vi được đọc: ${root}`,
+      `Phạm vi hiện tại: ${allowedRoots.join(', ')}. `
+      + 'Mở phiên ngay trong thư mục repository, hoặc thêm đường dẫn đó vào '
+      + 'config.allowedRoots trong trang Configure của plugin.')
   }
   return { root, allowedRoots }
 }

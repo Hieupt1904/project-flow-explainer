@@ -84,7 +84,11 @@ if (schemaModule !== undefined) {
   // Plugins page has no ConfigPageForm to pass to plugins.bundle.config.
   ConfigSchema = z.object({
     allowedRoots: z.array(z.string()).volatile().description(
-      'Thư mục gốc được đọc, đường dẫn tuyệt đối. Rỗng nghĩa là từ chối mọi repository.'),
+      'Thư mục gốc được đọc thêm, đường dẫn tuyệt đối. '
+      + 'Thư mục của phiên đang mở luôn được đọc khi includeSessionRoot bật (mặc định).'),
+    includeSessionRoot: z.boolean().default(true).volatile().description(
+      'Cho phép đọc thư mục làm việc của phiên đang mở mà không cần khai báo. '
+      + 'Tắt để ép chỉ đọc đúng allowedRoots.'),
     pythonPath: z.string().default('python3').volatile()
       .description('Interpreter dùng để gọi core'),
     coreRoot: z.string().volatile().description('Thư mục core; bỏ trống để tự dò vendor/core'),
@@ -107,8 +111,11 @@ const PACKAGE_ROOT = path.dirname(fileURLToPath(import.meta.url))
 const DEFAULTS = {
   pythonPath: 'python3',
   coreRoot: undefined,
-  // Deny-by-default: undefined/empty means "no repository is allowed".
+  // Roots BEYOND the calling session's own directory. The session root is
+  // implicit (DSH already confines the session to it), so a fresh install works
+  // without any configuration; an empty list is no longer a lockdown.
   allowedRoots: undefined,
+  includeSessionRoot: true,
   timeoutMs: 180000,
   maxOutputBytes: 1024 * 1024,
 }
@@ -131,7 +138,8 @@ function normalizeConfig(config) {
     if (value === undefined || value === null) continue
     if (opaque(value)) {
       if (key === 'allowedRoots' || key === 'pythonPath' || key === 'coreRoot'
-          || key === 'timeoutMs' || key === 'maxOutputBytes') continue
+          || key === 'includeSessionRoot' || key === 'timeoutMs'
+          || key === 'maxOutputBytes') continue
     }
     settings[key] = value
   }
@@ -143,6 +151,9 @@ function normalizeConfig(config) {
   }
   if (settings.allowedRoots !== undefined && !Array.isArray(settings.allowedRoots)) {
     badConfig('allowedRoots phải là mảng chuỗi đường dẫn')
+  }
+  if (typeof settings.includeSessionRoot !== 'boolean') {
+    badConfig('includeSessionRoot phải là true hoặc false')
   }
   if (!Number.isFinite(settings.timeoutMs) || settings.timeoutMs <= 0) {
     badConfig('timeoutMs phải là số dương')
@@ -210,6 +221,43 @@ function parseCoreResult(result) {
 }
 
 const TEXT = (value) => [{ type: 'text', text: value }]
+
+/**
+ * The directory DSH gave the calling session.
+ *
+ * This is the second half of the read policy and the reason a fresh install
+ * works: the host already confines a session to this directory, so requiring
+ * the same path to be declared again in `allowedRoots` only taught users that
+ * the plugin is broken. Read through `ctx.get()` because a scoped context
+ * (`ctx.inject([...])`) throws on an undeclared service property.
+ * @param {object} ctx - plugin or command-scope context.
+ * @param {object|undefined} agent - the agent whose session directory is wanted.
+ * @param {AbortSignal|undefined} signal - cancellation for the lookup.
+ * @returns {Promise<string|undefined>} absolute session directory, when known.
+ */
+export async function sessionDirectoryOf(ctx, agent, signal) {
+  if (agent === undefined || agent === null) return undefined
+  let service
+  try {
+    service = ctx.workingDirectory
+  } catch {
+    service = undefined
+  }
+  if (service === undefined || typeof service.ensure !== 'function') {
+    try {
+      service = typeof ctx.get === 'function' ? ctx.get('workingDirectory') : undefined
+    } catch {
+      service = undefined
+    }
+  }
+  if (service === undefined || typeof service.ensure !== 'function') return undefined
+  try {
+    const directory = await service.ensure(agent, signal)
+    return typeof directory === 'string' && directory !== '' ? directory : undefined
+  } catch {
+    return undefined
+  }
+}
 
 /**
  * @param {object} ctx - Cordis context with the `tools` service injected.
@@ -437,8 +485,13 @@ export function apply(ctx, config = {}) {
       const request = requiredString(args, 'flow_request', TOOL_NAME)
       const requestedOutput = optionalString(args, 'output_directory', TOOL_NAME)
       const requestedSlug = optionalString(args, 'slug', TOOL_NAME)
+      // The session's own directory is part of the read policy, so a caller who
+      // names the repository it is already working in needs no configuration.
+      const sessionRoot = await sessionDirectoryOf(ctx, exec?.agent, exec?.signal)
       const repository = resolveRepository(repositoryPath, {
         allowedRoots: settings.allowedRoots,
+        sessionRoot,
+        includeSessionRoot: settings.includeSessionRoot,
       })
       const outputDirectory = resolveArtifactRoot(
         repository.root, requestedOutput === '' ? undefined : requestedOutput)
@@ -541,7 +594,11 @@ export function apply(ctx, config = {}) {
   })
 
   // Knowledge layer: same path policy, same core subprocess, separate tools.
-  for (const definition of knowledgeTools({ settings, core: coreOf, inFlight })) {
+  // `sessionDirectory` is passed in rather than imported so the read policy
+  // stays in one place and tests can drive it without a live host.
+  for (const definition of knowledgeTools({
+    settings, core: coreOf, inFlight, ctx, sessionDirectory: sessionDirectoryOf,
+  })) {
     ctx.tools.register(definition)
   }
 
@@ -550,7 +607,9 @@ export function apply(ctx, config = {}) {
   // mount there (the tools are what that composition needs).
   try {
     ctx.inject(['commands'], (scoped) => {
-      scoped.commands.register(flowCommand({ ctx: scoped, settings, core: coreOf }))
+      scoped.commands.register(flowCommand({
+        ctx: scoped, settings, core: coreOf, sessionDirectory: sessionDirectoryOf,
+      }))
     })
   } catch {
     // no command service in this composition: tools remain the entry point

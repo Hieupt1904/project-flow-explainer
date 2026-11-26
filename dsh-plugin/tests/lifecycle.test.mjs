@@ -154,8 +154,9 @@ test('native Config resolves when the installation anchor is reachable', async (
   }
   assert.equal(parsed.config, 'native', 'argv-anchored schemastery must produce a real Config')
   assert.equal(parsed.hasObject, true)
-  // Five volatile fields is what settings.describe() needs to render the form:
-  // allowedRoots, pythonPath, coreRoot, timeoutMs, maxOutputBytes.
-  assert.equal(parsed.volatileFields, 5,
-    `Config must expose 5 volatile fields, saw ${parsed.volatileFields}`)
+  // Every field settings.describe() needs to render the form must be volatile:
+  // includeSessionRoot, allowedRoots, pythonPath, coreRoot, timeoutMs,
+  // maxOutputBytes.
+  assert.equal(parsed.volatileFields, 6,
+    `Config must expose 6 volatile fields, saw ${parsed.volatileFields}`)
 })

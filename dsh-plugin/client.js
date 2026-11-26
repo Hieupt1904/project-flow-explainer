@@ -17,8 +17,13 @@ window.__ModuleLoader__.load({
 
     const FIELDS = [
       {
-        key: "allowedRoots", kind: "lines", label: "Thư mục được đọc",
-        hint: "Mỗi dòng một đường dẫn tuyệt đối. Để trống nghĩa là từ chối mọi repository.",
+        key: "includeSessionRoot", kind: "bool", fallback: true,
+        label: "Đọc thư mục của phiên đang mở",
+        hint: "Bật: dùng được ngay thư mục mà phiên đang đứng, không cần khai báo. Tắt: chỉ đọc đúng danh sách bên dưới.",
+      },
+      {
+        key: "allowedRoots", kind: "lines", label: "Thư mục được đọc thêm",
+        hint: "Mỗi dòng một đường dẫn tuyệt đối, cho các repository nằm NGOÀI thư mục của phiên.",
       },
       {
         key: "pythonPath", kind: "text", label: "Interpreter Python",
@@ -88,7 +93,15 @@ window.__ModuleLoader__.load({
       const state = (form && form.state) || {};
       const value = state.value || {};
       const next = {};
-      for (const field of FIELDS) next[field.key] = text(value[field.key]);
+      for (const field of FIELDS) {
+        // A checkbox needs a real boolean: rendering "false" as a string makes
+        // the box look ticked for an unset-then-saved field, and every reader of
+        // the draft would have to normalize it again.
+        next[field.key] = field.kind === "bool"
+          ? value[field.key] === undefined ? field.fallback === true
+            : value[field.key] === true || value[field.key] === "true"
+          : text(value[field.key]);
+      }
       return {
         next,
         writable: state.writable !== false,
@@ -103,6 +116,10 @@ window.__ModuleLoader__.load({
       const ops = [];
       for (const field of FIELDS) {
         const raw = draft[field.key];
+        if (field.kind === "bool") {
+          ops.push({ op: "set", path: [field.key], value: raw === true });
+          continue;
+        }
         if (field.kind === "lines") {
           const lines = text(raw).split("\n").map((line) => line.trim()).filter(Boolean);
           const bad = lines.filter((line) => line.charAt(0) !== "/");
@@ -148,9 +165,17 @@ window.__ModuleLoader__.load({
 
       if (props.view === "summary") {
         const roots = text(initial.next.allowedRoots).split("\n").filter(Boolean);
-        return h("span", { style: css.meta }, roots.length === 0
-          ? "Chưa cấu hình thư mục nào, mọi lời gọi sẽ bị từ chối."
-          : roots.length + " thư mục: " + roots.join(", "));
+        const sessionOn = initial.next.includeSessionRoot === true;
+        let summary;
+        if (!sessionOn && roots.length === 0) {
+          summary = "Đang chặn mọi lời gọi: không đọc thư mục phiên và danh sách rỗng.";
+        } else if (sessionOn && roots.length === 0) {
+          summary = "Chỉ đọc thư mục của phiên đang mở.";
+        } else {
+          const count = roots.length + " thư mục: " + roots.join(", ");
+          summary = sessionOn ? "Thư mục của phiên đang mở và " + count : count;
+        }
+        return h("span", { style: css.meta }, summary);
       }
 
       if (!form) {
@@ -208,20 +233,30 @@ window.__ModuleLoader__.load({
 
       const field = (item) => h("div", { key: item.key, style: css.row },
         h("label", { style: css.label, htmlFor: "pfe-" + item.key }, item.label),
-        h(item.kind === "lines" ? "textarea" : "input", {
-          id: "pfe-" + item.key,
-          style: item.kind === "lines" ? Object.assign({}, css.input, css.textarea) : css.input,
-          type: item.kind === "number" ? "number" : "text",
-          min: item.kind === "number" ? 1 : undefined,
-          placeholder: item.placeholder,
-          value: draft[item.key],
-          disabled,
-          spellCheck: false,
-          onChange: (event) => update(item.key, event.target.value),
-        }),
+        item.kind === "bool"
+          ? h("label", { style: Object.assign({}, css.hint, { display: "flex", alignItems: "center", gap: 8 }) },
+            h("input", {
+              id: "pfe-" + item.key,
+              type: "checkbox",
+              checked: draft[item.key] === true,
+              disabled,
+              onChange: (event) => update(item.key, event.target.checked),
+            }),
+            item.hint)
+          : h(item.kind === "lines" ? "textarea" : "input", {
+            id: "pfe-" + item.key,
+            style: item.kind === "lines" ? Object.assign({}, css.input, css.textarea) : css.input,
+            type: item.kind === "number" ? "number" : "text",
+            min: item.kind === "number" ? 1 : undefined,
+            placeholder: item.placeholder,
+            value: draft[item.key],
+            disabled,
+            spellCheck: false,
+            onChange: (event) => update(item.key, event.target.value),
+          }),
         errors[item.key]
           ? h("span", { style: css.error }, errors[item.key])
-          : h("span", { style: css.hint }, item.hint));
+          : item.kind === "bool" ? null : h("span", { style: css.hint }, item.hint));
 
       return h("div", { style: css.page },
         h("div", { style: css.section },
@@ -245,10 +280,9 @@ window.__ModuleLoader__.load({
           h("span", { style: note.startsWith("Lỗi") || note.startsWith("Chưa lưu") ? css.error : css.meta },
             note || (savedAt ? "Lưu lúc " + savedAt : ""))),
         h("div", { style: css.callout },
-          "Deny-by-default: ", h("code", null, "allowedRoots"), " rỗng thì mọi lời gọi trả ",
-          h("code", null, "allowed_roots_unconfigured"), ". Đường dẫn được so sánh sau ",
-          h("code", null, "realpath"), "; symlink trỏ ra ngoài bị loại. File chứa secret ",
-          "không vào index, và tool không trả source thô."),
+          "Phạm vi đọc: thư mục của phiên đang mở (khi bật tuỳ chọn đầu trang) cộng các thư mục ",
+          "khai báo ở trên. Đường dẫn được so sánh sau ", h("code", null, "realpath"),
+          "; symlink trỏ ra ngoài bị loại. File chứa secret không vào index, và tool không trả source thô."),
         h("div", { style: css.section },
           h("div", { style: css.sectionHead },
             h("h2", { style: css.h2 }, "Tool đã đăng ký"),

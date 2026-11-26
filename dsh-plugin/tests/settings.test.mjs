@@ -71,16 +71,35 @@ async function firstErrorCode(tools, repo) {
   }
 }
 
-test('deny-by-default until a settings row supplies allowedRoots', async (t) => {
+test('strict mode with no row and no session root denies the call', async (t) => {
   const { ctx, tools } = makeContext({ rows: [] })
-  plugin.apply(ctx, {})
+  plugin.apply(ctx, { includeSessionRoot: false })
   assert.equal(await firstErrorCode(tools, tempRepo(t)), 'allowed_roots_unconfigured')
+})
+
+test('a session directory is usable with no settings row at all', async (t) => {
+  const repo = tempRepo(t)
+  const workingDirectory = { async ensure() { return repo } }
+  const { ctx, tools } = makeContext({ rows: [], getService: (n) => (n === 'workingDirectory' ? workingDirectory : undefined) })
+  plugin.apply(ctx, {})
+  const search = tools.get('project_code_search')
+  let code = 'ok'
+  try {
+    await search.execute({ repository_path: repo, query: 'export_report' },
+      { signal: undefined, agent: { cwd: repo } })
+  } catch (error) {
+    code = error.code ?? error.message
+  }
+  // Not a policy rejection any more: the only remaining failure would be a
+  // missing index, which is the honest answer for a fresh copy.
+  assert.notEqual(code, 'allowed_roots_unconfigured')
+  assert.notEqual(code, 'repository_outside_allowed_roots')
 })
 
 test('a row keyed by the package name binds live settings', async (t) => {
   const rows = [{ ns: 'dsh-project-flow-explainer', value: { allowedRoots: [CORPUS] } }]
   const { ctx, tools } = makeContext({ rows })
-  plugin.apply(ctx, {})
+  plugin.apply(ctx, { includeSessionRoot: false })
   // Not `allowed_roots_unconfigured` any more: the roots came from the row.
   assert.notEqual(await firstErrorCode(tools, tempRepo(t)), 'allowed_roots_unconfigured')
 })
@@ -88,14 +107,14 @@ test('a row keyed by the package name binds live settings', async (t) => {
 test('a row keyed by the entry id binds live settings', async (t) => {
   const rows = [{ ns: 'project-flow-explainer', value: { allowedRoots: [CORPUS] } }]
   const { ctx, tools } = makeContext({ rows })
-  plugin.apply(ctx, {})
+  plugin.apply(ctx, { includeSessionRoot: false })
   assert.notEqual(await firstErrorCode(tools, tempRepo(t)), 'allowed_roots_unconfigured')
 })
 
 test('a row published after mount is adopted on the settings event', async (t) => {
   const rows = []
   const { ctx, tools, emit } = makeContext({ rows })
-  plugin.apply(ctx, {})
+  plugin.apply(ctx, { includeSessionRoot: false })
   assert.equal(await firstErrorCode(tools, tempRepo(t)), 'allowed_roots_unconfigured')
 
   rows.push({ ns: 'dsh-project-flow-explainer', value: { allowedRoots: [CORPUS] } })
@@ -107,6 +126,6 @@ test('a row published after mount is adopted on the settings event', async (t) =
 test('an unrelated settings row is ignored', async (t) => {
   const rows = [{ ns: 'some-other-plugin', value: { allowedRoots: [CORPUS] } }]
   const { ctx, tools } = makeContext({ rows })
-  plugin.apply(ctx, {})
+  plugin.apply(ctx, { includeSessionRoot: false })
   assert.equal(await firstErrorCode(tools, tempRepo(t)), 'allowed_roots_unconfigured')
 })

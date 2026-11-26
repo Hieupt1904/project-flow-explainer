@@ -128,9 +128,24 @@ test('a repository outside allowedRoots is refused with its stable code and a fi
   assert.match(result.text, /Cách sửa:.*--repo/)
 })
 
-test('a session whose cwd is not a repository names --repo as the fix', async () => {
-  // Commands run where the session lives; that is often the home directory.
-  const { commands } = mount({ allowedRoots: [CORPUS] }, { cwd: os.homedir() })
+test('a fresh install runs the command in the session directory', async (t) => {
+  // The shipped default has no allowedRoots at all: the session's own directory
+  // is the read scope DSH already granted, so the first run must work without a
+  // configuration round trip.
+  const repo = tempRepo(t)
+  const { commands } = mount({ allowedRoots: undefined }, { cwd: repo })
+  const result = await commands.get('project-flow-explainer').handler({
+    agent: {}, rawInput: 'xuất báo cáo', signal: AbortSignal.timeout(120_000),
+  })
+  assert.equal(result.kind, 'success', result.text)
+  assert.match(result.text, /flow\.html/)
+})
+
+test('strict mode refuses a session directory that is not listed', async () => {
+  const { commands } = mount(
+    { allowedRoots: [CORPUS], includeSessionRoot: false },
+    { cwd: os.homedir() },
+  )
   const result = await commands.get('project-flow-explainer')
     .handler({ agent: {}, rawInput: 'xuất báo cáo', signal: undefined })
   assert.equal(result.kind, 'error')
@@ -155,8 +170,8 @@ test('a scoped command context still reads the session directory', async (t) => 
   assert.match(result.text, /flow\.html/)
 })
 
-test('an unconfigured allowedRoots is refused, not silently widened', async () => {
-  const { commands } = mount({ allowedRoots: undefined })
+test('strict mode with no roots is refused, never silently widened', async () => {
+  const { commands } = mount({ allowedRoots: undefined, includeSessionRoot: false })
   const command = commands.get('project-flow-explainer')
   const result = await command.handler({ agent: {}, rawInput: 'xuất báo cáo', signal: undefined })
   assert.equal(result.kind, 'error')

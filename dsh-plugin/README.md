@@ -26,22 +26,25 @@ dsh plugin --profile pfe-test add dsh-project-flow-explainer@latest
 dsh plugin --profile pfe-test add "$PWD/project-flow-explainer.tgz"
 ```
 
-Để cài đúng bản ổn định `0.9.1`, thay `@latest` bằng `@0.9.1`. Bạn cũng có thể tải [gói GitHub của bản ổn định](https://github.com/Hieupt1904/project-flow-explainer/releases/tag/v0.9.1) hoặc dựng gói từ kho mã này:
+Để cài đúng bản ổn định `0.10.0`, thay `@latest` bằng `@0.10.0`. Bạn cũng có thể tải [gói GitHub của bản ổn định](https://github.com/Hieupt1904/project-flow-explainer/releases/tag/v0.10.0) hoặc dựng gói từ kho mã này:
 
 ```bash
 node dsh-plugin/scripts/pack.mjs
-dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.9.1.tgz"
+dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.10.0.tgz"
 ```
 
 Khởi động lại hồ sơ DSH sau khi cài hoặc nâng cấp. Các lệnh dựng bản đồ và phân tích luồng chạy tại máy, không gọi mô hình.
 
 ## Cấu hình
 
-Trong giao diện web, mở **Plugins**. Tìm bundle rồi chọn **Configure** tại dòng `project-flow-explainer`. Thêm đường dẫn tuyệt đối vào **Thư mục được đọc** (`allowedRoots`), rồi chọn **Lưu cấu hình**.
+Cài xong là dùng được. Plugin đọc thư mục mà DSH đã cấp cho phiên đang mở, vì vậy lần đầu chạy không cần khai báo gì.
+
+Mở **Plugins** → **Configure** tại dòng `project-flow-explainer` khi cần đọc thêm repository nằm ngoài thư mục phiên.
 
 | Trường | Giá trị mặc định hoặc cách dùng |
 |---|---|
-| `allowedRoots` | Rỗng. Điền đường dẫn tuyệt đối cho các thư mục plugin được đọc. |
+| `includeSessionRoot` | `true`. Đọc thư mục của phiên đang mở. Tắt để ép chỉ đọc đúng danh sách bên dưới. |
+| `allowedRoots` | Rỗng. Đường dẫn tuyệt đối tới các repository nằm ngoài thư mục phiên. |
 | `pythonPath` | `python3`. Đổi nếu cần chọn trình thông dịch khác. |
 | `coreRoot` | Plugin tự dò lõi. Chỉ đặt khi lõi nằm ở vị trí khác. |
 | `timeoutMs` | `180000` ms cho mỗi lần gọi. |
@@ -52,10 +55,13 @@ Nếu dùng bản vá cấu hình, ghi đè dòng `project-flow-explainer` đã 
 ```yaml
 - id: project-flow-explainer
   config:
+    includeSessionRoot: true
     allowedRoots:
       - /duong/dan/workspace
     pythonPath: python3
 ```
+
+Bật `includeSessionRoot: false` khi cần chế độ nghiêm: mọi lời gọi chỉ đọc đúng các đường dẫn trong `allowedRoots`.
 
 ## Sử dụng
 
@@ -69,7 +75,9 @@ Nhập lệnh trong giao diện web:
 /project-flow-explainer --blueprint
 ```
 
-Nếu bỏ `--repo`, plugin dùng thư mục làm việc của phiên. Mở `flow.html` trong `<repo>/artifacts/flows/<slug>/` để xem sơ đồ. Plugin trả đường dẫn kết quả tính từ thư mục gốc của kho mã. Lệnh `--map` dựng `project-flow-explainer/index.html`. Lệnh `--blueprint` đọc `project-flow-explainer/plan.json` có sẵn. Cả chế độ luồng và các lệnh bản đồ dùng cùng phạm vi `allowedRoots`.
+Nếu bỏ `--repo`, plugin dùng thư mục làm việc của phiên. Dùng `--repo` khi cần trỏ sang repository khác; repository đó PHẢI nằm trong `allowedRoots` hoặc trong thư mục phiên.
+
+Mở `flow.html` trong `<repo>/artifacts/flows/<slug>/` để xem sơ đồ. Plugin trả đường dẫn kết quả tính từ thư mục gốc của kho mã. Lệnh `--map` dựng `project-flow-explainer/index.html`. Lệnh `--blueprint` đọc `project-flow-explainer/plan.json` có sẵn.
 
 ### Thanh Hỏi trên bản đồ
 
@@ -105,8 +113,8 @@ Mở trực tiếp `index.html` để xem bản đồ. Để hỏi, mở địa 
 
 | Mã lỗi | Cách khắc phục |
 |---|---|
-| `allowed_roots_unconfigured` | Điền ít nhất một thư mục tuyệt đối vào `allowedRoots`. |
-| `repository_outside_allowed_roots` | Chọn kho mã nằm trong một thư mục đã khai báo. |
+| `allowed_roots_unconfigured` | Chế độ nghiêm đang bật và `allowedRoots` rỗng. Điền một thư mục tuyệt đối, hoặc bật lại `includeSessionRoot`. |
+| `repository_outside_allowed_roots` | Kho mã nằm ngoài thư mục phiên. Mở phiên ngay trong kho mã, hoặc thêm đường dẫn đó vào `allowedRoots`. |
 | `index_missing` | Chạy `project_code_index` trước khi tra cứu. |
 | `core_cli_not_found` | Cài lại từ gói có thư mục `vendor/core/`. |
 | `MISSING_CREDENTIAL` | Trong **Models** của DSH, lưu khóa cho nhà cung cấp mà hồ sơ `headless` đang dùng. Để tiếp tục ngay, chọn **Tra cứu bản đồ cục bộ** trong thanh Hỏi. |

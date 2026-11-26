@@ -132,10 +132,19 @@ const refSchema = {
   additionalProperties: false,
 }
 
-export function knowledgeTools({ settings, core, inFlight }) {
-  const repository = (args, toolName) => {
+export function knowledgeTools({ settings, core, inFlight, ctx, sessionDirectory }) {
+  // Async because the session's directory is part of the read policy: a path
+  // the DSH host already confines the session to needs no declaration.
+  const repository = async (args, toolName, exec) => {
     const value = requiredString(args, 'repository_path', toolName)
-    return resolveRepository(value, { allowedRoots: settings.allowedRoots })
+    const sessionRoot = sessionDirectory === undefined
+      ? undefined
+      : await sessionDirectory(ctx, exec && exec.agent, exec && exec.signal)
+    return resolveRepository(value, {
+      allowedRoots: settings.allowedRoots,
+      sessionRoot,
+      includeSessionRoot: settings.includeSessionRoot,
+    })
   }
 
   return [
@@ -243,7 +252,7 @@ export function knowledgeTools({ settings, core, inFlight }) {
       async execute(args, exec) {
         assertObject(args, 'project_code_index')
         rejectUnknownKeys(args, ['repository_path', 'mode', 'include_vectors'], 'project_code_index')
-        const { root } = repository(args, 'project_code_index')
+        const { root } = await repository(args, 'project_code_index', exec)
         const mode = enumValue(args, 'mode', 'project_code_index',
           ['full', 'incremental'], 'incremental')
         const includeVectors = booleanFlag(args, 'include_vectors', 'project_code_index', false)
@@ -428,7 +437,7 @@ export function knowledgeTools({ settings, core, inFlight }) {
       async execute(args, exec) {
         assertObject(args, 'project_code_search')
         rejectUnknownKeys(args, ['repository_path', 'query', 'top_k', 'filters'], 'project_code_search')
-        const { root } = repository(args, 'project_code_search')
+        const { root } = await repository(args, 'project_code_search', exec)
         const query = requiredString(args, 'query', 'project_code_search')
         const topK = integerInRange(args, 'top_k', 'project_code_search',
           { min: 1, max: 50, fallback: 10 })
@@ -749,7 +758,7 @@ export function knowledgeTools({ settings, core, inFlight }) {
       async execute(args, exec) {
         assertObject(args, 'project_context_pack')
         rejectUnknownKeys(args, ['repository_path', 'task', 'max_files', 'include_snippets'], 'project_context_pack')
-        const { root } = repository(args, 'project_context_pack')
+        const { root } = await repository(args, 'project_context_pack', exec)
         const task = requiredString(args, 'task', 'project_context_pack')
         const maxFiles = integerInRange(args, 'max_files', 'project_context_pack',
           { min: 1, max: 40, fallback: 12 })
@@ -945,7 +954,7 @@ export function knowledgeTools({ settings, core, inFlight }) {
       async execute(args, exec) {
         assertObject(args, 'project_impact_analysis')
         rejectUnknownKeys(args, ['repository_path', 'changed_files', 'diff'], 'project_impact_analysis')
-        const { root } = repository(args, 'project_impact_analysis')
+        const { root } = await repository(args, 'project_impact_analysis', exec)
         const changed = stringArray(args, 'changed_files', 'project_impact_analysis')
         const diff = optionalString(args, 'diff', 'project_impact_analysis')
         if (changed.length === 0 && (diff === undefined || diff.trim() === '')) {
@@ -1068,7 +1077,7 @@ export function knowledgeTools({ settings, core, inFlight }) {
       async execute(args, exec) {
         assertObject(args, 'project_verify_flow')
         rejectUnknownKeys(args, ['repository_path'], 'project_verify_flow')
-        const { root } = repository(args, 'project_verify_flow')
+        const { root } = await repository(args, 'project_verify_flow', exec)
         const payload = await invoke({
           settings, core, argv: ['verify', '--repo', root], exec,
           toolName: 'project_verify_flow',
@@ -1153,7 +1162,7 @@ export function knowledgeTools({ settings, core, inFlight }) {
       async execute(args, exec) {
         assertObject(args, 'project_knowledge_refresh')
         rejectUnknownKeys(args, ['repository_path', 'mode', 'include_vectors'], 'project_knowledge_refresh')
-        const { root } = repository(args, 'project_knowledge_refresh')
+        const { root } = await repository(args, 'project_knowledge_refresh', exec)
         const mode = enumValue(args, 'mode', 'project_knowledge_refresh',
           ['full', 'incremental'], 'incremental')
         const includeVectors = booleanFlag(args, 'include_vectors',

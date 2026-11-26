@@ -22,7 +22,7 @@ export const COMMAND_NAME = 'project-flow-explainer'
 
 const USAGE = 'Cách dùng: /project-flow-explainer <mô tả luồng>'
   + '\nVí dụ: /project-flow-explainer từ lúc bấm xuất báo cáo đến khi nhận được file'
-  + '\nThiếu gì: cần repository hiện tại nằm trong allowedRoots của plugin.'
+  + '\nPhạm vi: thư mục của phiên đang mở, cộng các thư mục khai báo trong allowedRoots.'
 
 /** Split `<request>` from optional `--repo <path>` so a person can target another repo. */
 /**
@@ -51,71 +51,43 @@ export function parseInput(rawInput) {
 }
 
 /**
- * Read the working-directory service from the context that actually has it.
- *
- * The command is registered inside `ctx.inject(['commands'], ...)`, so its
- * context declares only `commands`: reading `ctx.workingDirectory` there throws
- * `cannot get property "workingDirectory" without inject` from the Cordis proxy.
- * The throw used to be swallowed and the resolution fell back to
- * `process.cwd()`, which for a web server is the launcher's own directory — then
- * the command reported the repository as outside allowedRoots even when the
- * session was opened inside one. Read the service through the
- * unchecked `ctx.get()` accessor when the property form is unavailable.
- * @param {object} ctx - command-scope context.
- * @returns {{ensure: Function}|undefined} the service when this composition has one.
- */
-function workingDirectoryService(ctx) {
-  try {
-    const direct = ctx.workingDirectory
-    if (direct !== undefined && typeof direct.ensure === 'function') return direct
-  } catch {
-    // service not declared in this scope; fall through to the unchecked read
-  }
-  try {
-    const viaGet = typeof ctx.get === 'function' ? ctx.get('workingDirectory') : undefined
-    if (viaGet !== undefined && typeof viaGet.ensure === 'function') return viaGet
-  } catch {
-    // headless composition without a working-directory service
-  }
-  return undefined
-}
-
-/**
  * Resolve the repository for a command invocation.
  *
- * A slash command runs outside a tool execution, so there is no `exec.cwd`. The
- * session's working directory is the closest honest answer; `process.cwd()` is
- * only a fallback and is never treated as a repository without passing the same
- * allowed-roots policy the tools use.
- * @param {object} ctx - plugin context (for the working-directory service).
+ * A slash command runs outside a tool execution, so there is no `exec.cwd`:
+ * the session's working directory is the answer, and `process.cwd()` is only a
+ * fallback when the host gives no session directory at all.
+ *
+ * The session directory is allowed by construction — DSH already confines that
+ * session to it — so `--repo` is for reaching *another* repository, not a
+ * requirement for the one the person is standing in.
+ * @param {object} ctx - command-scope context.
  * @param {object|undefined} agent - invoking agent.
  * @param {string|undefined} explicit - `--repo` value when the user supplied one.
  * @param {AbortSignal|undefined} signal - cancellation from the UI request.
  * @param {object} settings - live plugin settings, read at call time.
+ * @param {Function|undefined} sessionDirectory - resolver shared with the tools.
  */
-async function repositoryFor(ctx, agent, explicit, signal, settings) {
-  const allowedRoots = settings.allowedRoots
+async function repositoryFor(ctx, agent, explicit, signal, settings, sessionDirectory) {
+  const policy = {
+    allowedRoots: settings.allowedRoots,
+    includeSessionRoot: settings.includeSessionRoot,
+  }
+  const sessionRoot = typeof sessionDirectory === 'function'
+    ? await sessionDirectory(ctx, agent, signal)
+    : undefined
   if (typeof explicit === 'string' && explicit !== '') {
-    return resolveRepository(explicit, { allowedRoots })
+    return resolveRepository(explicit, { ...policy, sessionRoot })
   }
-  const service = workingDirectoryService(ctx)
-  let candidate
-  if (service !== undefined && agent !== undefined) {
-    try {
-      candidate = await service.ensure(agent, signal)
-    } catch {
-      candidate = undefined
-    }
-  }
-  const usedFallback = typeof candidate !== 'string' || candidate === ''
-  if (usedFallback) candidate = process.cwd()
+  const candidate = typeof sessionRoot === 'string' && sessionRoot !== ''
+    ? sessionRoot
+    : process.cwd()
   try {
-    return resolveRepository(candidate, { allowedRoots })
+    return resolveRepository(candidate, { ...policy, sessionRoot })
   } catch (error) {
-    // Name the source of the path: a launcher directory is not the session's
-    // directory, and without that line the rejection reads as "my repo is
+    // Name the source of the path: the launcher's directory is not the
+    // session's, and without that line the rejection reads as "my repo is
     // broken" instead of "this call looked at the wrong folder".
-    if (usedFallback && error instanceof InputError) {
+    if (candidate === process.cwd() && error instanceof InputError) {
       error.hint = (error.hint ? error.hint + '\n' : '')
         + 'Nguồn đường dẫn: thư mục của tiến trình DSH (' + candidate
         + '), không phải thư mục của phiên. Truyền --repo <đường dẫn tuyệt đối>.'
@@ -129,7 +101,7 @@ async function repositoryFor(ctx, agent, explicit, signal, settings) {
  * @param {object} options - plugin settings plus the resolved core.
  * @returns {object} a definition accepted by `ctx.commands.register()`.
  */
-export function flowCommand({ ctx, settings, core }) {
+export function flowCommand({ ctx, settings, core, sessionDirectory }) {
   return {
     name: COMMAND_NAME,
     description: 'Dựng sơ đồ luồng hoặc bản đồ Project Flow Explainer toàn kho bằng --map, --refresh-map, --blueprint.',
@@ -148,7 +120,7 @@ export function flowCommand({ ctx, settings, core }) {
       let root
       let outputDirectory
       try {
-        root = (await repositoryFor(ctx, agent, repository, signal, settings)).root
+        root = (await repositoryFor(ctx, agent, repository, signal, settings, sessionDirectory)).root
         if (!mapMode) outputDirectory = resolveArtifactRoot(root)
       } catch (error) {
         const code = error?.code ?? 'command_failed'

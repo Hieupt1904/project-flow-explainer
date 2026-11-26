@@ -1,6 +1,6 @@
 # ARCHITECTURE_DECISION — Hybrid Project Flow Explainer × DeepSeek Harness
 
-## Trạng thái hiện hành: 0.9.1
+## Trạng thái hiện hành: 0.10.0
 
 **ĐÃ TRIỂN KHAI** — Project Flow Explainer giữ hai đường dựng riêng. Các mục quyết định bên dưới ghi lại bối cảnh của các phiên bản trước.
 

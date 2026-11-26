@@ -45,6 +45,18 @@ function makeContext() {
       disposers.push(dispose)
       return { dispose: async () => { if (typeof dispose === 'function') await dispose() } }
     },
+    // The host's working-directory service. A session's directory is part of
+    // the read policy, so the mock has to provide one or the plugin's default
+    // (session root allowed) cannot be exercised at all.
+    workingDirectory: {
+      async ensure(agent) {
+        if (agent === undefined || agent === null) throw new Error('no agent')
+        return agent.cwd
+      },
+    },
+    get(name) {
+      return name === 'workingDirectory' ? ctx.workingDirectory : undefined
+    },
   }
   return {
     ctx,
@@ -79,6 +91,11 @@ function fixtureCopy() {
 
 function call(tool, args, signal) {
   return tool.execute(args, { signal: signal ?? new AbortController().signal })
+}
+
+/** An agent whose session lives in `cwd`: the only thing the policy reads. */
+function fixtureAgent(ctx, cwd) {
+  return { cwd, ctx }
 }
 
 async function rejectsWithCode(promise, code) {
@@ -169,11 +186,22 @@ test('adapter and direct core produce the same graph', async () => {
   }
 })
 
-// --- TASK 1: allowedRoots deny-by-default ---------------------------------
+// --- read policy: session directory by default, strict mode by opt-in -------
 
-test('missing allowedRoots denies every call (deny-by-default)', async () => {
+test('an explicit root is enough with no settings at all', async () => {
   const fixture = fixtureCopy()
-  const { tool } = mount({}, undefined)
+  const { tool } = mount({}, [fixture.dir])
+  try {
+    const result = await call(tool, { repository_path: fixture.repo, flow_request: REQUEST })
+    assert.equal(result.status, 'ok')
+  } finally {
+    fixture.cleanup()
+  }
+})
+
+test('strict mode with no roots denies every call', async () => {
+  const fixture = fixtureCopy()
+  const { tool } = mount({ includeSessionRoot: false }, [])
   try {
     await rejectsWithCode(call(tool, { repository_path: fixture.repo, flow_request: REQUEST }),
       'allowed_roots_unconfigured')
@@ -183,21 +211,26 @@ test('missing allowedRoots denies every call (deny-by-default)', async () => {
   }
 })
 
-test('empty allowedRoots denies every call', async () => {
+test('a session directory is readable without being configured', async () => {
+  // The host already confines the session to this directory, so demanding it be
+  // declared again only taught users that the plugin is broken.
   const fixture = fixtureCopy()
-  const { tool } = mount({}, [])
+  const { tool, ctx } = mount({}, [])
   try {
-    await rejectsWithCode(call(tool, { repository_path: fixture.repo, flow_request: REQUEST }),
-      'allowed_roots_unconfigured')
+    const result = await tool.execute(
+      { repository_path: fixture.repo, flow_request: REQUEST },
+      { signal: new AbortController().signal, agent: fixtureAgent(ctx, fixture.dir) },
+    )
+    assert.equal(result.status, 'ok')
   } finally {
     fixture.cleanup()
   }
 })
 
-test('repository outside allowedRoots is rejected', async () => {
+test('repository outside every granted root is rejected', async () => {
   const fixture = fixtureCopy()
   const other = mkdtempSync(path.join(os.tmpdir(), 'pfe-other-'))
-  const { tool } = mount({}, [other])
+  const { tool } = mount({ includeSessionRoot: false }, [other])
   try {
     await rejectsWithCode(call(tool, { repository_path: fixture.repo, flow_request: REQUEST }),
       'repository_outside_allowed_roots')
@@ -217,7 +250,7 @@ test('symlink that escapes allowedRoots is rejected', async () => {
     } catch {
       return // symlinks unavailable: nothing to assert
     }
-    const { tool } = mount({}, [root])
+    const { tool } = mount({ includeSessionRoot: false }, [root])
     await rejectsWithCode(call(tool, { repository_path: link, flow_request: REQUEST }),
       'repository_outside_allowed_roots')
   } finally {

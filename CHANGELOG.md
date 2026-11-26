@@ -1,5 +1,18 @@
 # Lịch sử phiên bản
 
+## 0.10.0
+
+Bản này đổi phạm vi đọc mặc định: cài xong là dùng được, không cần khai báo đường dẫn trước.
+
+- Thêm `includeSessionRoot` (mặc định `true`). Plugin đọc thư mục mà DSH đã cấp cho phiên đang mở, nên lần chạy đầu tiên không cần cấu hình.
+- `allowedRoots` chỉ còn dùng để thêm repository nằm ngoài thư mục phiên, và mặc định rỗng.
+- Giữ chế độ nghiêm: đặt `includeSessionRoot: false` thì mọi lời gọi chỉ đọc đúng `allowedRoots`, và mã lỗi `allowed_roots_unconfigured` vẫn giữ nguyên.
+- Công cụ tra cứu (`project_code_index`, `project_code_search`, `project_context_pack`, `project_impact_analysis`, `project_verify_flow`, `project_knowledge_refresh`) dùng chung phạm vi với công cụ dựng sơ đồ.
+- Trang Configure có thêm công tắc cho phạm vi phiên, và phần tóm tắt nói rõ đang đọc thư mục nào.
+- Thông báo `repository_outside_allowed_roots` nêu hai cách xử lý: mở phiên trong kho mã, hoặc thêm đường dẫn vào `allowedRoots`.
+
+**Nâng cấp:** hồ sơ từng khai báo `allowedRoots` vẫn chạy như cũ, chỉ đọc rộng hơn một thư mục. Muốn quay lại đúng hành vi cũ thì đặt `includeSessionRoot: false`.
+
 ## 0.9.1
 
 Bản vá cho lệnh và công cụ tra cứu. Cài bằng thẻ `latest` hoặc [gói GitHub](https://github.com/Hieupt1904/project-flow-explainer/releases/tag/v0.9.1).
