@@ -343,8 +343,9 @@ export function knowledgeTools({ settings, core, inFlight }) {
             },
             // DSH validates schemas with a single `type` string: a union
             // (`['object','null']`) is rejected and takes the whole plugin down
-            // with it. null is still a legal value for an object-typed field, so
-            // the count fields stay optional.
+            // with it. An object-typed field also rejects a null value at output
+            // validation ("must be an object"), so this key is optional and is
+            // omitted entirely when no flow filter ran.
             flow_filter: {
               type: 'object',
               properties: {
@@ -399,8 +400,11 @@ export function knowledgeTools({ settings, core, inFlight }) {
               },
             },
           },
+          // `flow_filter` is absent, not null, when no flow filter ran: an
+          // object-typed field rejects null during output validation, which made
+          // every unfiltered search fail.
           required: ['query', 'intent', 'source_commit', 'stale', 'stale_warning',
-            'channels', 'warnings', 'filters_applied', 'flow_filter', 'vector', 'flows',
+            'channels', 'warnings', 'filters_applied', 'vector', 'flows',
             'results'],
           additionalProperties: false,
         },
@@ -448,7 +452,11 @@ export function knowledgeTools({ settings, core, inFlight }) {
           // Echo the filter that ran so a caller never has to guess whether the
           // core honoured it; flow_filter carries the member/dropped counts.
           filters_applied: payload.filters ?? {},
-          flow_filter: payload.flow_filter ?? null,
+          // Omitted rather than set to null: the output contract declares this
+          // field as an object, and the runtime rejects a null for it.
+          ...(payload.flow_filter && typeof payload.flow_filter === 'object'
+            ? { flow_filter: payload.flow_filter }
+            : {}),
           // Keep only what a caller can act on: the backend identity and why the
           // channel was off. The raw candidate list is not part of this contract.
           vector: (() => {

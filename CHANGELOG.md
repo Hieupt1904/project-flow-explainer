@@ -1,5 +1,14 @@
 # Lịch sử phiên bản
 
+## 0.9.1
+
+Bản vá cho lệnh và công cụ tra cứu. Cài bằng thẻ `latest` hoặc [gói GitHub](https://github.com/Hieupt1904/project-flow-explainer/releases/tag/v0.9.1).
+
+- Sửa lệnh `/project-flow-explainer`: đọc thư mục phiên qua `ctx.get("workingDirectory")`. Trước đây lệnh đọc `ctx.workingDirectory` trong scope chỉ khai báo `commands`, nên Cordis ném lỗi và lệnh rơi về `process.cwd()` của tiến trình web, rồi từ chối chính repository đang mở.
+- Khi phải dùng `process.cwd()`, thông báo lỗi ghi rõ nguồn đường dẫn thay vì chỉ báo `repository_outside_allowed_roots`.
+- Sửa `project_code_search`: bỏ trường `flow_filter` khi không có bộ lọc thay vì trả `null`. Hợp đồng khai báo trường này kiểu object nên runtime từ chối mọi lần tìm không lọc.
+- Thêm kiểm thử hồi quy cho scope lệnh Cordis và cho hợp đồng đầu ra của công cụ tra cứu.
+
 ## 0.9.0
 
 Bản ổn định của `0.9.0-rc.2`. Cài bằng thẻ npm `latest` hoặc [tải gói từ GitHub](https://github.com/Hieupt1904/project-flow-explainer/releases/tag/v0.9.0). Bản này giữ bản đồ toàn kho, bảng căn cứ và bộ chọn mô hình DSH của bản thử nghiệm.

@@ -1,6 +1,6 @@
 {
   "name": "dsh-project-flow-explainer",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "type": "module",
   "description": "Turn repository source into offline interactive flow diagrams and look up code evidence in DeepSeek Harness. Includes the Python core.",
   "license": "MIT",

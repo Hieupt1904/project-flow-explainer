@@ -51,6 +51,36 @@ export function parseInput(rawInput) {
 }
 
 /**
+ * Read the working-directory service from the context that actually has it.
+ *
+ * The command is registered inside `ctx.inject(['commands'], ...)`, so its
+ * context declares only `commands`: reading `ctx.workingDirectory` there throws
+ * `cannot get property "workingDirectory" without inject` from the Cordis proxy.
+ * The throw used to be swallowed and the resolution fell back to
+ * `process.cwd()`, which for a web server is the launcher's own directory — then
+ * the command reported the repository as outside allowedRoots even when the
+ * session was opened inside one. Read the service through the
+ * unchecked `ctx.get()` accessor when the property form is unavailable.
+ * @param {object} ctx - command-scope context.
+ * @returns {{ensure: Function}|undefined} the service when this composition has one.
+ */
+function workingDirectoryService(ctx) {
+  try {
+    const direct = ctx.workingDirectory
+    if (direct !== undefined && typeof direct.ensure === 'function') return direct
+  } catch {
+    // service not declared in this scope; fall through to the unchecked read
+  }
+  try {
+    const viaGet = typeof ctx.get === 'function' ? ctx.get('workingDirectory') : undefined
+    if (viaGet !== undefined && typeof viaGet.ensure === 'function') return viaGet
+  } catch {
+    // headless composition without a working-directory service
+  }
+  return undefined
+}
+
+/**
  * Resolve the repository for a command invocation.
  *
  * A slash command runs outside a tool execution, so there is no `exec.cwd`. The
@@ -68,16 +98,30 @@ async function repositoryFor(ctx, agent, explicit, signal, settings) {
   if (typeof explicit === 'string' && explicit !== '') {
     return resolveRepository(explicit, { allowedRoots })
   }
+  const service = workingDirectoryService(ctx)
   let candidate
-  try {
-    if (agent !== undefined && typeof ctx.workingDirectory?.ensure === 'function') {
-      candidate = await ctx.workingDirectory.ensure(agent, signal)
+  if (service !== undefined && agent !== undefined) {
+    try {
+      candidate = await service.ensure(agent, signal)
+    } catch {
+      candidate = undefined
     }
-  } catch {
-    candidate = undefined
   }
-  if (typeof candidate !== 'string' || candidate === '') candidate = process.cwd()
-  return resolveRepository(candidate, { allowedRoots })
+  const usedFallback = typeof candidate !== 'string' || candidate === ''
+  if (usedFallback) candidate = process.cwd()
+  try {
+    return resolveRepository(candidate, { allowedRoots })
+  } catch (error) {
+    // Name the source of the path: a launcher directory is not the session's
+    // directory, and without that line the rejection reads as "my repo is
+    // broken" instead of "this call looked at the wrong folder".
+    if (usedFallback && error instanceof InputError) {
+      error.hint = (error.hint ? error.hint + '\n' : '')
+        + 'Nguồn đường dẫn: thư mục của tiến trình DSH (' + candidate
+        + '), không phải thư mục của phiên. Truyền --repo <đường dẫn tuyệt đối>.'
+    }
+    throw error
+  }
 }
 
 /**

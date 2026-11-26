@@ -21,7 +21,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url))
 const CORPUS = path.resolve(HERE, '../..')
 const FIXTURE = path.resolve(CORPUS, 'tests/fixtures/shop-app')
 
-function mount(applied = {}, { withCommands = true, cwd = CORPUS } = {}) {
+function mount(applied = {}, { withCommands = true, cwd = CORPUS, strictScope = false } = {}) {
   const tools = new Map()
   const commands = new Map()
   const ctx = {
@@ -33,19 +33,28 @@ function mount(applied = {}, { withCommands = true, cwd = CORPUS } = {}) {
     inject(services, cb) {
       if (!withCommands || !services.includes('commands')) return
       // A real Cordis scoped context inherits every other service from its
-      // parent. The mock must do the same, or `workingDirectory` silently
-      // disappears and the command falls back to process.cwd() — which is the
-      // repository under test, so a policy failure would look like a success.
-      cb({
-        get: ctx.get,
-        workingDirectory: ctx.workingDirectory,
+      // parent, but *reading* an undeclared service throws from the proxy:
+      // `cannot get property "workingDirectory" without inject`. With
+      // strictScope the mock reproduces that, which is the only shape that
+      // catches a command that reads the service it never declared. `get()`
+      // bypasses the inject requirement, exactly as Cordis does.
+      const scope = {
+        get: (name) => (name === 'workingDirectory' ? ctx.workingDirectory : ctx.get(name)),
         commands: {
           register(definition) {
             commands.set(definition.name, definition)
             return () => commands.delete(definition.name)
           },
         },
-      })
+      }
+      if (strictScope) {
+        Object.defineProperty(scope, 'workingDirectory', {
+          get() { throw new Error('cannot get property "workingDirectory" without inject') },
+        })
+      } else {
+        scope.workingDirectory = ctx.workingDirectory
+      }
+      cb(scope)
     },
   }
   plugin.apply(ctx, { allowedRoots: [CORPUS, os.tmpdir()], ...applied })
@@ -128,6 +137,24 @@ test('a session whose cwd is not a repository names --repo as the fix', async ()
   assert.match(result.text, /Cách sửa:.*--repo/)
 })
 
+test('a scoped command context still reads the session directory', async (t) => {
+  // Regression: the command is registered inside ctx.inject(['commands'], ...),
+  // so its context declares only `commands`. A direct read of
+  // `ctx.workingDirectory` there throws, and swallowing that throw fell back to
+  // process.cwd() — the DSH launcher directory — so the command refused the very
+  // repository the session was opened in.
+  const repo = tempRepo(t)
+  const { commands } = mount(
+    { allowedRoots: [CORPUS, os.tmpdir()] },
+    { cwd: repo, strictScope: true },
+  )
+  const result = await commands.get('project-flow-explainer').handler({
+    agent: {}, rawInput: 'xuất báo cáo', signal: AbortSignal.timeout(120_000),
+  })
+  assert.equal(result.kind, 'success', result.text)
+  assert.match(result.text, /flow\.html/)
+})
+
 test('an unconfigured allowedRoots is refused, not silently widened', async () => {
   const { commands } = mount({ allowedRoots: undefined })
   const command = commands.get('project-flow-explainer')
@@ -178,4 +205,3 @@ test('--repo=value form is parsed too', () => {
   assert.equal(parsed.repository, target)
   rmSync(dir, { recursive: true, force: true })
 })
-
