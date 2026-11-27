@@ -28,6 +28,7 @@ import {
 } from './lib/paths.js'
 import { flowCommand } from './lib/command.js'
 import { knowledgeTools } from './lib/tools.js'
+import { skillRegistration } from './lib/skill.js'
 import {
   assertObject, optionalString, rejectUnknownKeys, requiredString,
 } from './lib/validate.js'
@@ -124,24 +125,45 @@ function badConfig(message, hint) {
   throw new InputError('invalid_plugin_config', `${name}: ${message}`, hint)
 }
 
+const LIVE_KEYS = new Set([
+  'allowedRoots', 'pythonPath', 'coreRoot', 'includeSessionRoot', 'timeoutMs', 'maxOutputBytes',
+])
+
+/**
+ * Read one config field.
+ *
+ * DSH 0.2 hands `.volatile()` fields to `apply` as stable references. The
+ * current value is `reference.get()`, and a later Settings edit updates that
+ * reference without remounting the plugin. A `{}` placeholder or a loader
+ * expression (an object with no `get`) still means "unset".
+ * @param {unknown} value - plain value or a volatile reference.
+ * @returns {unknown} the value to validate, or undefined when the field is unset.
+ */
+function readField(value) {
+  if (value !== null && typeof value === 'object' && !Array.isArray(value)
+      && typeof value.get === 'function') {
+    try {
+      return value.get()
+    } catch {
+      return undefined
+    }
+  }
+  return value
+}
+
 function normalizeConfig(config) {
-  // Volatile settings are placeholders ({}) until the user layer carries a
-  // value, so every field is type-checked and falls back to its default instead
-  // of failing the mount. A real wrong type still fails: the Loader's Config
-  // schema rejects it before apply().
+  // A wrong scalar still fails the mount. The Loader's Config schema rejects
+  // it before apply() when schemastery resolved; this check covers the
+  // fallback path and a direct execute() in tests.
   const raw = config ?? {}
   const settings = { ...DEFAULTS }
-  // Volatile fields can arrive as {} (no value yet) or as a loader expression
-  // object; both mean "unset". A plainly wrong SCALAR must still fail loudly.
   const opaque = (value) => typeof value === 'object' && value !== null && !Array.isArray(value)
   for (const [key, value] of Object.entries(raw)) {
     if (value === undefined || value === null) continue
-    if (opaque(value)) {
-      if (key === 'allowedRoots' || key === 'pythonPath' || key === 'coreRoot'
-          || key === 'includeSessionRoot' || key === 'timeoutMs'
-          || key === 'maxOutputBytes') continue
-    }
-    settings[key] = value
+    const current = readField(value)
+    if (current === undefined || current === null) continue
+    if (opaque(current) && LIVE_KEYS.has(key)) continue
+    settings[key] = current
   }
   if (typeof settings.pythonPath !== 'string' || settings.pythonPath.trim() === '') {
     badConfig('pythonPath phải là chuỗi không rỗng')
@@ -264,17 +286,24 @@ export async function sessionDirectoryOf(ctx, agent, signal) {
  * @param {object} [config] - profile patch config (`allowedRoots` required to use the tool).
  */
 /**
- * Volatile fields reach apply() as {} placeholders: the Loader keeps their
- * values in the settings document instead of the static config. Read them from
- * the settings service once and refresh on its document event, so every tool
- * call sees the current user layer.
+ * Rebuild the live settings object from the config references and, when the
+ * host has one, the settings form for this entry.
+ *
+ * `.get()` is the consumer contract for volatile fields: a Settings save
+ * updates the reference and emits `loader/volatile-update` without remounting.
+ * `settings.describe()` remains the fallback for a `{}` placeholder and for
+ * tests that publish a row after mount. A bad form value keeps the last good
+ * snapshot instead of failing the call.
  * @param {object} ctx - Cordis context (settings service optional).
+ * @param {object} config - the object passed to apply(), possibly holding volatile refs.
  * @param {object} target - normalized settings object updated in place.
+ * @returns {() => void} refresh to call at the start of each operation.
  */
-function attachLiveSettings(ctx, target) {
+function attachLiveSettings(ctx, config, target) {
   let bound = false
   const read = () => {
     try {
+      const next = normalizeConfig(config)
       const rows = ctx.settings?.describe?.({ redactSecrets: true }) ?? []
       // `ns` is the profile entry id, not the package name: a bundle row is
       // `project-flow-explainer` while a hand-mounted row may use the package
@@ -284,15 +313,18 @@ function attachLiveSettings(ctx, target) {
       // `value` is the resolved form: profile patch + user layer + defaults.
       // `user` alone is just the profile's own patch layer, so using it would
       // ignore the bundle's configured roots.
-      if (mine === undefined || mine.value === undefined) return
-      bound = true
-      const layer = {}
-      for (const [key, value] of Object.entries(mine.value)) {
-        if (value !== undefined && value !== null) layer[key] = value
+      if (mine !== undefined && mine.value !== undefined && mine.value !== null) {
+        bound = true
+        const layer = {}
+        for (const [key, value] of Object.entries(mine.value)) {
+          if (value !== undefined && value !== null) layer[key] = value
+        }
+        Object.assign(next, normalizeConfig({ ...next, ...layer }))
       }
-      Object.assign(target, normalizeConfig({ ...target, ...layer }))
+      for (const key of Object.keys(target)) delete target[key]
+      Object.assign(target, next)
     } catch {
-      // settings unavailable (headless mount, unit test): keep the static config
+      // settings unavailable or a stale form: keep the last good snapshot
     }
   }
   read()
@@ -302,19 +334,25 @@ function attachLiveSettings(ctx, target) {
       // read can run before the loader has published this entry's row.
       if (!bound || SETTINGS_IDS.has(String(ns))) read()
     })
+    // Volatile edits commit into the running references. The next operation
+    // also calls read(), so a missed event cannot keep a stale timeout or root.
+    ctx.on('loader/volatile-update', () => read())
   } catch {
     // no event service in this composition
   }
+  return read
 }
 
 export function apply(ctx, config = {}) {
+  // Invalid static config fails here, before any tool is registered.
   const settings = normalizeConfig(config)
+  let refresh = () => {}
   // The settings service is optional: a headless mount or a unit test has none.
   // Declaring the dependency through ctx.inject keeps the mount valid either way.
   try {
-    ctx.inject(['settings'], (scoped) => { attachLiveSettings(scoped, settings) })
+    ctx.inject(['settings'], (scoped) => { refresh = attachLiveSettings(scoped, config, settings) })
   } catch {
-    attachLiveSettings(ctx, settings)
+    refresh = attachLiveSettings(ctx, config, settings)
   }
   // PFE_CORE_ROOT may come from the project `.env` or `$DSH_HOME/.env`, not only
   // from the raw process environment.
@@ -473,10 +511,14 @@ export function apply(ctx, config = {}) {
         return TEXT(lines.join('\n'))
       },
     },
-    timeoutMs: settings.timeoutMs,
+    get timeoutMs() {
+      refresh()
+      return settings.timeoutMs
+    },
     // One call writes artifacts: never group it with a parallel batch.
     isConcurrencySafe: () => false,
     async execute(args, exec) {
+      refresh()
       // Defence in depth: the runtime validates the JSON schema first, but a
       // direct execute() call must not be able to raise a raw TypeError.
       assertObject(args, TOOL_NAME)
@@ -597,7 +639,7 @@ export function apply(ctx, config = {}) {
   // `sessionDirectory` is passed in rather than imported so the read policy
   // stays in one place and tests can drive it without a live host.
   for (const definition of knowledgeTools({
-    settings, core: coreOf, inFlight, ctx, sessionDirectory: sessionDirectoryOf,
+    settings, core: coreOf, inFlight, ctx, sessionDirectory: sessionDirectoryOf, refresh,
   })) {
     ctx.tools.register(definition)
   }
@@ -608,10 +650,24 @@ export function apply(ctx, config = {}) {
   try {
     ctx.inject(['commands'], (scoped) => {
       scoped.commands.register(flowCommand({
-        ctx: scoped, settings, core: coreOf, sessionDirectory: sessionDirectoryOf,
+        ctx: scoped, settings, core: coreOf, sessionDirectory: sessionDirectoryOf, refresh,
       }))
     })
   } catch {
     // no command service in this composition: tools remain the entry point
+  }
+
+  // Model-facing skill. Optional: a composition without ctx.skills still mounts
+  // the tools. A scoped inject that has no skills service must not fail the mount.
+  try {
+    ctx.inject(['skills'], (scoped) => {
+      try {
+        scoped.skills.register(skillRegistration())
+      } catch {
+        // skills service absent on this scope
+      }
+    })
+  } catch {
+    // no inject, or the host has no skill registry
   }
 }

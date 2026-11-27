@@ -47,13 +47,46 @@ export function projectCatalog(rows) {
     models:[...routes.values()].map(({id,provider,model,name})=>({id,provider,model,name})) };
 }
 
+/**
+ * Load the `yaml` package that ships with DSH.
+ *
+ * `dsh` on PATH is often a shim outside the package. Resolution from that
+ * shim misses `node_modules`. Walk ancestors of the real file and look beside
+ * `@deepseek-ai/dsh` before requiring from the shim itself.
+ * @param {string} cliPath - path the user or PATH resolution named.
+ * @returns {object} the yaml module.
+ */
+export function loadYaml(cliPath) {
+  const starts = [];
+  try { starts.push(realpathSync(cliPath)); } catch { starts.push(cliPath); }
+  const seen = new Set();
+  for (const start of starts) {
+    let dir = path.dirname(start);
+    for (let hop = 0; hop < 8; hop += 1) {
+      if (seen.has(dir)) break;
+      seen.add(dir);
+      const manifests = [
+        path.join(dir, 'node_modules', 'yaml', 'package.json'),
+        path.join(dir, 'node_modules', '@deepseek-ai', 'dsh', 'node_modules', 'yaml', 'package.json'),
+      ];
+      for (const manifest of manifests) {
+        try { return createRequire(manifest)(path.dirname(manifest)); } catch { /* next anchor */ }
+      }
+      const parent = path.dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+    }
+  }
+  return createRequire(starts[0])('yaml');
+}
+
 export async function readDshCatalog(cli, profile, cwd) {
   const { stdout }=await run(cli.cmd,[...cli.args,'--profile',profile,'--dump-config'],{cwd,encoding:'utf8',...invocation,env:{...process.env,PROJECT_FLOW_DSH_PROFILE:profile}});
   let rows;
   try { rows=JSON.parse(stdout); }
   catch {
     // Use DSH's installed parser in data-only mode. Never evaluate its !!js tags.
-    const yaml=createRequire(realpathSync(cli.path))('yaml');
+    const yaml=loadYaml(cli.path);
     const doc=yaml.parseDocument(stdout,{logLevel:'silent'});
     if (doc.errors.length) throw new Error('Invalid DSH configuration');
     rows=doc.toJS({maxAliasCount:50});
@@ -68,7 +101,9 @@ export function createDshOverlay(choice) {
     rows.push({id:'agent-default-model',config:{provider:choice.provider,model:choice.model}});
   }
   const dir=mkdtempSync(path.join(tmpdir(),'pfe-dsh-'));
-  const file=path.join(dir,'selection.json');
+  // JSON is valid YAML. The launcher reads `--patch` with its YAML parser and
+  // does not require a `.yml` name, but the extension matches every other patch.
+  const file=path.join(dir,'selection.yml');
   const dispose=()=>rmSync(dir,{recursive:true,force:true});
   try { writeFileSync(file,JSON.stringify(rows),{mode:0o600}); }
   catch(error) { dispose(); throw error; }

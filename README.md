@@ -10,15 +10,16 @@
 
 **ĐÃ TRIỂN KHAI** — Project Flow Explainer có hai chế độ xem. Chọn bản đồ toàn kho để khám phá kiến trúc. Chọn sơ đồ nghiệp vụ để lần theo từng nhánh và đối chiếu dòng mã.
 
-## Bản ổn định 0.10.0
+## Bản trong kho này: 0.10.1
 
-Cài bản ổn định từ npm bằng thẻ `latest`.
+npm `latest` vẫn là bản đã phát hành `0.10.0` cho đến khi chủ kho đăng `0.10.1`. Để cài đúng mã đang mở, dựng tệp gói rồi đưa vào hồ sơ DSH:
 
 ```bash
-dsh plugin --profile pfe-test add dsh-project-flow-explainer@latest
+node dsh-plugin/scripts/pack.mjs
+dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.10.1.tgz"
 ```
 
-Xem [ghi chú phát hành](CHANGELOG.md) hoặc tải [gói cài từ GitHub](https://github.com/Hieupt1904/project-flow-explainer/releases/tag/v0.10.0).
+Xem [ghi chú phát hành](CHANGELOG.md). Gói `0.10.0` đã đăng nằm ở [thẻ v0.10.0](https://github.com/Hieupt1904/project-flow-explainer/releases/tag/v0.10.0).
 
 ## Bản đồ toàn kho
 
@@ -85,13 +86,9 @@ Công cụ lưu kết quả trong `<repo>/artifacts/flows/<slug>/`.
 
 ## Dùng trong DeepSeek Harness
 
-**ĐÃ TRIỂN KHAI** — Plugin DeepSeek Harness (DSH) dùng cùng lõi Python. Cài vào hồ sơ DSH bạn muốn dùng, rồi khởi động lại DSH:
+**ĐÃ TRIỂN KHAI** — Plugin DeepSeek Harness (DSH) dùng cùng lõi Python. Cài tệp gói vào hồ sơ cần dùng, rồi khởi động lại DSH. Cài xong là đọc được thư mục của phiên đang mở. Chỉ mở **Configure** khi kho mã nằm ngoài thư mục đó.
 
-```bash
-dsh plugin --profile pfe-test add dsh-project-flow-explainer@latest
-```
-
-Trong giao diện web, mở **Plugins → Project Flow Explainer → Configure** tại dòng `project-flow-explainer`. Thêm đường dẫn tuyệt đối của thư mục làm việc vào **Thư mục được đọc** (`allowedRoots`), rồi chọn **Lưu cấu hình**. Sau đó nhập:
+Trong giao diện web, gõ:
 
 ```text
 /project-flow-explainer Giải thích luồng xuất báo cáo

@@ -101,7 +101,7 @@ async function repositoryFor(ctx, agent, explicit, signal, settings, sessionDire
  * @param {object} options - plugin settings plus the resolved core.
  * @returns {object} a definition accepted by `ctx.commands.register()`.
  */
-export function flowCommand({ ctx, settings, core, sessionDirectory }) {
+export function flowCommand({ ctx, settings, core, sessionDirectory, refresh }) {
   return {
     name: COMMAND_NAME,
     description: 'Dựng sơ đồ luồng hoặc bản đồ Project Flow Explainer toàn kho bằng --map, --refresh-map, --blueprint.',
@@ -113,6 +113,7 @@ export function flowCommand({ ctx, settings, core, sessionDirectory }) {
     // is the point — it is the record of what they asked for.
     recordInput: true,
     handler: async (invocation) => {
+      if (typeof refresh === 'function') refresh()
       const { agent, rawInput, signal } = invocation
       const { request, repository } = parseInput(rawInput)
       if (request === '') return { kind: 'error', text: 'Thiếu mô tả luồng.\n' + USAGE }

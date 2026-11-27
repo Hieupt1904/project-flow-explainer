@@ -58,7 +58,9 @@ jobs:
             dsh-plugin/tests/arguments.test.mjs \
             dsh-plugin/tests/description.test.mjs \
             dsh-plugin/tests/command.test.mjs \
-            dsh-plugin/tests/flow-filter.test.mjs
+            dsh-plugin/tests/flow-filter.test.mjs \
+            dsh-plugin/tests/skill.test.mjs \
+            dsh-plugin/tests/catalog.test.mjs
       - name: viewer and Project Flow Explainer tests
         run: node --test tests/viewer-model.test.mjs tests/project-map-integration.test.mjs
       - name: pack + independent install

@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "Project Flow Explainer",
-    "description": "Dựng sơ đồ tương tác từ mã nguồn, kèm tệp và dòng làm căn cứ. Mở Configure ở dòng project-flow-explainer để đặt Thư mục được đọc. Sau đó nhập /project-flow-explainer và mô tả một luồng. Plugin phân tích tĩnh tại máy, không chạy ứng dụng đích.",
+    "description": "Dựng sơ đồ tương tác từ mã nguồn, kèm tệp và dòng làm căn cứ. Cài xong là đọc được thư mục của phiên. Chỉ mở Configure khi cần thêm kho nằm ngoài thư mục đó. Gõ /project-flow-explainer và mô tả một luồng, hoặc để mô hình nạp skill project-flow-explainer. Plugin phân tích tĩnh tại máy, không chạy ứng dụng đích.",
     "detail": "docs/DETAIL.md"
   }
 }

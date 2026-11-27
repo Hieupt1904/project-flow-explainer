@@ -10,11 +10,20 @@
 
 | Thành phần | Phiên bản |
 |---|---|
-| Node.js | `>=20` |
-| DeepSeek Harness | Dải khai báo: `>=0.2.2-rc.2 <0.3.0`. |
+| Node.js cho script của plugin | `>=20`. Gói npm `@deepseek-ai/dsh@0.2.2-rc.5` khai báo `node >=24.9.0`. |
+| DeepSeek Harness | Dải khai báo: `>=0.2.2-rc.2 <0.3.0`. `0.2.2-rc.5` (npm `latest` lúc đối chiếu) nằm trong dải này. |
 | Python | Dùng Python 3.12. Lõi chỉ dùng thư viện chuẩn. |
 
-Cài vào hồ sơ cần dùng. Ví dụ dưới đây dùng hồ sơ `pfe-test`:
+Cài vào hồ sơ cần dùng. `dsh plugin` chuyển nguyên đối số cho pnpm, nên tên npm, tệp `.tgz` và `link:` đều được. Ví dụ dưới đây dùng hồ sơ `pfe-test`.
+
+Bản **0.10.1** trong kho này chưa được đăng lên npm. `dsh-project-flow-explainer@latest` vẫn là bản đã phát hành. Để dùng đúng mã trong kho, dựng tệp gói rồi cài tệp đó:
+
+```bash
+node dsh-plugin/scripts/pack.mjs
+dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.10.1.tgz"
+```
+
+Khi bản 0.10.1 đã có trên npm, một dòng sau là đủ:
 
 ```bash
 dsh plugin --profile pfe-test add dsh-project-flow-explainer@latest
@@ -26,12 +35,7 @@ dsh plugin --profile pfe-test add dsh-project-flow-explainer@latest
 dsh plugin --profile pfe-test add "$PWD/project-flow-explainer.tgz"
 ```
 
-Để cài đúng bản ổn định `0.10.0`, thay `@latest` bằng `@0.10.0`. Bạn cũng có thể tải [gói GitHub của bản ổn định](https://github.com/Hieupt1904/project-flow-explainer/releases/tag/v0.10.0) hoặc dựng gói từ kho mã này:
-
-```bash
-node dsh-plugin/scripts/pack.mjs
-dsh plugin --profile pfe-test add "$PWD/dist/dsh-project-flow-explainer-0.10.0.tgz"
-```
+Bản npm đã phát hành gần nhất là `0.10.0`. Tệp phát hành tương ứng nằm ở [thẻ v0.10.0](https://github.com/Hieupt1904/project-flow-explainer/releases/tag/v0.10.0). Đừng cài thư mục `dsh-plugin/` bằng `link:`: thư mục đó chưa có `vendor/core/`. `pack.mjs` mới nhét lõi vào gói.
 
 Khởi động lại hồ sơ DSH sau khi cài hoặc nâng cấp. Các lệnh dựng bản đồ và phân tích luồng chạy tại máy, không gọi mô hình.
 
@@ -77,6 +81,8 @@ Nhập lệnh trong giao diện web:
 
 Nếu bỏ `--repo`, plugin dùng thư mục làm việc của phiên. Dùng `--repo` khi cần trỏ sang repository khác; repository đó PHẢI nằm trong `allowedRoots` hoặc trong thư mục phiên.
 
+Trong một phiên DSH, mô hình có skill `project-flow-explainer`. Skill này chỉ cách chọn trong bảy công cụ. Người dùng vẫn gõ lệnh `/project-flow-explainer` khi đã biết mình muốn gì.
+
 Mở `flow.html` trong `<repo>/artifacts/flows/<slug>/` để xem sơ đồ. Plugin trả đường dẫn kết quả tính từ thư mục gốc của kho mã. Lệnh `--map` dựng `project-flow-explainer/index.html`. Lệnh `--blueprint` đọc `project-flow-explainer/plan.json` có sẵn.
 
 ### Thanh Hỏi trên bản đồ
@@ -92,7 +98,7 @@ node project-flow-explainer/serve.mjs --no-open --agent
 ```
 
 1. Khi bật `--agent`, chọn cặp mô hình và nhà cung cấp cạnh thanh **Hỏi**. Danh sách lấy từ các mô hình khai báo trong hồ sơ `web`. Tải lại bản đồ sau khi thêm mô hình trong DSH.
-2. Mỗi lần hỏi chạy qua `headless` với bản vá tạm. DSH tự lấy thông tin xác thực đã lưu. Công cụ không sửa hồ sơ hoặc trả giá trị khóa về trình duyệt.
+2. Mỗi lần hỏi chạy một tiến trình `dsh --profile headless --json --permission-mode read-only --approval-policy never -`. Câu hỏi đi qua stdin. `--json` nhận dòng sự kiện, dòng `final` là câu trả lời. `--permission-mode read-only` giữ sandbox chỉ đọc; `--approval-policy never` để lượt chạy không bị kẹt vì không có người bấm duyệt. Bản vá `--patch` tạm chỉ chọn mô hình cho lượt đó. DSH tự lấy thông tin xác thực đã lưu. Công cụ không sửa hồ sơ hoặc trả giá trị khóa về trình duyệt.
 3. Nếu dùng hồ sơ khác, đặt `PROJECT_FLOW_DSH_PROFILE` trước khi chạy máy chủ. Nếu máy có nhiều bản DSH, đặt `PROJECT_FLOW_DSH` thành đường dẫn tuyệt đối tới trình khởi chạy đã dùng để cấu hình mô hình.
 
 Danh sách hiện hỗ trợ các mô hình khai báo trong bộ điều hợp `llm-pi-ai` và `llm-deepseek`. Khi danh sách trống hoặc chưa đọc được, thanh **Hỏi** dùng cấu hình mặc định của `headless`. Nếu gặp `MISSING_CREDENTIAL`, kiểm tra nhà cung cấp đã chọn hoặc dùng **Tra cứu bản đồ cục bộ**.

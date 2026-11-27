@@ -70,9 +70,11 @@ Từ thư mục gốc của kho mã **đã có bản đồ**, chọn một chế
 | Chế độ | Lệnh | Dữ liệu dùng để trả lời |
 |---|---|---|
 | Tra cứu cục bộ | `node project-flow-explainer/serve.mjs --no-open` | Tìm trong dữ liệu bản đồ. Không cần DSH hoặc khóa mô hình. |
-| Hỏi qua DeepSeek Harness (DSH) | `node project-flow-explainer/serve.mjs --no-open --agent` | Chọn mô hình từ danh sách của hồ sơ `web`. Máy chủ chuyển câu hỏi và dữ liệu bản đồ qua `headless` với lựa chọn đó. |
+| Hỏi qua DeepSeek Harness (DSH) | `node project-flow-explainer/serve.mjs --no-open --agent` | Chọn mô hình từ danh sách của hồ sơ `web`. Máy chủ gọi `dsh --profile headless --json --permission-mode read-only --approval-policy never -` và đưa câu hỏi qua stdin. |
 
 Nếu bật `--agent`, chọn mô hình và nhà cung cấp cạnh thanh **Hỏi**. Danh sách lấy từ cấu hình đã khai báo trong hồ sơ `web`. Tải lại bản đồ sau khi thêm mô hình. Nếu máy chủ không tải được danh sách hoặc báo thiếu khóa, xem [hướng dẫn xử lý trong tài liệu plugin](dsh-plugin/README.md#thanh-hỏi-trên-bản-đồ). Để tra cứu trên máy, chạy lại máy chủ không kèm `--agent`. Bản mở trực tiếp từ tệp hoặc bản chia sẻ không gửi câu hỏi.
+
+Trong một phiên DSH đã cài plugin, mô hình thấy skill `project-flow-explainer`. Skill đó chỉ cách chọn công cụ dựng sơ đồ và tra cứu. Lệnh `/project-flow-explainer` vẫn dành cho người dùng. Cài plugin và các cờ headless nằm trong [README plugin](dsh-plugin/README.md).
 
 ## 4. Đọc và dựng lại sơ đồ luồng
 

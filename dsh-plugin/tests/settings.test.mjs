@@ -129,3 +129,20 @@ test('an unrelated settings row is ignored', async (t) => {
   plugin.apply(ctx, { includeSessionRoot: false })
   assert.equal(await firstErrorCode(tools, tempRepo(t)), 'allowed_roots_unconfigured')
 })
+
+test('a volatile reference is read with get() and again on the next call', async (t) => {
+  const repo = tempRepo(t)
+  let roots
+  let limit = 180000
+  const { ctx, tools } = makeContext({ rows: [] })
+  plugin.apply(ctx, {
+    includeSessionRoot: false,
+    allowedRoots: { get: () => roots },
+    timeoutMs: { get: () => limit },
+  })
+  assert.equal(await firstErrorCode(tools, repo), 'allowed_roots_unconfigured')
+  roots = [repo]
+  limit = 240000
+  assert.notEqual(await firstErrorCode(tools, repo), 'allowed_roots_unconfigured')
+  assert.equal(tools.get('project_code_search').timeoutMs, 240000)
+})

@@ -132,10 +132,12 @@ const refSchema = {
   additionalProperties: false,
 }
 
-export function knowledgeTools({ settings, core, inFlight, ctx, sessionDirectory }) {
+export function knowledgeTools({ settings, core, inFlight, ctx, sessionDirectory, refresh }) {
+  const pull = () => { if (typeof refresh === 'function') refresh() }
   // Async because the session's directory is part of the read policy: a path
   // the DSH host already confines the session to needs no declaration.
   const repository = async (args, toolName, exec) => {
+    pull()
     const value = requiredString(args, 'repository_path', toolName)
     const sessionRoot = sessionDirectory === undefined
       ? undefined
@@ -1186,7 +1188,20 @@ export function knowledgeTools({ settings, core, inFlight, ctx, sessionDirectory
         }
       },
     },
-  ]
+  ].map((definition) => {
+    // The host timeout policy reads this at call time. A Settings edit updates
+    // `settings.timeoutMs` without remounting, so a copied number would keep
+    // the value from mount.
+    Object.defineProperty(definition, 'timeoutMs', {
+      enumerable: true,
+      configurable: true,
+      get() {
+        pull()
+        return settings.timeoutMs
+      },
+    })
+    return definition
+  })
 }
 
 export { InputError, path }

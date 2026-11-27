@@ -84,13 +84,18 @@ function texts(tree) {
 function makeForm(value, options = {}) {
   const form = {
     calls: [],
+    revisions: [],
     state: {
       status: 'ready',
       writable: options.writable !== false,
       revision: 7,
       value,
     },
-    mutate: async (ops) => { form.calls.push(ops); return options.accept !== false },
+    mutate: async (ops, revision) => {
+      form.calls.push(ops)
+      form.revisions.push(revision)
+      return options.accept !== false
+    },
   }
   return form
 }
@@ -106,6 +111,7 @@ const VALID = {
 test('client bundle declares the manifest identity', () => {
   const { captured, exports } = loadClient()
   assert.equal(captured.id, manifest.name)
+  assert.equal(exports.name, 'project-flow-explainer')
   assert.deepEqual(plain(exports.inject), ['slots'])
   assert.equal(typeof exports.apply, 'function')
 })
@@ -148,6 +154,7 @@ test('save sends one batch with parsed numbers and an unset for an empty field',
   const button = flatten(component({ view: 'page', form })).find((node) => node.type === 'button')
   await button.props.onClick()
   assert.equal(form.calls.length, 1)
+  assert.deepEqual(form.revisions, [7])
   const ops = form.calls[0]
   assert.deepEqual(plain(ops.find((op) => op.path[0] === 'allowedRoots').value), [ROOT_A, ROOT_B])
   assert.equal(ops.find((op) => op.path[0] === 'timeoutMs').value, 180000)

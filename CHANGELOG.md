@@ -1,5 +1,16 @@
 # Lịch sử phiên bản
 
+## 0.10.1
+
+Bản này chỉnh plugin và thanh Hỏi cho đúng hợp đồng DSH 0.2 hiện tại. Chưa đăng lên npm.
+
+- Cấu hình volatile được đọc bằng `.get()` ở mỗi lần gọi. Sửa `timeoutMs` hoặc `allowedRoots` trong Configure có hiệu lực ở lần gọi kế tiếp, không cần gỡ plugin.
+- Trang Configure gửi kèm `revision` khi lưu, đúng hợp đồng `form.mutate(operations, expectedRevision)`.
+- Nửa trình duyệt xuất `name`, để Loader nhận đây là plugin Cordis.
+- Plugin đăng ký skill `project-flow-explainer`. Mô hình nạp skill đó khi cần chọn công cụ. Cùng nội dung nằm ở `.dsh/skills/project-flow-explainer/SKILL.md` để hồ sơ đang mở kho này cũng thấy.
+- Thanh Hỏi vẫn gọi `dsh --profile headless --json --permission-mode read-only --approval-policy never -`. Bản vá chọn mô hình ghi ra `selection.yml` (nội dung JSON, parser YAML của DSH đọc được). Nếu `dsh` trên PATH chỉ là file shim, trình đọc danh mục mô hình vẫn tìm được gói `yaml` của bản cài DSH.
+- DSH từ chối cài khi `engines.dsh` không khớp. Dải giữ nguyên: `>=0.2.2-rc.2 <0.3.0`. `npm latest` lúc kiểm tra là `0.2.2-rc.5`, nằm trong dải này.
+
 ## 0.10.0
 
 Bản này đổi phạm vi đọc mặc định: cài xong là dùng được, không cần khai báo đường dẫn trước.

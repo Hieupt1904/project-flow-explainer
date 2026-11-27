@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "Project Flow Explainer",
-    "description": "Turn repository source into an interactive diagram with file and line references. Open Configure on the project-flow-explainer row and set the allowed roots. Then type /project-flow-explainer followed by a flow description. The plugin analyzes source locally without running the target application. The preview shows a Vietnamese sample.",
+    "description": "Turn repository source into an interactive diagram with file and line references. A fresh install reads the session directory. Add other absolute paths under Configure only when the repository sits outside that directory. Type /project-flow-explainer and a flow description, or let the model load the project-flow-explainer skill. Analysis stays on this machine and does not run the target application.",
     "detail": "docs/DETAIL.md"
   }
 }
