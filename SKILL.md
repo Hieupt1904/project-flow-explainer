@@ -7,6 +7,8 @@ description: Dựng bản đồ toàn kho hoặc giải thích một luồng ngh
 
 Biến mã nguồn project thành sơ đồ luồng dễ hiểu, có thể truy ngược về code. Một lần chạy cần tạo **JSON kiểm chứng được** và **HTML độc lập mở offline**.
 
+Trong DeepSeek Harness, skill mà harness nạp là `.dsh/skills/project-flow-explainer/SKILL.md`. Plugin đã cài cũng đăng ký cùng skill đó. File này giữ quy trình cho agent không chạy trong DSH.
+
 ## Chọn chế độ
 
 - **Toàn kho:** chạy `node scripts/project_map.mjs build /duong/dan/repo`. Mở `project-flow-explainer/index.html` trong kho được phân tích. Dùng `refresh` khi đã có bản đồ.

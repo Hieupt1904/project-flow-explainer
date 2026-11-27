@@ -203,7 +203,7 @@ window.__ModuleLoader__.load({
         setBusy(true);
         setNote("");
         try {
-          const ok = await form.mutate(checked.ops);
+          const ok = await form.mutate(checked.ops, initial.revision);
           setNote(ok ? "Đã lưu." : "Host từ chối thay đổi.");
           if (ok) setSavedAt(new Date().toLocaleTimeString());
         } catch (error) {
@@ -217,7 +217,7 @@ window.__ModuleLoader__.load({
         setBusy(true);
         setNote("");
         try {
-          const ok = await form.mutate(FIELDS.map((field) => ({ op: "unset", path: [field.key] })));
+          const ok = await form.mutate(FIELDS.map((field) => ({ op: "unset", path: [field.key] })), initial.revision);
           setNote(ok ? "Đã khôi phục mặc định của schema." : "Host từ chối thay đổi.");
           if (ok) setDraft(readForm(form).next);
         } catch (error) {
@@ -300,6 +300,7 @@ window.__ModuleLoader__.load({
         { name: "plugins.row.config", key: PACKAGE + "#" + ROW_ID }, SettingsPage));
     }
 
+    exports.name = "project-flow-explainer";
     exports.apply = apply;
     exports.inject = ["slots"];
     return module.exports;
