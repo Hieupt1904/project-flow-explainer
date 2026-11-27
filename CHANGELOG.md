@@ -2,8 +2,9 @@
 
 ## 0.10.1
 
-Bản này chỉnh plugin và thanh Hỏi cho đúng hợp đồng DSH 0.2 hiện tại. Chưa đăng lên npm.
+Bản này chỉnh plugin và thanh Hỏi cho đúng hợp đồng DSH 0.2 hiện tại, và siết cách bộ phân tích nhận điểm vào mã JavaScript/TypeScript. Chưa đăng lên npm.
 
+- Bộ phân tích nhận điểm vào plugin JavaScript/TypeScript (`export function apply`, `export default`, hook Cordis `apply`, `exports.apply`, `defineTool`, `commands.register`) và bỏ qua `def main()` nằm trong chú thích hay docstring. Điểm vào được chấm theo yêu cầu, nên luồng đăng ký lệnh slash neo vào `dsh-plugin/index.js` thay vì một file Python chỉ nhắc `main` trong tài liệu.
 - Cấu hình volatile được đọc bằng `.get()` ở mỗi lần gọi. Sửa `timeoutMs` hoặc `allowedRoots` trong Configure có hiệu lực ở lần gọi kế tiếp, không cần gỡ plugin.
 - Trang Configure gửi kèm `revision` khi lưu, đúng hợp đồng `form.mutate(operations, expectedRevision)`.
 - Nửa trình duyệt xuất `name`, để Loader nhận đây là plugin Cordis.

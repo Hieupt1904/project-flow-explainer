@@ -112,6 +112,68 @@ PREFERRED_SYMBOL = re.compile(
     r"(?i)^(main|run|apply|execute|handler|handle|export|process|start|generate|build_flow|build)$")
 
 
+REQUEST_STOPWORDS = {
+    "the", "and", "for", "from", "with", "this", "that", "are", "was", "were",
+    "into", "when", "then", "than", "how", "what", "which", "where", "who",
+    "not", "but", "can", "you", "your", "our", "its", "has", "have", "had",
+    "giai", "thich", "trong", "khi", "den", "luc", "nhu", "hay", "nay", "kia",
+    "duoc", "mot", "cac", "nhung", "cho", "voi", "cua", "la", "se", "da",
+    "co", "khong", "tai", "toi", "ban", "nguoi", "dung", "nhan", "cung",
+    "len", "xuong", "qua", "lai", "sau", "truoc", "giua", "hoac", "neu",
+    "vi", "de", "ma", "thi", "ra", "vao", "lam", "nao", "xem", "biet",
+    "can", "muon", "code", "file",
+}
+HOOK_LABELS = {"apply", "main", "default"}
+INDEX_FILENAMES = {
+    "index.js", "index.mjs", "index.cjs", "index.ts", "index.tsx",
+    "plugin.js", "plugin.mjs", "plugin.ts", "main.js", "main.ts", "main.py",
+    "__main__.py", "__init__.py",
+}
+
+
+def request_terms(request_norm):
+    """Distinctive tokens from the request, used to score a candidate start."""
+    terms = []
+    seen = set()
+    for token in re.findall(r"[a-z0-9_]{3,}", request_norm):
+        if token in REQUEST_STOPWORDS or token in seen:
+            continue
+        seen.add(token)
+        terms.append(token)
+    return terms
+
+
+def _term_bonus(item, start, terms, window):
+    score = 0
+    rel_norm = normalize_text(re.sub(r"[^A-Za-z0-9]+", " ", item.rel))
+    rel_tokens = set(rel_norm.split())
+    label = normalize_text(start.get("label") or "")
+    blob = normalize_text(window or "")
+    for term in terms:
+        if term in rel_tokens:
+            score += 8
+        if term == label or (label and term in label.split()):
+            score += 6
+        elif term in blob:
+            score += 2
+    if label in HOOK_LABELS:
+        score += 12
+    if Path(item.rel).name.lower() in INDEX_FILENAMES:
+        score += 6
+    return score
+
+
+def _entry_window(item, start):
+    line = start.get("line") or 1
+    span = item.body_range(line)
+    if not span:
+        return (line, min(line + 24, item.line_count))
+    return span
+
+
+
+
+
 def match_facets(request_norm):
     active = [(facet, [kw for kw in facet["keywords"] if kw in request_norm])
               for facet in FACETS]
@@ -162,24 +224,45 @@ def build_graph(request, files, git):
     warnings = []
     related = []
 
+    terms = request_terms(request_norm)
+
     def rank(item):
-        best, best_index = 0, None
-        for index in range(len(item.routes)):
+        best, best_kind, best_index = 0, None, None
+        for index, route in enumerate(item.routes):
             start, end = item.route_range(index)
-            score = score_window(item.window(start, end), active)
+            window = item.window(start, end)
+            score = score_window(window, active)
             for facet, _hits in active:
                 for pattern in facet["path"]:
-                    if re.search(pattern, item.routes[index]["label"] or ""):
+                    if re.search(pattern, route.get("label") or ""):
                         score += 6
+            score += _term_bonus(item, route, terms, window)
             if score > best:
-                best, best_index = score, index
-        return (best, len(item.symbols), item.rel), best_index
+                best, best_kind, best_index = score, "route", index
+        # A command/tool registration inside apply()/main() is a step, not a
+        # rival start: the hook is where the host actually enters the file.
+        hook_entries = [entry for entry in item.entries
+                        if (entry.get("label") or "").lower() in HOOK_LABELS]
+        for index, entry in enumerate(item.entries):
+            if hook_entries and entry.get("kind") in {"command", "tool"}:
+                continue
+            start, end = _entry_window(item, entry)
+            window = item.window(start, end)
+            score = score_window(window, active)
+            for facet, _hits in active:
+                for pattern in facet["path"]:
+                    if re.search(pattern, item.rel) or re.search(pattern, entry.get("label") or ""):
+                        score += 6
+            score += _term_bonus(item, entry, terms, window)
+            if score > best:
+                best, best_kind, best_index = score, "entry", index
+        return (best, len(item.symbols), item.rel), best_kind, best_index
 
     ranked = []
     for item in files:
-        score, route_index = rank(item)
+        score, kind, index = rank(item)
         if score[0] > 0 or item.routes or item.entries:
-            ranked.append((score, route_index, item))
+            ranked.append((score, kind, index, item))
     ranked.sort(key=lambda row: (-row[0][0], -row[0][1], row[0][2]))
 
     facet_labels = ", ".join(facet["label"] for facet, _ in active)
@@ -216,14 +299,20 @@ def build_graph(request, files, git):
         return graph, limits, warnings, related
 
     entry = None
-    for score, route_index, item in ranked:
-        if route_index is not None and score[0] > 0:
-            entry = (item, item.routes[route_index], route_index, "route")
+    for score, kind, index, item in ranked:
+        if kind is not None and score[0] > 0:
+            chosen = item.routes[index] if kind == "route" else item.entries[index]
+            entry = (item, chosen, index, kind)
             break
     if entry is None:
-        for score, route_index, item in ranked:
+        for score, kind, index, item in ranked:
             if item.entries:
-                entry = (item, item.entries[0], None, "entry")
+                pick = 0
+                for offset, candidate in enumerate(item.entries):
+                    if (candidate.get("label") or "").lower() in HOOK_LABELS:
+                        pick = offset
+                        break
+                entry = (item, item.entries[pick], pick, "entry")
                 break
     if entry is None:
         limits.append(
@@ -236,7 +325,7 @@ def build_graph(request, files, git):
                  details="Cần chỉ rõ endpoint hoặc hàm bắt đầu luồng.")
         add_edge("start", "no-entry", "không có điểm vào", "error", "structure", "no-entry")
         related = [{"path": item.rel, "reason": "khớp từ khoá, không có liên kết tới điểm vào"}
-                   for _score, _index, item in ranked[:5]]
+                   for _score, _kind, _index, item in ranked[:5]]
         graph = _finish(nodes, edges, limits, warnings, related, active, request, git)
         return graph, limits, warnings, related
 
@@ -249,8 +338,10 @@ def build_graph(request, files, git):
     steps = [{
         "item": entry_item, "line": entry_line, "label": entry_label,
         "evidence": "entry",
-        "technical": "route khai báo tại " + entry_item.rel + ":" + str(entry_line),
-        "window": entry_item.route_range(entry_route_index) if entry_kind == "route" else None,
+        "technical": (("route" if entry_kind == "route" else "điểm vào")
+                      + " khai báo tại " + entry_item.rel + ":" + str(entry_line)),
+        "window": (entry_item.route_range(entry_route_index) if entry_kind == "route"
+                   else entry_item.body_range(entry_line)),
         "symbol": entry_label,
     }]
 
