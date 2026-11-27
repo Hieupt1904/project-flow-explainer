@@ -77,7 +77,23 @@ ROUTE_PATTERNS = [
 ENTRY_PATTERNS = [
     (r"(?i)def\s+(main)\s*\(", "entry"),
     (r"(?i)function\s+(main)\s*\(", "entry"),
+    # Public plugin / host hooks. `module.exports = { ... }` alone is not an
+    # entry: almost every CommonJS file has that boundary (see find_entry_points).
+    (r"(?i)export\s+(?:async\s+)?function\s+(apply)\s*\(", "entry"),
+    (r"(?i)export\s+(?:const|let|var)\s+(apply)\s*(?::[^=]+)?=", "entry"),
+    (r"(?i)export\s+default\s+(?:async\s+)?function(?:\s+([A-Za-z_]\w*))?\s*\(", "entry"),
+    (r"(?i)export\s+default\s+([A-Za-z_]\w*)\s*;", "entry"),
+    (r"(?i)(?:module\.)?exports\.(apply)\s*=", "entry"),
+    (r"(?i)module\.exports\s*=\s*(apply)\b", "entry"),
+    (r"(?i)module\.exports\s*=\s*(?:async\s+)?function(?:\s+([A-Za-z_]\w*))?\s*\(", "entry"),
+    (r"(?i)(?:\b\w+\.)?commands\.register\s*\(", "command"),
+    (r"(?i)(?:\b\w+\.)?tools\.register\s*\(", "tool"),
+    (r"(?i)\bdefineTool\s*\(", "tool"),
 ]
+ENTRY_RE = [(re.compile(pattern), kind) for pattern, kind in ENTRY_PATTERNS]
+PLUGIN_OBJECT_START = re.compile(
+    r"(?i)^\s*(?:export\s+default\s*\{|module\.exports\s*=\s*\{)")
+PLUGIN_APPLY_METHOD = re.compile(r"(?i)^\s*(?:async\s+)?apply\s*\(")
 
 SYMBOL_PATTERNS = [
     r"^\s*(?:async\s+)?def\s+([A-Za-z_]\w*)\s*\(",
@@ -156,7 +172,18 @@ ENTRY_POINT_PATTERNS = [
     (re.compile(r"\.addEventListener\s*\(\s*['\"]([^'\"]+)['\"]"), "callback"),
     (re.compile(r"\bafter\s*\(\s*\d+\s*,"), "callback"),
     (re.compile(r"\bcallback\s*=\s*([A-Za-z_][\w.]*)"), "callback"),
+    (re.compile(r"(?i)export\s+(?:async\s+)?function\s+(apply)\s*\("), "export"),
+    (re.compile(r"(?i)export\s+(?:const|let|var)\s+(apply)\s*(?::[^=]+)?="), "export"),
+    (re.compile(r"(?i)export\s+default\s+(?:async\s+)?function(?:\s+([A-Za-z_]\w*))?\s*\("), "export"),
+    (re.compile(r"(?i)export\s+default\s+([A-Za-z_]\w+)\s*;"), "export"),
+    (re.compile(r"(?i)(?:module\.)?exports\.(apply)\s*="), "export"),
+    (re.compile(r"(?i)module\.exports\s*=\s*(apply)\b"), "export"),
+    (re.compile(r"(?i)module\.exports\s*=\s*(?:async\s+)?function(?:\s+([A-Za-z_]\w*))?\s*\("), "export"),
+    (re.compile(r"(?i)(?:\b\w+\.)?commands\.register\s*\("), "command"),
+    (re.compile(r"(?i)(?:\b\w+\.)?tools\.register\s*\("), "command"),
+    (re.compile(r"(?i)\bdefineTool\s*\("), "command"),
 ]
+
 
 # Only an explicit public list is a public API declaration. `module.exports` is
 # a module boundary every JavaScript file has, so counting it as an entry point
@@ -168,44 +195,163 @@ BARE_MAIN_RE = re.compile(r"^\s*(?:async\s+)?def\s+(main)\s*\(")
 MAIN_GUARD_RE = re.compile(r"^\s*if\s+__name__\s*==\s*['\"]__main__['\"]")
 
 
-def find_entry_points(lines):
+def _label_from_match(match, fallback=""):
+    for group in match.groups():
+        if group:
+            return group
+    return fallback
+
+
+
+def _registration_label(kind, line):
+    lower = line.lower()
+    if "commands.register" in lower:
+        return "commands.register"
+    if "tools.register" in lower:
+        return "tools.register"
+    if "definetool" in lower:
+        return "defineTool"
+    if "default" in lower:
+        return "default"
+    return kind
+
+
+def _strip_trailing_line_comment(line, jsish, pyish):
+    """Drop a trailing `#` or `//` comment; strings are ignored conservatively."""
+    in_single = in_double = escaped = False
+    index = 0
+    length = len(line)
+    while index < length:
+        char = line[index]
+        if escaped:
+            escaped = False
+            index += 1
+            continue
+        if char == "\\" and (in_single or in_double):
+            escaped = True
+            index += 1
+            continue
+        if char == "'" and not in_double:
+            in_single = not in_single
+        elif char == '"' and not in_single:
+            in_double = not in_double
+        elif not in_single and not in_double:
+            if jsish and line.startswith("//", index):
+                return line[:index]
+            if pyish and char == "#":
+                return line[:index]
+        index += 1
+    return line
+
+
+def iter_source_lines(lines, suffix=""):
+    """Yield (lineno, line) for source, skipping comments and docstrings.
+
+    `find_entries` and `find_entry_points` must not treat a mention of
+    `def main()` inside a docstring or comment as a real entry.
+    """
+    suffix = (suffix or "").lower()
+    jsish = suffix in {".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx", ""}
+    pyish = suffix in {".py", ""}
+    in_block = None
+    for number, raw in enumerate(lines, start=1):
+        line = raw
+        if in_block == "/*":
+            end = line.find("*/")
+            if end < 0:
+                continue
+            line = line[end + 2:]
+            in_block = None
+        elif in_block in ('"""', "'''"):
+            end = line.find(in_block)
+            if end < 0:
+                continue
+            line = line[end + len(in_block):]
+            in_block = None
+        if not line.strip():
+            continue
+
+        # Open or close a block comment / docstring, possibly after code.
+        rebuilt = []
+        rest = line
+        while rest:
+            stripped = rest.lstrip()
+            if jsish and stripped.startswith("/*"):
+                lead = rest[:len(rest) - len(stripped)]
+                if rebuilt:
+                    rebuilt.append(lead)
+                end = stripped.find("*/", 2)
+                if end < 0:
+                    in_block = "/*"
+                    rest = ""
+                    break
+                rest = stripped[end + 2:]
+                continue
+            if pyish and (stripped.startswith('"""') or stripped.startswith("'''")):
+                quote = stripped[:3]
+                lead = rest[:len(rest) - len(stripped)]
+                if rebuilt:
+                    rebuilt.append(lead)
+                end = stripped.find(quote, 3)
+                if end < 0:
+                    in_block = quote
+                    rest = ""
+                    break
+                rest = stripped[end + 3:]
+                continue
+            rebuilt.append(rest)
+            rest = ""
+        if in_block:
+            continue
+        line = "".join(rebuilt)
+        line = _strip_trailing_line_comment(line, jsish, pyish)
+        if line.strip():
+            yield number, line
+
+
+def find_entry_points(lines, suffix=""):
     """Return entry points with the evidence quality that proves them.
 
     Only registration syntax counts as `observed`: a decorator, a binding, a
-    parser registration, an export list, a `__main__` guard. A bare `def main()`
-    is *likely* an entry point — plenty of files define one and never call it, or
-    call it only from a guard that lives elsewhere — so it is reported as
-    `structural` unless the same file also has the guard.
+    parser registration, an export list, a `__main__` guard, a plugin hook
+    (`export function apply`, `exports.apply`, `commands.register`,
+    `defineTool`). A bare `def main()` is *likely* an entry point — plenty of
+    files define one and never call it, or call it only from a guard that lives
+    elsewhere — so it is reported as `structural` unless the same file also has
+    the guard.
+
+    Mentions inside comments or docstrings are ignored.
     """
-    guarded = any(MAIN_GUARD_RE.search(line) for line in lines)
+    source = list(iter_source_lines(lines, suffix))
+    guarded = any(MAIN_GUARD_RE.search(line) for _, line in source)
     found = []
     seen = set()
-    for number, line in enumerate(lines, start=1):
+
+    def add(kind, number, label, evidence_kind="observed"):
+        key = (kind, number, label)
+        if key in seen:
+            return
+        seen.add(key)
+        found.append({"kind": kind, "line": number, "label": label,
+                      "evidence_kind": evidence_kind})
+
+    for position, (number, line) in enumerate(source):
         for regex, kind in ENTRY_POINT_PATTERNS:
             match = regex.search(line)
             if not match:
                 continue
-            label = ""
-            for group in match.groups():
-                if group:
-                    label = group
-                    break
-            key = (kind, number, label)
-            if key in seen:
-                continue
-            seen.add(key)
-            found.append({"kind": kind, "line": number, "label": label,
-                          "evidence_kind": "observed"})
+            add(kind, number, _label_from_match(match))
         if PUBLIC_API_LINE.search(line):
-            found.append({"kind": "public_api", "line": number, "label": "",
-                          "evidence_kind": "observed"})
+            add("public_api", number, "")
         bare = BARE_MAIN_RE.search(line)
         if bare:
-            key = ("main", number, bare.group(1) or "")
-            if key not in seen:
-                seen.add(key)
-                found.append({"kind": "main", "line": number, "label": "main",
-                              "evidence_kind": "observed" if guarded else "structural"})
+            add("main", number, "main",
+                "observed" if guarded else "structural")
+        if PLUGIN_OBJECT_START.search(line):
+            for later_number, later in source[position:position + 40]:
+                if PLUGIN_APPLY_METHOD.search(later):
+                    add("export", later_number, "apply")
+                    break
     return found
 
 
@@ -232,6 +378,11 @@ class ScanBudget:
     def note(self, message):
         if message not in self.notes:
             self.notes.append(message)
+
+
+def _line_indent(line):
+    return len(line) - len(line.lstrip(" \t"))
+
 
 
 @dataclass
@@ -282,13 +433,25 @@ class FileFacts:
         return max(candidates, key=lambda item: item["line"])
 
     def body_range(self, line):
-        """Body of the symbol that owns this line: (start, end) or None."""
+        """Body of the symbol that owns this line: (start, end) or None.
+
+        Nested functions (for example `let refresh = () => {}` inside
+        `export function apply`) do not end the outer body; the range
+        runs until the next symbol at the same or smaller indent.
+        """
         symbol = self.symbol_at(line)
         if symbol is None:
             return None
-        following = [item["line"] for item in self.symbols if item["line"] > symbol["line"]]
-        end = (min(following) - 1) if following else self.line_count
-        return (symbol["line"], end)
+        start = symbol["line"]
+        start_indent = _line_indent(self.lines[start - 1] if start <= self.line_count else "")
+        end = self.line_count
+        for item in self.symbols:
+            if item["line"] <= start or item["line"] > self.line_count:
+                continue
+            if _line_indent(self.lines[item["line"] - 1]) <= start_indent:
+                end = item["line"] - 1
+                break
+        return (start, end)
 
     def route_range(self, index):
         start = self.routes[index]["line"]
@@ -344,13 +507,35 @@ def find_routes(lines):
     return routes
 
 
-def find_entries(lines):
+def find_entries(lines, suffix=""):
+    """Return flow-start candidates: `main`, plugin hooks, and registrations.
+
+    Comments and docstrings are ignored, so a mention of `def main()` in
+    documentation is not an entry. A plain `module.exports = { ... }` is not
+    an entry unless the exported object exposes an `apply` hook.
+    """
+    source = list(iter_source_lines(lines, suffix))
     entries = []
-    for number, line in enumerate(lines, start=1):
-        for pattern, kind in ENTRY_PATTERNS:
-            hit = re.search(pattern, line)
+    seen = set()
+
+    def add(number, kind, label):
+        key = (number, kind, label or "")
+        if key in seen:
+            return
+        seen.add(key)
+        entries.append({"line": number, "kind": kind, "label": label or kind})
+
+    for position, (number, line) in enumerate(source):
+        for regex, kind in ENTRY_RE:
+            hit = regex.search(line)
             if hit:
-                entries.append({"line": number, "kind": kind, "label": hit.group(1)})
+                fallback = _registration_label(kind, line)
+                add(number, kind, _label_from_match(hit, fallback))
+        if PLUGIN_OBJECT_START.search(line):
+            for later_number, later in source[position:position + 40]:
+                if PLUGIN_APPLY_METHOD.search(later):
+                    add(later_number, "entry", "apply")
+                    break
     return entries
 
 
@@ -715,8 +900,8 @@ def _facts_from(rel, real, lines, size, is_test):
     facts = FileFacts(
         rel=rel, real=real, size=size, language=language_of(rel), lines=lines,
         content_hash=hashlib.sha256(text.encode("utf-8", "replace")).hexdigest(),
-        symbols=symbols, routes=find_routes(lines), entries=find_entries(lines),
-        entry_points=find_entry_points(lines),
+        symbols=symbols, routes=find_routes(lines), entries=find_entries(lines, Path(rel).suffix),
+        entry_points=find_entry_points(lines, Path(rel).suffix),
         external_imports=find_external_imports(text),
         call_sites=find_call_sites(lines, symbols),
         response_lines=response_lines(lines),
